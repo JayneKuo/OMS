@@ -24,7 +24,7 @@ export const menuConfig: MenuItem[] = [
       },
       {
         title: 'Form 3461',
-        path: '/customs/form-3461',
+        path: '/customs/form3461',
         icon: Document
       }
     ]

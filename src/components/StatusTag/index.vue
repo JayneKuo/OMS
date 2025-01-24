@@ -1,10 +1,20 @@
 <template>
-  <span 
-    class="status-tag" 
-    :class="[`status-tag--${type}`]"
+  <el-tooltip 
+    :content="description" 
+    placement="top"
+    effect="dark"
   >
-    {{ label }}
-  </span>
+    <span 
+      class="status-tag"
+      :style="{
+        backgroundColor: `${color}1A`,  // 添加10%的透明度
+        color: color,
+        borderColor: `${color}33`  // 添加20%的透明度
+      }"
+    >
+      {{ label }}
+    </span>
+  </el-tooltip>
 </template>
 
 <script setup lang="ts">
@@ -13,8 +23,10 @@ defineOptions({
 })
 
 interface Props {
-  type: 'success' | 'warning' | 'danger' | 'default'
+  type?: string
   label: string
+  color: string
+  description: string
 }
 
 defineProps<Props>()
@@ -29,25 +41,12 @@ defineProps<Props>()
   border-radius: 4px;
   font-size: 12px;
   font-weight: 500;
-  
-  &--success {
-    background: rgba(var(--success-color-rgb), 0.1);
-    color: var(--success-color);
-  }
-  
-  &--warning {
-    background: rgba(var(--warning-color-rgb), 0.1);
-    color: var(--warning-color);
-  }
-  
-  &--danger {
-    background: rgba(var(--danger-color-rgb), 0.1);
-    color: var(--danger-color);
-  }
-  
-  &--default {
-    background: rgba(var(--text-secondary-rgb), 0.1);
-    color: var(--text-secondary);
+  border: 1px solid;
+  cursor: help;
+  transition: all 0.2s ease;
+
+  &:hover {
+    opacity: 0.8;
   }
 }
 </style> 

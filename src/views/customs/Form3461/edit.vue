@@ -1,335 +1,642 @@
 <template>
   <div class="form3461-edit-page">
-    <!-- 页面头部 -->
-    <div class="page-header">
-      <div class="header-content">
-        <h1>{{ isEdit ? 'Edit Form 3461' : 'Create Form 3461' }}</h1>
-        <p class="subtitle">{{ isEdit ? 'Edit existing Form 3461 entry' : 'Create a new Form 3461 entry' }}</p>
+    <div class="page-content">
+      <div class="fixed-header">
+        <div class="back-button" @click="handleBack">
+          <el-icon><ArrowLeft /></el-icon>
+          <span>Back</span>
+        </div>
+        <div class="title">{{ pageTitle }}</div>
       </div>
-    </div>
 
-    <!-- 表单区域 -->
-    <div class="form-section">
-      <el-form 
-        ref="formRef"
-        :model="formData"
-        :rules="formRules"
-        label-position="top"
-      >
-        <!-- 基本信息 -->
-        <div class="form-group">
-          <h2 class="group-title">Basic Information</h2>
-          <div class="form-row">
-            <el-form-item label="Entry No" prop="entryNo">
-              <el-input v-model="formData.entryNo" placeholder="Enter entry number" />
-            </el-form-item>
-            <el-form-item label="Importer No" prop="importerNo">
-              <el-input v-model="formData.importerNo" placeholder="Enter importer number" />
-            </el-form-item>
-            <el-form-item label="Entry Type" prop="entryType">
-              <el-select v-model="formData.entryType" placeholder="Select entry type">
-                <el-option
-                  v-for="option in entryTypeOptions"
-                  :key="option.value"
-                  :label="option.label"
-                  :value="option.value"
+      <div class="content-wrapper">
+        <el-form 
+          ref="formRef"
+          :model="formData"
+          :rules="!isViewMode ? formRules : {}"
+          label-position="top"
+          class="form-container"
+          :disabled="isViewMode"
+        >
+          <!-- Entry Information -->
+          <div class="form-section">
+            <div class="section-title">ENTRY INFORMATION</div>
+            <div class="form-row">
+              <el-form-item label="Port of Entry" prop="portOfEntry" required>
+                <el-input v-model="formData.portOfEntry" placeholder="Enter Port Code" />
+              </el-form-item>
+              <el-form-item label="Entry Number" prop="entryNumber" required>
+                <el-input v-model="formData.entryNumber" placeholder="XXX-XXXXXXX-X" />
+              </el-form-item>
+              <el-form-item label="Entry Type" prop="entryType" required>
+                <el-input v-model="formData.entryType" placeholder="Enter Entry Type" />
+              </el-form-item>
+            </div>
+            <div class="form-row">
+              <el-form-item label="Entry Date" prop="entryDate" required>
+                <el-date-picker
+                  v-model="formData.entryDate"
+                  type="date"
+                  placeholder="YYYY/MM/DD"
+                  format="YYYY/MM/DD"
                 />
-              </el-select>
-            </el-form-item>
+              </el-form-item>
+              <el-form-item label="Port Code" prop="portCode" required>
+                <el-input v-model="formData.portCode" placeholder="XXXX" />
+              </el-form-item>
+              <el-form-item label="Importer Number" prop="importerNumber" required>
+                <el-input v-model="formData.importerNumber" placeholder="Enter Importer Number" />
+              </el-form-item>
+            </div>
           </div>
-          <div class="form-row">
-            <el-form-item label="Bill of Lading" prop="billOfLading">
-              <el-input v-model="formData.billOfLading" placeholder="Enter bill of lading" />
-            </el-form-item>
-            <el-form-item label="Port of Entry" prop="portOfEntry">
-              <el-select v-model="formData.portOfEntry" placeholder="Select port of entry">
-                <el-option
-                  v-for="option in portOptions"
-                  :key="option.value"
-                  :label="option.label"
-                  :value="option.value"
+
+          <!-- Importer/Consignee Information -->
+          <div class="form-section">
+            <div class="section-title">IMPORTER/CONSIGNEE INFORMATION</div>
+            <div class="form-row">
+              <el-form-item label="Importer Number" prop="importerNumberConsignee" required>
+                <el-input v-model="formData.importerNumberConsignee" placeholder="Enter Importer Number" />
+              </el-form-item>
+              <el-form-item label="Importer/Consignee Name" prop="importerConsigneeName" required>
+                <el-input v-model="formData.importerConsigneeName" placeholder="Enter Importer/Consignee Name" />
+              </el-form-item>
+            </div>
+          </div>
+
+          <!-- Port/Location Information -->
+          <div class="form-section">
+            <div class="section-title">PORT/LOCATION INFORMATION</div>
+            <div class="form-row">
+              <el-form-item label="Port of Entry" prop="portOfEntryLocation" required>
+                <el-input v-model="formData.portOfEntryLocation" placeholder="Enter Port Code" />
+              </el-form-item>
+              <el-form-item label="Port of Unlading" prop="portOfUnlading">
+                <el-input v-model="formData.portOfUnlading" placeholder="Enter Port of Unlading" />
+              </el-form-item>
+              <el-form-item label="Arrival Date" prop="arrivalDate">
+                <el-date-picker
+                  v-model="formData.arrivalDate"
+                  type="date"
+                  placeholder="YYYY/MM/DD"
+                  format="YYYY/MM/DD"
                 />
-              </el-select>
-            </el-form-item>
-            <el-form-item label="Entry Date" prop="entryDate">
-              <el-date-picker
-                v-model="formData.entryDate"
-                type="date"
-                placeholder="Select entry date"
-                value-format="YYYY-MM-DD"
-              />
-            </el-form-item>
+              </el-form-item>
+            </div>
           </div>
-        </div>
 
-        <!-- 运输信息 -->
-        <div class="form-group">
-          <h2 class="group-title">Transportation Details</h2>
-          <div class="form-row">
-            <el-form-item label="Country of Origin" prop="countryOfOrigin">
-              <el-input v-model="formData.countryOfOrigin" placeholder="Enter country of origin" />
-            </el-form-item>
-            <el-form-item label="Vessel Name" prop="vesselName">
-              <el-input v-model="formData.vesselName" placeholder="Enter vessel name" />
-            </el-form-item>
-            <el-form-item label="Voyage No" prop="voyageNo">
-              <el-input v-model="formData.voyageNo" placeholder="Enter voyage number" />
-            </el-form-item>
+          <!-- Broker/Filer Information -->
+          <div class="form-section">
+            <div class="section-title">BROKER/FILER INFORMATION</div>
+            <div class="form-row">
+              <el-form-item label="Broker/Filer Number" prop="brokerNumber">
+                <el-input v-model="formData.brokerNumber" placeholder="XXX-XXXXXX" />
+              </el-form-item>
+              <el-form-item label="Bond Type" prop="bondType">
+                <el-select v-model="formData.bondType" placeholder="Select Bond Type">
+                  <el-option
+                    v-for="item in bondTypes"
+                    :key="item.value"
+                    :label="item.label"
+                    :value="item.value"
+                  />
+                </el-select>
+              </el-form-item>
+            </div>
           </div>
-        </div>
 
-        <!-- 商品信息 -->
-        <div class="form-group">
-          <h2 class="group-title">Merchandise Information</h2>
-          <div class="form-row">
-            <el-form-item label="Manufacturer ID" prop="manufacturerId">
-              <el-input v-model="formData.manufacturerId" placeholder="Enter manufacturer ID" />
-            </el-form-item>
-            <el-form-item label="Value" prop="value">
-              <el-input v-model="formData.value" placeholder="Enter value">
-                <template #prefix>$</template>
-              </el-input>
-            </el-form-item>
+          <!-- Ultimate Consignee Information -->
+          <div class="form-section">
+            <div class="section-title">ULTIMATE CONSIGNEE INFORMATION</div>
+            <div class="form-row">
+              <el-form-item label="Consignee Number" prop="consigneeNumber">
+                <el-input v-model="formData.consigneeNumber" placeholder="XX-XXXXXXX" />
+              </el-form-item>
+              <el-form-item label="Importer Number" prop="importerNumberUltimate">
+                <el-input v-model="formData.importerNumberUltimate" placeholder="XX-XXXXXXX" />
+              </el-form-item>
+            </div>
           </div>
-          <div class="form-row">
-            <el-form-item label="Description" prop="description">
-              <el-input
-                v-model="formData.description"
-                type="textarea"
-                :rows="3"
-                placeholder="Enter merchandise description"
-              />
-            </el-form-item>
-          </div>
-        </div>
 
-        <!-- 申报人信息 -->
-        <div class="form-group">
-          <h2 class="group-title">Declarant Information</h2>
-          <div class="form-row">
-            <el-form-item label="Declarant Name" prop="declarantName">
-              <el-input v-model="formData.declarantName" placeholder="Enter declarant name" />
-            </el-form-item>
-            <el-form-item label="Contact Phone" prop="contactPhone">
-              <el-input v-model="formData.contactPhone" placeholder="Enter contact phone" />
-            </el-form-item>
-            <el-form-item label="Email" prop="email">
-              <el-input v-model="formData.email" placeholder="Enter email" />
-            </el-form-item>
+          <!-- Transportation Information -->
+          <div class="form-section">
+            <div class="section-title">TRANSPORTATION INFORMATION</div>
+            <div class="form-row">
+              <el-form-item label="Mode of Transportation" prop="transportationMode">
+                <el-select v-model="formData.transportationMode" placeholder="Select modes">
+                  <el-option
+                    v-for="item in transportModes"
+                    :key="item.value"
+                    :label="item.label"
+                    :value="item.value"
+                  />
+                </el-select>
+              </el-form-item>
+              <el-form-item label="Vessel Name" prop="vesselName">
+                <el-input v-model="formData.vesselName" placeholder="Enter Vessel Name" />
+              </el-form-item>
+              <el-form-item label="Voyage/Flight Number" prop="voyageNumber">
+                <el-input v-model="formData.voyageNumber" placeholder="Enter Voyage/Flight Number" />
+              </el-form-item>
+            </div>
           </div>
-        </div>
 
-        <!-- 操作按钮 -->
-        <div class="form-actions">
-          <el-button @click="handleCancel">Cancel</el-button>
-          <el-button type="primary" @click="handleSubmit">{{ isEdit ? 'Save Changes' : 'Create Entry' }}</el-button>
-        </div>
-      </el-form>
+          <!-- Line Items -->
+          <div class="form-section">
+            <div class="section-header">
+              <div class="section-title">LINE ITEMS</div>
+              <el-button 
+                v-if="!isViewMode"
+                type="primary" 
+                class="add-line-btn" 
+                @click="addLineItem"
+              >Add Line Item</el-button>
+            </div>
+            <div class="line-items-container">
+              <div v-for="(item, index) in formData.lineItems" :key="index" class="line-item">
+                <div class="line-item-row">
+                  <div class="line-item-col">
+                    <label class="line-item-label">Description<span class="required">*</span></label>
+                    <el-input v-model="item.description" placeholder="Enter Description" />
+                  </div>
+                  <div class="line-item-col">
+                    <label class="line-item-label">HTS Number<span class="required">*</span></label>
+                    <el-input v-model="item.htsNumber" placeholder="Enter HTS Number" />
+                  </div>
+                  <div class="line-item-col">
+                    <label class="line-item-label">Quantity<span class="required">*</span></label>
+                    <el-input-number v-model="item.quantity" :min="0" controls-position="right" placeholder="0" />
+                  </div>
+                  <div class="line-item-col">
+                    <label class="line-item-label">Value (USD)<span class="required">*</span></label>
+                    <el-input-number v-model="item.value" :min="0" :precision="2" controls-position="right" placeholder="0" />
+                  </div>
+                </div>
+                <div v-if="!isViewMode" class="remove-line-item">
+                  <span class="remove-text" @click="removeLineItem(index)">Remove Line Item</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Header Reference Information -->
+          <div class="form-section">
+            <div class="section-title">HEADER REFERENCE INFORMATION</div>
+            <div class="form-row">
+              <el-form-item label="Reference Number" prop="referenceNumber">
+                <el-input v-model="formData.referenceNumber" placeholder="Enter Reference Number" />
+              </el-form-item>
+              <el-form-item label="Self-Filing Certification" prop="selfFilingCertification">
+                <el-radio-group v-model="formData.selfFilingCertification">
+                  <el-radio :label="true">Yes</el-radio>
+                  <el-radio :label="false">No</el-radio>
+                </el-radio-group>
+              </el-form-item>
+            </div>
+          </div>
+
+          <!-- Form Actions -->
+          <div v-if="!isViewMode" class="form-actions">
+            <el-button @click="handleCancel">Cancel</el-button>
+            <el-button type="primary" @click="handleSubmit">Submit</el-button>
+          </div>
+        </el-form>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { ref, onMounted } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import type { FormInstance } from 'element-plus'
-import type { Form3461FormState } from './types'
+import { ArrowLeft } from '@element-plus/icons-vue'
 
-const route = useRoute()
 const router = useRouter()
+const route = useRoute()
 const formRef = ref<FormInstance>()
 
-// 判断是否为编辑模式
-const isEdit = computed(() => route.name === 'EditForm3461')
+// 根据路由名称判断当前模式
+const isCreateMode = route.name === 'CreateForm3461'
+const isEditMode = route.name === 'EditForm3461'
+const isViewMode = route.name === 'ViewForm3461'
 
-// 表单数据
-const formData = ref<Form3461FormState>({
-  entryNo: '',
-  importerNo: '',
-  entryType: '',
-  billOfLading: '',
+// 设置页面标题
+const pageTitle = isCreateMode 
+  ? 'Create Form 3461 Entry/Immediate Delivery'
+  : isEditMode 
+    ? 'Edit Form 3461 Entry/Immediate Delivery'
+    : 'View Form 3461 Entry/Immediate Delivery'
+
+interface LineItem {
+  description: string
+  htsNumber: string
+  quantity: number
+  value: number
+}
+
+interface FormData {
+  portOfEntry: string
+  entryNumber: string
+  entryType: string
+  entryDate: string
+  portCode: string
+  importerNumber: string
+  importerNumberConsignee: string
+  importerConsigneeName: string
+  portOfEntryLocation: string
+  portOfUnlading: string
+  arrivalDate: string
+  brokerNumber: string
+  bondType: string
+  consigneeNumber: string
+  importerNumberUltimate: string
+  transportationMode: string
+  vesselName: string
+  voyageNumber: string
+  lineItems: LineItem[]
+  referenceNumber: string
+  selfFilingCertification: boolean
+}
+
+const formData = ref<FormData>({
   portOfEntry: '',
+  entryNumber: '',
+  entryType: '',
   entryDate: '',
-  countryOfOrigin: '',
+  portCode: '',
+  importerNumber: '',
+  importerNumberConsignee: '',
+  importerConsigneeName: '',
+  portOfEntryLocation: '',
+  portOfUnlading: '',
+  arrivalDate: '',
+  brokerNumber: '',
+  bondType: '',
+  consigneeNumber: '',
+  importerNumberUltimate: '',
+  transportationMode: '',
   vesselName: '',
-  voyageNo: '',
-  manufacturerId: '',
-  value: '',
-  description: '',
-  declarantName: '',
-  contactPhone: '',
-  email: ''
+  voyageNumber: '',
+  lineItems: [],
+  referenceNumber: '',
+  selfFilingCertification: false
 })
 
-// 表单验证规则
+const bondTypes = [
+  { value: 'type1', label: 'Type 1' },
+  { value: 'type2', label: 'Type 2' },
+  { value: 'type3', label: 'Type 3' }
+]
+
+const transportModes = [
+  { value: 'air', label: 'Air' },
+  { value: 'sea', label: 'Sea' },
+  { value: 'rail', label: 'Rail' },
+  { value: 'road', label: 'Road' }
+]
+
 const formRules = {
-  entryNo: [{ required: true, message: 'Please enter entry number', trigger: 'blur' }],
-  importerNo: [{ required: true, message: 'Please enter importer number', trigger: 'blur' }],
-  entryType: [{ required: true, message: 'Please select entry type', trigger: 'change' }],
-  billOfLading: [{ required: true, message: 'Please enter bill of lading', trigger: 'blur' }],
-  portOfEntry: [{ required: true, message: 'Please select port of entry', trigger: 'change' }],
-  entryDate: [{ required: true, message: 'Please select entry date', trigger: 'change' }],
-  countryOfOrigin: [{ required: true, message: 'Please enter country of origin', trigger: 'blur' }],
-  manufacturerId: [{ required: true, message: 'Please enter manufacturer ID', trigger: 'blur' }],
-  value: [{ required: true, message: 'Please enter value', trigger: 'blur' }],
-  description: [{ required: true, message: 'Please enter description', trigger: 'blur' }],
-  declarantName: [{ required: true, message: 'Please enter declarant name', trigger: 'blur' }],
-  contactPhone: [{ required: true, message: 'Please enter contact phone', trigger: 'blur' }],
-  email: [
-    { required: true, message: 'Please enter email', trigger: 'blur' },
-    { type: 'email', message: 'Please enter valid email', trigger: 'blur' }
-  ]
+  portOfEntry: [{ required: true, message: 'Port of Entry is required', trigger: 'blur' }],
+  entryNumber: [{ required: true, message: 'Entry Number is required', trigger: 'blur' }],
+  entryType: [{ required: true, message: 'Entry Type is required', trigger: 'blur' }],
+  entryDate: [{ required: true, message: 'Entry Date is required', trigger: 'change' }],
+  portCode: [{ required: true, message: 'Port Code is required', trigger: 'blur' }],
+  importerNumber: [{ required: true, message: 'Importer Number is required', trigger: 'blur' }],
+  importerNumberConsignee: [{ required: true, message: 'Importer Number is required', trigger: 'blur' }],
+  importerConsigneeName: [{ required: true, message: 'Importer/Consignee Name is required', trigger: 'blur' }]
 }
 
-// 下拉选项
-const entryTypeOptions = [
-  { label: 'Consumption', value: 'Consumption' },
-  { label: 'Warehouse', value: 'Warehouse' },
-  { label: 'Foreign Trade Zone', value: 'FTZ' },
-  { label: 'Transportation & Exportation', value: 'T&E' },
-  { label: 'Informal', value: 'Informal' }
-]
+// 加载表单数据
+const loadFormData = async (id: string) => {
+  try {
+    // TODO: 调用API获取表单数据
+    const response = await fetch(`/api/form3461/${id}`)
+    const data = await response.json()
+    formData.value = data
+  } catch (error) {
+    console.error('Failed to load form data:', error)
+    // TODO: 显示错误提示
+  }
+}
 
-const portOptions = [
-  { label: 'Los Angeles', value: 'Los Angeles' },
-  { label: 'New York', value: 'New York' },
-  { label: 'Miami', value: 'Miami' },
-  { label: 'Seattle', value: 'Seattle' },
-  { label: 'Chicago', value: 'Chicago' }
-]
+// 在组件挂载时加载数据
+onMounted(async () => {
+  if (isEditMode || isViewMode) {
+    const id = route.params.id as string
+    await loadFormData(id)
+  }
+})
 
-// 处理取消
+const handleBack = () => {
+  router.back()
+}
+
 const handleCancel = () => {
-  router.push('/customs/form-3461')
+  router.back()
 }
 
-// 处理提交
 const handleSubmit = async () => {
   if (!formRef.value) return
   
-  await formRef.value.validate((valid, fields) => {
+  await formRef.value.validate(async (valid, fields) => {
     if (valid) {
-      console.log('Form submitted:', formData.value)
-      // TODO: 实现表单提交逻辑
-      router.push('/customs/form-3461')
+      try {
+        if (isCreateMode) {
+          // 创建新表单
+          await fetch('/api/form3461', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(formData.value)
+          })
+        } else if (isEditMode) {
+          // 更新表单
+          const id = route.params.id
+          await fetch(`/api/form3461/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(formData.value)
+          })
+        }
+        router.push('/customs/form3461')
+      } catch (error) {
+        console.error('Failed to save form:', error)
+        // TODO: 显示错误提示
+      }
     } else {
       console.error('Form validation failed:', fields)
     }
   })
 }
+
+const addLineItem = () => {
+  formData.value.lineItems.push({
+    description: '',
+    htsNumber: '',
+    quantity: 0,
+    value: 0
+  })
+}
+
+const removeLineItem = (index: number) => {
+  formData.value.lineItems.splice(index, 1)
+}
 </script>
 
 <style lang="scss" scoped>
 .form3461-edit-page {
-  padding: 32px;
   min-height: 100vh;
-  background: var(--bg-dark);
-  color: var(--text-primary);
-}
+  background: #000000;
+  
+  .page-content {
+    max-width: 1200px;
+    width: 100%;
+    margin: 0 auto;
+    
+    .fixed-header {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 16px 24px;
+      background: #1A1D1F;
 
-.page-header {
-  margin-bottom: 32px;
-
-  .header-content {
-    h1 {
-      font-size: 32px;
-      font-weight: 500;
-      margin: 0;
-      color: var(--text-primary);
-    }
-
-    .subtitle {
-      margin: 8px 0 0;
-      color: var(--text-secondary);
-      font-size: 14px;
-    }
-  }
-}
-
-.form-section {
-  background: var(--bg-darker);
-  border-radius: 8px;
-  padding: 24px;
-
-  .form-group {
-    margin-bottom: 32px;
-
-    &:last-child {
-      margin-bottom: 0;
-    }
-
-    .group-title {
-      font-size: 18px;
-      font-weight: 500;
-      margin: 0 0 16px;
-      color: var(--text-primary);
-    }
-  }
-
-  .form-row {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 16px;
-    margin-bottom: 16px;
-
-    &:last-child {
-      margin-bottom: 0;
-    }
-
-    :deep(.el-form-item) {
-      margin-bottom: 0;
-
-      .el-form-item__label {
-        color: var(--text-secondary);
-        padding: 0 0 8px;
-        line-height: 1;
-      }
-
-      .el-input__wrapper,
-      .el-textarea__wrapper {
-        background-color: var(--bg-dark);
-        border-color: var(--border-color);
-        box-shadow: none;
-
-        &.is-focus {
-          border-color: var(--primary-color);
+      .back-button {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        cursor: pointer;
+        color: #fff;
+        font-size: 14px;
+        
+        .el-icon {
+          font-size: 16px;
         }
 
-        input,
-        textarea {
-          color: var(--text-primary);
+        &:hover {
+          opacity: 0.8;
+        }
+      }
 
-          &::placeholder {
-            color: var(--text-placeholder);
+      .title {
+        font-size: 16px;
+        font-weight: 500;
+        color: #fff;
+      }
+    }
+
+    .content-wrapper {
+      padding: 24px;
+      background: #000000;
+    }
+  }
+
+  .form-container {
+    .form-section {
+      background: #1A1D1F;
+      border-radius: 4px;
+      padding: 20px;
+      margin-bottom: 20px;
+
+      .section-title {
+        color: #fff;
+        font-size: 12px;
+        margin-bottom: 20px;
+        font-weight: 500;
+      }
+
+      .form-row {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 16px;
+        margin-bottom: 16px;
+
+        :deep(.el-form-item) {
+          margin-bottom: 0;
+          
+          .el-form-item__label {
+            color: #fff;
+            font-size: 12px;
+            padding-bottom: 8px;
+          }
+
+          .el-input__wrapper {
+            background-color: #1E2127 !important;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: none;
+            
+            .el-input__inner {
+              color: #fff;
+              height: 32px;
+              font-size: 12px;
+              
+              &::placeholder {
+                color: rgba(255, 255, 255, 0.3);
+              }
+            }
+          }
+
+          .el-input-number {
+            width: 100%;
+            
+            .el-input__wrapper {
+              padding: 0 8px;
+            }
+          }
+
+          .el-select {
+            width: 100%;
+          }
+
+          .el-date-editor {
+            width: 100%;
+          }
+
+          .el-radio-group {
+            .el-radio {
+              margin-right: 20px;
+              
+              .el-radio__label {
+                color: #fff;
+              }
+            }
           }
         }
       }
 
-      &.is-required .el-form-item__label:before {
-        color: var(--danger-color);
+      .section-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+
+        .add-line-btn {
+          background: #6b4fff;
+          border: none;
+          border-radius: 4px;
+          padding: 8px 16px;
+          font-size: 14px;
+          
+          &:hover {
+            background: #7c4dff;
+          }
+        }
+      }
+
+      .line-items-container {
+        .line-item {
+          margin-bottom: 24px;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+          padding-bottom: 16px;
+
+          &:last-child {
+            margin-bottom: 0;
+            border-bottom: none;
+          }
+
+          .line-item-row {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+          }
+
+          .line-item-col {
+            .line-item-label {
+              display: block;
+              color: #fff;
+              font-size: 12px;
+              margin-bottom: 8px;
+
+              .required {
+                color: #ff4d4f;
+                margin-left: 4px;
+              }
+            }
+
+            :deep(.el-input) {
+              .el-input__wrapper {
+                background-color: #1E2127 !important;
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                box-shadow: none !important;
+
+                .el-input__inner {
+                  color: #fff;
+                  height: 32px;
+                  font-size: 12px;
+
+                  &::placeholder {
+                    color: rgba(255, 255, 255, 0.3);
+                  }
+                }
+              }
+            }
+          }
+
+          .remove-line-item {
+            text-align: left;
+            margin-top: 12px;
+
+            .remove-text {
+              color: #ff4d4f;
+              font-size: 12px;
+              cursor: pointer;
+
+              &:hover {
+                color: #ff7875;
+              }
+            }
+          }
+        }
       }
     }
 
-    &.full-width {
-      grid-column: 1 / -1;
+    .form-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+      margin-top: 24px;
+
+      .el-button {
+        min-width: 80px;
+        
+        &--default {
+          background: #1E2127;
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          color: #fff;
+        }
+        
+        &--primary {
+          background: #6b4fff;
+          border-color: #6b4fff;
+          
+          &:hover {
+            background: #7c4dff;
+            border-color: #7c4dff;
+          }
+        }
+      }
     }
   }
 }
 
-.form-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 16px;
-  margin-top: 32px;
-  padding-top: 24px;
-  border-top: 1px solid var(--border-color);
-}
+:deep(.el-select__popper.el-popper) {
+  background: #1E2127 !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  
+  .el-select-dropdown__item {
+    color: #fff !important;
+    background: #1E2127 !important;
+    
+    &:hover {
+      background: #282C34 !important;
+    }
+    
+    &.selected {
+      background: #6b4fff !important;
+    }
+  }
 
-:deep(.el-select) {
-  width: 100%;
-}
-
-:deep(.el-date-editor) {
-  width: 100%;
+  .el-popper__arrow::before {
+    background: #1E2127 !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  }
 }
 </style> 

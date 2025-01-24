@@ -1,0 +1,164 @@
+// Element Plus 暗色主题覆盖样式
+.el-popper.el-select__popper {
+  background: #1E2127 !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  
+  .el-scrollbar {
+    .el-select-dropdown__wrap {
+      background: #1E2127 !important;
+    }
+  }
+  
+  .el-select-dropdown__item {
+    color: #fff !important;
+    background: #1E2127 !important;
+    
+    &:hover {
+      background: #282C34 !important;
+    }
+    
+    &.selected {
+      background: #6b4fff !important;
+      color: #fff !important;
+    }
+  }
+  
+  .el-popper__arrow::before {
+    background: #1E2127 !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  }
+}
+
+.el-select {
+  --el-select-input-focus-border-color: rgba(255, 255, 255, 0.1) !important;
+  
+  .el-input {
+    .el-input__wrapper {
+      background: #1E2127 !important;
+      box-shadow: none !important;
+      border: 1px solid rgba(255, 255, 255, 0.1) !important;
+
+      .el-input__inner {
+        color: #fff !important;
+        background: #1E2127 !important;
+        
+        &::placeholder {
+          color: rgba(255, 255, 255, 0.3) !important;
+        }
+      }
+    }
+  }
+}
+
+// 日期选择器暗色主题
+.el-picker__popper.el-popper {
+  background-color: #1E2127 !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  
+  .el-date-picker__header {
+    color: #fff !important;
+  }
+  
+  .el-date-table {
+    th {
+      color: rgba(255, 255, 255, 0.5) !important;
+    }
+    
+    td {
+      .el-date-table-cell__text {
+        color: #fff !important;
+      }
+      
+      &.current .el-date-table-cell__text {
+        background-color: #6b4fff !important;
+      }
+      
+      &.today .el-date-table-cell__text {
+        color: #6b4fff !important;
+      }
+    }
+  }
+  
+  .el-popper__arrow::before {
+    background-color: #1E2127 !important;
+    border-color: rgba(255, 255, 255, 0.1) !important;
+  }
+}
+
+:root {
+  --el-bg-color: #1E2127;
+  --el-bg-color-overlay: #1E2127;
+  --el-text-color-primary: #fff;
+  --el-border-color: rgba(255, 255, 255, 0.1);
+  --el-border-color-hover: rgba(255, 255, 255, 0.2);
+  --el-fill-color-blank: #1E2127;
+  --el-select-option-hover-bg-color: #282C34;
+  --el-select-option-selected-bg-color: #6b4fff;
+}
+
+.el-select-dropdown {
+  background-color: var(--el-bg-color) !important;
+  border-color: var(--el-border-color) !important;
+
+  .el-select-dropdown__item {
+    color: var(--el-text-color-primary);
+    
+    &:hover {
+      background-color: var(--el-select-option-hover-bg-color);
+    }
+    
+    &.selected {
+      background-color: var(--el-select-option-selected-bg-color);
+    }
+  }
+}
+
+.el-select {
+  .el-input__wrapper {
+    background-color: var(--el-bg-color) !important;
+    border-color: var(--el-border-color) !important;
+    box-shadow: none !important;
+  }
+  
+  .el-input__inner {
+    color: var(--el-text-color-primary);
+  }
+}
+
+.el-popper.is-light {
+  background-color: var(--el-bg-color) !important;
+  border-color: var(--el-border-color) !important;
+  
+  .el-popper__arrow::before {
+    background-color: var(--el-bg-color) !important;
+    border-color: var(--el-border-color) !important;
+  }
+}
+
+.el-input-number {
+  .el-input__wrapper {
+    background: #1E2127 !important;
+    box-shadow: none !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+
+    .el-input__inner {
+      color: #fff !important;
+      background: #1E2127 !important;
+    }
+
+    .el-input-number__decrease,
+    .el-input-number__increase {
+      background: #1E2127 !important;
+      border-color: rgba(255, 255, 255, 0.1) !important;
+      color: #fff !important;
+
+      &:hover {
+        color: #6b4fff !important;
+      }
+
+      .el-icon {
+        color: #fff !important;
+      }
+    }
+  }
+} 

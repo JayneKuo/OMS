@@ -1,6 +1,6 @@
 <template>
   <div class="form3461-page">
-    <!-- 页面头部 -->
+    <!-- Page Header -->
     <div class="page-header">
       <div class="header-content">
         <h1>Form 3461</h1>
@@ -8,14 +8,15 @@
       </div>
       <el-button type="primary" class="add-btn" @click="handleCreate">
         <el-icon class="icon"><Plus /></el-icon>
-        Add New
+        New Entry
       </el-button>
     </div>
 
-    <!-- 搜索区域 -->
-    <SearchForm>
-      <div class="search-section">
-        <div class="search-title">Search Criteria</div>
+    <!-- Search Section -->
+    <div class="search-section">
+      <div class="search-title">SEARCH BY</div>
+      <div class="search-form">
+        <!-- 主搜索行：4个输入项 + 操作按钮 -->
         <div class="search-row">
           <div class="custom-input">
             <input 
@@ -37,79 +38,53 @@
               <CircleClose />
             </el-icon>
           </div>
-          <div 
-            class="custom-select" 
-            v-click-outside="() => handleClickOutside('entryType')"
-          >
-            <div 
-              class="select-trigger" 
-              @click.stop="toggleDropdown('entryType')"
-              :class="{ 'is-focus': showEntryTypeDropdown }"
-            >
-              <span class="placeholder" v-if="!searchForm.entryType">Entry Type</span>
-              <span v-else>{{ searchForm.entryType }}</span>
-              <div class="select-icons">
-                <el-icon 
-                  class="clear-icon" 
-                  v-show="searchForm.entryType" 
-                  @click.stop="clearSelect('entryType')"
-                >
-                  <CircleClose />
-                </el-icon>
-                <el-icon :class="{ 'is-reverse': showEntryTypeDropdown }"><ArrowDown /></el-icon>
-              </div>
-            </div>
-            <div 
-              class="select-dropdown" 
-              v-show="showEntryTypeDropdown"
-              @click.stop
-            >
-              <div 
-                class="select-option" 
-                v-for="option in dropdownOptions.entryType" 
-                :key="option.value"
-                @click.stop="handleSelectOption('entryType', option.value)"
-                :class="{ active: searchForm.entryType === option.value }"
-              >
-                {{ option.label }}
-              </div>
-            </div>
+          <div class="custom-input">
+            <input 
+              v-model="searchForm.billOfLading" 
+              placeholder="Bill of Lading"
+              @input="handleInput('billOfLading', $event)"
+            />
+            <el-icon class="clear-icon" v-show="searchForm.billOfLading" @click="clearInput('billOfLading')">
+              <CircleClose />
+            </el-icon>
           </div>
-          <div 
-            class="custom-select" 
-            v-click-outside="() => handleClickOutside('portOfEntry')"
-          >
+          <div class="custom-select" v-click-outside="() => handleClickOutside('status')">
             <div 
               class="select-trigger" 
-              @click.stop="toggleDropdown('portOfEntry')"
-              :class="{ 'is-focus': showPortDropdown }"
+              :class="{ 'is-focus': showStatusDropdown }"
             >
-              <span class="placeholder" v-if="!searchForm.portOfEntry">Port of Entry</span>
-              <span v-else>{{ searchForm.portOfEntry }}</span>
+              <input
+                v-model="statusSearch"
+                :placeholder="searchForm.status || 'Status'"
+                @input="handleSearchInput('status')"
+                @click.stop="toggleDropdown('status')"
+                @focus="toggleDropdown('status')"
+              />
               <div class="select-icons">
                 <el-icon 
                   class="clear-icon" 
-                  v-show="searchForm.portOfEntry" 
-                  @click.stop="clearSelect('portOfEntry')"
+                  v-show="statusSearch || searchForm.status" 
+                  @click.stop="clearSelect('status')"
                 >
                   <CircleClose />
                 </el-icon>
-                <el-icon :class="{ 'is-reverse': showPortDropdown }"><ArrowDown /></el-icon>
+                <el-icon :class="{ 'is-reverse': showStatusDropdown }"><ArrowDown /></el-icon>
               </div>
             </div>
             <div 
               class="select-dropdown" 
-              v-show="showPortDropdown"
+              v-show="showStatusDropdown"
               @click.stop
             >
               <div 
+                v-for="status in filteredStatusOptions"
+                :key="status.value"
                 class="select-option" 
-                v-for="option in dropdownOptions.portOfEntry" 
-                :key="option.value"
-                @click.stop="handleSelectOption('portOfEntry', option.value)"
-                :class="{ active: searchForm.portOfEntry === option.value }"
+                @click.stop="handleSelectOption('status', status.value)"
+                :class="{ active: searchForm.status === status.value }"
               >
-                {{ option.label }}
+                <span class="status-dot" :style="{ backgroundColor: status.color }"></span>
+                {{ status.value }}
               </div>
             </div>
           </div>
@@ -129,25 +104,94 @@
             </button>
           </div>
         </div>
-
+        
+        <!-- 高级搜索行：3个字段 -->
         <div class="search-row" v-show="showAdvancedSearch">
-          <div class="custom-input">
-            <input 
-              v-model="searchForm.billOfLading" 
-              placeholder="Bill of Lading"
-              @input="handleInput('billOfLading', $event)"
-            />
-            <el-icon class="clear-icon" v-show="searchForm.billOfLading" @click="clearInput('billOfLading')">
-              <CircleClose />
-            </el-icon>
+          <div class="custom-select" v-click-outside="() => handleClickOutside('entryType')">
+            <div 
+              class="select-trigger" 
+              :class="{ 'is-focus': showEntryTypeDropdown }"
+            >
+              <input
+                v-model="entryTypeSearch"
+                :placeholder="searchForm.entryType || 'Entry Type'"
+                @input="handleSearchInput('entryType')"
+                @click.stop="toggleDropdown('entryType')"
+                @focus="toggleDropdown('entryType')"
+              />
+              <div class="select-icons">
+                <el-icon 
+                  class="clear-icon" 
+                  v-show="entryTypeSearch || searchForm.entryType" 
+                  @click.stop="clearSelect('entryType')"
+                >
+                  <CircleClose />
+                </el-icon>
+                <el-icon :class="{ 'is-reverse': showEntryTypeDropdown }"><ArrowDown /></el-icon>
+              </div>
+            </div>
+            <div 
+              class="select-dropdown" 
+              v-show="showEntryTypeDropdown"
+              @click.stop
+            >
+              <div 
+                v-for="type in filteredEntryTypeOptions"
+                :key="type.value"
+                class="select-option" 
+                @click.stop="handleSelectOption('entryType', type.value)"
+                :class="{ active: searchForm.entryType === type.value }"
+              >
+                {{ type.label }}
+              </div>
+            </div>
+          </div>
+          <div class="custom-select" v-click-outside="() => handleClickOutside('portOfEntry')">
+            <div 
+              class="select-trigger" 
+              :class="{ 'is-focus': showPortDropdown }"
+            >
+              <input
+                v-model="portSearch"
+                :placeholder="searchForm.portOfEntry || 'Port of Entry'"
+                @input="handleSearchInput('portOfEntry')"
+                @click.stop="toggleDropdown('portOfEntry')"
+                @focus="toggleDropdown('portOfEntry')"
+              />
+              <div class="select-icons">
+                <el-icon 
+                  class="clear-icon" 
+                  v-show="portSearch || searchForm.portOfEntry" 
+                  @click.stop="clearSelect('portOfEntry')"
+                >
+                  <CircleClose />
+                </el-icon>
+                <el-icon :class="{ 'is-reverse': showPortDropdown }"><ArrowDown /></el-icon>
+              </div>
+            </div>
+            <div 
+              class="select-dropdown" 
+              v-show="showPortDropdown"
+              @click.stop
+            >
+              <div 
+                v-for="port in filteredPortOptions"
+                :key="port.value"
+                class="select-option" 
+                @click.stop="handleSelectOption('portOfEntry', port.value)"
+                :class="{ active: searchForm.portOfEntry === port.value }"
+              >
+                {{ port.label }}
+              </div>
+            </div>
           </div>
           <div class="custom-date-range">
             <el-date-picker
               v-model="searchForm.dateRange"
               type="daterange"
               range-separator="-"
-              start-placeholder="Start Entry Date"
-              end-placeholder="End Entry Date"
+              start-placeholder="Start Date"
+              end-placeholder="End Date"
               :popper-class="'custom-date-picker'"
               value-format="YYYY-MM-DD"
               @change="handleDateChange"
@@ -155,14 +199,14 @@
           </div>
         </div>
       </div>
-    </SearchForm>
+    </div>
 
-    <!-- 表格区域 -->
+    <!-- Table Section -->
     <div class="table-section">
       <el-table :data="filteredTableData" class="data-table">
         <el-table-column prop="entryNo" label="Entry No">
           <template #default="{ row }">
-            <span class="link-text" @click="handleEntryNoClick(row)">{{ row.entryNo }}</span>
+            <span class="link-text" @click="handleViewDetails(row)">{{ row.entryNo }}</span>
           </template>
         </el-table-column>
         <el-table-column prop="importerNo" label="Importer No">
@@ -170,35 +214,38 @@
             <span class="link-text" @click="handleImporterNoClick(row)">{{ row.importerNo }}</span>
           </template>
         </el-table-column>
-        <el-table-column prop="entryType" label="Entry Type">
-          <template #default="{ row }">
-            <StatusTag 
-              :type="row.entryType === 'Consumption' ? 'success' : 'warning'"
-              :label="row.entryType"
-            />
-          </template>
-        </el-table-column>
-        <el-table-column prop="portOfEntry" label="Port of Entry">
-          <template #default="{ row }">
-            <StatusTag 
-              :type="row.portOfEntry === 'Los Angeles' ? 'success' : 'warning'"
-              :label="row.portOfEntry"
-            />
-          </template>
-        </el-table-column>
+        <el-table-column prop="entryType" label="Entry Type" />
+        <el-table-column prop="portOfEntry" label="Port of Entry" />
         <el-table-column prop="billOfLading" label="Bill of Lading" />
         <el-table-column prop="entryDate" label="Entry Date" />
         <el-table-column prop="status" label="Status">
           <template #default="{ row }">
-            <StatusTag 
-              :type="row.status === 'active' ? 'success' : 'danger'"
-              :label="row.status"
-            />
+            <span :style="{ color: STATUS_CONFIG[(row as Form3461TableItem).status].color }">
+              {{ STATUS_CONFIG[(row as Form3461TableItem).status].label }}
+            </span>
           </template>
         </el-table-column>
-        <el-table-column label="Actions" width="100" fixed="right">
+        <el-table-column label="Actions" min-width="120" fixed="right">
           <template #default="{ row }">
-            <span class="action-link" @click="handleEdit(row)">Edit</span>
+            <el-dropdown trigger="click">
+              <span class="action-trigger">
+                Actions
+                <el-icon class="el-icon--right">
+                  <arrow-down />
+                </el-icon>
+              </span>
+              <template #dropdown>
+                <el-dropdown-menu>
+                  <el-dropdown-item
+                    v-for="action in STATUS_CONFIG[(row as Form3461TableItem).status].actions"
+                    :key="action.value"
+                    @click="handleAction(action.handler, row as Form3461TableItem)"
+                  >
+                    <span :style="{ color: action.color }">{{ action.label }}</span>
+                  </el-dropdown-item>
+                </el-dropdown-menu>
+              </template>
+            </el-dropdown>
           </template>
         </el-table-column>
       </el-table>
@@ -234,174 +281,340 @@
         </el-dropdown>
       </div>
     </div>
+
+    <!-- Confirmation Dialog -->
+    <el-dialog
+      v-model="dialogVisible"
+      :title="dialogTitle"
+      width="30%"
+      :before-close="handleDialogClose"
+    >
+      <span>{{ dialogMessage }}</span>
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="handleDialogClose">Cancel</el-button>
+          <el-button type="primary" @click="handleDialogConfirm">
+            Confirm
+          </el-button>
+        </span>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import type { Directive } from 'vue'
-import type { Form3461SearchFormState, Form3461TableItem, DropdownField } from './types'
+import type { Form3461SearchFormState, Form3461TableItem, Form3461Status } from './types'
+import { STATUS_CONFIG, ENTRY_TYPES, PORTS_OF_ENTRY } from './types'
 import { useSearch } from './composables/useSearch'
-import SearchForm from '@/components/SearchForm/index.vue'
-import StatusTag from '@/components/StatusTag/index.vue'
+import { useTableData } from './composables/useTableData'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import type { Directive } from 'vue'
 import { 
   Search, Filter, ArrowLeft, ArrowRight, Plus,
   ArrowDown, CircleClose
 } from '@element-plus/icons-vue'
 
 const router = useRouter()
+const { 
+  searchForm, 
+  pagination, 
+  showAdvancedSearch,
+  filteredTableData,
+  handleSearch, 
+  handleInput, 
+  clearInput,
+  toggleAdvancedSearch,
+  handlePageChange,
+  handleSizeChange
+} = useSearch()
 
-// 下拉选项
-const dropdownOptions = {
-  entryType: [
-    { label: 'Consumption', value: 'Consumption' },
-    { label: 'Warehouse', value: 'Warehouse' },
-    { label: 'Foreign Trade Zone', value: 'FTZ' },
-    { label: 'Transportation & Exportation', value: 'T&E' },
-    { label: 'Informal', value: 'Informal' }
-  ],
-  portOfEntry: [
-    { label: 'Los Angeles', value: 'Los Angeles' },
-    { label: 'New York', value: 'New York' },
-    { label: 'Miami', value: 'Miami' },
-    { label: 'Seattle', value: 'Seattle' },
-    { label: 'Chicago', value: 'Chicago' }
-  ]
-}
-
-// 下拉框状态
+// Status dropdown
+const showStatusDropdown = ref(false)
 const showEntryTypeDropdown = ref(false)
 const showPortDropdown = ref(false)
 
-// 使用搜索组合式函数
-const initialSearchForm: Form3461SearchFormState = {
-  entryNo: '',
-  importerNo: '',
-  entryType: '',
-  billOfLading: '',
-  portOfEntry: '',
-  dateRange: null
+const toggleDropdown = (field: string) => {
+  switch (field) {
+    case 'status':
+      showStatusDropdown.value = !showStatusDropdown.value
+      showEntryTypeDropdown.value = false
+      showPortDropdown.value = false
+      break
+    case 'entryType':
+      showEntryTypeDropdown.value = !showEntryTypeDropdown.value
+      showStatusDropdown.value = false
+      showPortDropdown.value = false
+      break
+    case 'portOfEntry':
+      showPortDropdown.value = !showPortDropdown.value
+      showStatusDropdown.value = false
+      showEntryTypeDropdown.value = false
+      break
+  }
 }
 
-const {
-  searchForm,
-  pagination,
-  showAdvancedSearch,
-  handleSearch,
-  handlePageChange,
-  handleSizeChange,
-  toggleAdvancedSearch
-} = useSearch(initialSearchForm)
-
-// 模拟表格数据
-const tableData = ref<Form3461TableItem[]>([
-  {
-    entryNo: '3461001',
-    importerNo: 'IMP001',
-    entryType: 'Consumption',
-    billOfLading: 'BOL001',
-    portOfEntry: 'Los Angeles',
-    entryDate: '2024-01-23',
-    status: 'active',
-    createdAt: '2024-01-23',
-    updatedAt: '2024-01-23'
+const handleClickOutside = (field: string) => {
+  switch (field) {
+    case 'status':
+      showStatusDropdown.value = false
+      break
+    case 'entryType':
+      showEntryTypeDropdown.value = false
+      break
+    case 'portOfEntry':
+      showPortDropdown.value = false
+      break
   }
-])
+}
 
-// 计算过滤后的表格数据
-const filteredTableData = computed(() => {
-  return tableData.value
-})
+const handleSelectOption = (field: string, value: string) => {
+  switch (field) {
+    case 'status':
+      searchForm.value.status = value as Form3461Status
+      statusSearch.value = ''
+      showStatusDropdown.value = false
+      break
+    case 'entryType':
+      searchForm.value.entryType = value
+      entryTypeSearch.value = ''
+      showEntryTypeDropdown.value = false
+      break
+    case 'portOfEntry':
+      searchForm.value.portOfEntry = value
+      portSearch.value = ''
+      showPortDropdown.value = false
+      break
+  }
+}
 
-// 总数
+const clearSelect = (field: string) => {
+  switch (field) {
+    case 'status':
+      searchForm.value.status = ''
+      statusSearch.value = ''
+      break
+    case 'entryType':
+      searchForm.value.entryType = ''
+      entryTypeSearch.value = ''
+      break
+    case 'portOfEntry':
+      searchForm.value.portOfEntry = ''
+      portSearch.value = ''
+      break
+  }
+}
+
+// Action handling
+const dialogVisible = ref(false)
+const dialogTitle = ref('')
+const dialogMessage = ref('')
+const currentAction = ref('')
+const currentRow = ref<Form3461TableItem | null>(null)
+
+const getActionLabel = (action: string) => {
+  const actionLabels: Record<string, string> = {
+    edit: 'Edit',
+    submit: 'Submit',
+    delete: 'Delete',
+    view: 'View',
+    track: 'Track',
+    upload: 'Upload',
+    contact: 'Contact',
+    create7501: 'Create 7501',
+    arrange: 'Arrange',
+    resubmit: 'Resubmit'
+  }
+  return actionLabels[action] || action
+}
+
+const handleAction = async (handler: string, row: Form3461TableItem) => {
+  switch (handler) {
+    case 'handleSaveDraft':
+      // 保存草稿
+      ElMessage.success('Draft saved successfully')
+      break
+      
+    case 'handleSubmitForm':
+      // 提交表单
+      try {
+        await ElMessageBox.confirm(
+          'Are you sure you want to submit this form?',
+          'Submit Confirmation',
+          { type: 'warning' }
+        )
+        updateStatus(row.id, 'Submitted')
+        ElMessage.success('Form submitted successfully')
+      } catch {
+        // 用户取消操作
+      }
+      break
+      
+    case 'handleViewDetails':
+      // 查看详情
+      handleViewDetails(row)
+      break
+      
+    case 'handleTrackStatus':
+      // 查看状态
+      router.push(`/customs/form3461/track/${row.id}`)
+      break
+      
+    case 'handleApproveAndRelease':
+      // 放行
+      try {
+        await ElMessageBox.confirm(
+          'Are you sure you want to approve and release this entry?',
+          'Release Confirmation',
+          { type: 'warning' }
+        )
+        updateStatus(row.id, 'Release')
+        ElMessage.success('Entry released successfully')
+      } catch {
+        // 用户取消操作
+      }
+      break
+      
+    case 'handleRequestDocuments':
+      // 要求补充材料
+      try {
+        const reason = await ElMessageBox.prompt(
+          'Please specify the required documents:',
+          'Request Additional Documents',
+          { type: 'warning' }
+        )
+        updateStatus(row.id, 'Hold')
+        ElMessage.success('Additional documents requested')
+      } catch {
+        // 用户取消操作
+      }
+      break
+      
+    case 'handleRejectForm':
+      // 驳回表单
+      try {
+        const reason = await ElMessageBox.prompt(
+          'Please specify the rejection reason:',
+          'Reject Form',
+          { type: 'warning' }
+        )
+        updateStatus(row.id, 'Rejected')
+        ElMessage.success('Form rejected')
+      } catch {
+        // 用户取消操作
+      }
+      break
+      
+    case 'handleViewHoldReason':
+      // 查看扣留原因
+      ElMessageBox.alert(
+        'Additional documents required for customs clearance',
+        'Hold Reason',
+        { type: 'warning' }
+      )
+      break
+      
+    case 'handleUploadDocuments':
+      // 上传补充材料
+      router.push(`/customs/form3461/upload/${row.id}`)
+      break
+      
+    case 'handleViewReleaseDetails':
+      // 查看放行详情
+      ElMessageBox.alert(
+        'Entry has been approved and goods are cleared for entry',
+        'Release Details',
+        { type: 'success' }
+      )
+      break
+      
+    case 'handleDownloadNotice':
+      // 下载放行通知单
+      ElMessage.success('Release notice downloaded')
+      break
+      
+    case 'handleGenerate7501':
+      // 生成7501表单
+      router.push(`/customs/form7501/create?form3461Id=${row.id}`)
+      break
+      
+    case 'handleViewRejectReason':
+      // 查看驳回原因
+      ElMessageBox.alert(
+        'Form requires modification before resubmission',
+        'Rejection Reason',
+        { type: 'error' }
+      )
+      break
+      
+    case 'handleEditForm':
+      // 编辑表单
+      router.push(`/customs/form3461/edit/${row.id}`)
+      break
+  }
+}
+
+const handleDialogClose = () => {
+  dialogVisible.value = false
+  currentAction.value = ''
+  currentRow.value = null
+}
+
+const handleDialogConfirm = async () => {
+  if (!currentRow.value || !currentAction.value) return
+
+  try {
+    // Add actual API call here
+    console.log(`Confirmed ${currentAction.value} for row:`, currentRow.value)
+    
+    // Mock API call success
+    ElMessage.success('Operation successful')
+    handleSearch() // Refresh list
+  } catch (error) {
+    console.error('Operation failed:', error)
+    ElMessage.error('Operation failed, please try again')
+  } finally {
+    handleDialogClose()
+  }
+}
+
+// Table data
+const { tableData, updateStatus, deleteRecord } = useTableData()
+
+// Total count
 const total = computed(() => tableData.value.length)
 
-// 处理输入
-const handleInput = (field: keyof Form3461SearchFormState, event: Event) => {
-  const target = event.target as HTMLInputElement
-  searchForm[field] = target.value
-}
-
-// 清除输入
-const clearInput = (field: keyof Form3461SearchFormState) => {
-  searchForm[field] = ''
-  handleSearch()
-}
-
-// 切换下拉框
-const toggleDropdown = (type: DropdownField) => {
-  if (type === 'entryType') {
-    showEntryTypeDropdown.value = !showEntryTypeDropdown.value
-    showPortDropdown.value = false
-  } else {
-    showPortDropdown.value = !showPortDropdown.value
-    showEntryTypeDropdown.value = false
-  }
-}
-
-// 处理下拉框选项点击
-const handleSelectOption = (type: DropdownField, value: string) => {
-  searchForm[type] = value
-  if (type === 'entryType') {
-    showEntryTypeDropdown.value = false
-  } else {
-    showPortDropdown.value = false
-  }
-  handleSearch()
-}
-
-// 清除选择
-const clearSelect = (type: DropdownField) => {
-  searchForm[type] = ''
-  handleSearch()
-}
-
-// 处理点击外部
-const handleClickOutside = (type: DropdownField) => {
-  if (type === 'entryType') {
-    showEntryTypeDropdown.value = false
-  } else {
-    showPortDropdown.value = false
-  }
-}
-
-// 处理日期变化
-const handleDateChange = () => {
-  handleSearch()
-}
-
-// 处理条目号点击
+// Entry number click handler
 const handleEntryNoClick = (row: Form3461TableItem) => {
-  console.log('Entry No clicked:', row.entryNo)
+  handleViewDetails(row)
 }
 
-// 处理进口商号点击
+// Importer number click handler
 const handleImporterNoClick = (row: Form3461TableItem) => {
   console.log('Importer No clicked:', row.importerNo)
 }
 
-// 处理创建
+// Create handler
 const handleCreate = () => {
-  router.push('/customs/form-3461/create')
+  router.push('/customs/form3461/create')
 }
 
-// 处理编辑
-const handleEdit = (row: Form3461TableItem) => {
-  router.push(`/customs/form-3461/edit/${row.entryNo}`)
+// Date change handler
+const handleDateChange = () => {
+  handleSearch()
 }
 
-// 处理上一页
+// Pagination handlers
 const handlePrevPage = () => {
-  handlePageChange(pagination.currentPage - 1)
+  handlePageChange(pagination.value.currentPage - 1)
 }
 
-// 处理下一页
 const handleNextPage = () => {
-  handlePageChange(pagination.currentPage + 1)
+  handlePageChange(pagination.value.currentPage + 1)
 }
 
-// 点击外部指令
+// Click outside directive
 const vClickOutside = {
   mounted(el: HTMLElement, binding: any) {
     const clickOutside = (event: Event) => {
@@ -412,7 +625,7 @@ const vClickOutside = {
     el.dataset.clickOutside = 'true'
     document.addEventListener('click', clickOutside)
   },
-  unmounted(el: HTMLElement) {
+  unmounted(el: HTMLElement, binding: any) {
     const clickOutside = (event: Event) => {
       if (el.dataset.clickOutside === 'true' && !(el === event.target || el.contains(event.target as Node))) {
         binding.value(event)
@@ -421,6 +634,56 @@ const vClickOutside = {
     document.removeEventListener('click', clickOutside)
   }
 } as Directive
+
+// 搜索状态
+const statusSearch = ref('')
+const entryTypeSearch = ref('')
+const portSearch = ref('')
+
+// 过滤后的选项
+const filteredStatusOptions = computed(() => {
+  const search = statusSearch.value.toLowerCase()
+  return Object.values(STATUS_CONFIG).filter(status => 
+    status.value.toLowerCase().includes(search) || 
+    status.label.toLowerCase().includes(search)
+  )
+})
+
+const filteredEntryTypeOptions = computed(() => {
+  const search = entryTypeSearch.value.toLowerCase()
+  return ENTRY_TYPES.filter(type => 
+    type.value.toLowerCase().includes(search) || 
+    type.label.toLowerCase().includes(search)
+  )
+})
+
+const filteredPortOptions = computed(() => {
+  const search = portSearch.value.toLowerCase()
+  return PORTS_OF_ENTRY.filter(port => 
+    port.value.toLowerCase().includes(search) || 
+    port.label.toLowerCase().includes(search)
+  )
+})
+
+// 处理搜索输入
+const handleSearchInput = (field: string) => {
+  switch (field) {
+    case 'status':
+      showStatusDropdown.value = true
+      break
+    case 'entryType':
+      showEntryTypeDropdown.value = true
+      break
+    case 'portOfEntry':
+      showPortDropdown.value = true
+      break
+  }
+}
+
+// 查看表单详情
+const handleViewDetails = (row: Form3461TableItem) => {
+  router.push(`/customs/form3461/view/${row.systemId}`)
+}
 </script>
 
 <style lang="scss" scoped>
@@ -476,6 +739,10 @@ const vClickOutside = {
 }
 
 .search-section {
+  background: var(--bg-dark);
+  border-radius: 8px;
+  padding: 24px;
+
   .search-title {
     font-size: 18px;
     font-weight: 500;
@@ -485,19 +752,16 @@ const vClickOutside = {
 
   .search-row {
     display: grid;
-    grid-template-columns: repeat(4, 1fr) auto;
     gap: 12px;
     margin-bottom: 12px;
 
-    &:last-child {
-      grid-template-columns: 1fr 2fr;
-      margin-bottom: 0;
+    &:first-child {
+      grid-template-columns: repeat(4, 1fr) auto;
     }
 
-    .action-btns {
-      display: flex;
-      gap: 8px;
-      justify-content: flex-end;
+    &:last-child {
+      grid-template-columns: repeat(3, 1fr);
+      margin-bottom: 0;
     }
   }
 
@@ -557,20 +821,29 @@ const vClickOutside = {
 
     .select-trigger {
       height: 40px;
-      padding: 0 32px 0 12px;
       border-radius: 4px;
       border: 1px solid rgba(255, 255, 255, 0.08);
       background: rgba(30, 35, 45, 0.6);
-      color: #fff;
-      font-size: 14px;
       display: flex;
       align-items: center;
-      justify-content: space-between;
-      cursor: pointer;
       transition: all 0.2s;
 
-      .placeholder {
-        color: rgba(255, 255, 255, 0.35);
+      input {
+        flex: 1;
+        height: 100%;
+        padding: 0 32px 0 12px;
+        border: none;
+        background: transparent;
+        color: #fff;
+        font-size: 14px;
+
+        &::placeholder {
+          color: rgba(255, 255, 255, 0.35);
+        }
+
+        &:focus {
+          outline: none;
+        }
       }
 
       &:hover {
@@ -596,6 +869,7 @@ const vClickOutside = {
           color: rgba(255, 255, 255, 0.35);
           opacity: 0;
           transition: all 0.2s;
+          cursor: pointer;
 
           &:hover {
             color: rgba(255, 255, 255, 0.5);
@@ -687,38 +961,43 @@ const vClickOutside = {
     }
   }
 
-  .custom-btn {
-    width: 40px;
-    height: 40px;
-    border-radius: 4px;
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    background: rgba(30, 35, 45, 0.6);
-    color: rgba(255, 255, 255, 0.35);
-    cursor: pointer;
+  .action-btns {
     display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.2s;
+    gap: 8px;
 
-    &:hover {
-      border-color: rgba(255, 255, 255, 0.15);
-      background: rgba(35, 40, 50, 0.7);
-      color: rgba(255, 255, 255, 0.5);
-    }
-
-    &.active {
-      border-color: rgba(255, 255, 255, 0.2);
-      background: rgba(35, 40, 50, 0.7);
-      color: var(--primary-color);
-    }
-
-    &.search-btn {
-      background: var(--primary-color);
-      border: none;
-      color: #fff;
+    .custom-btn {
+      width: 40px;
+      height: 40px;
+      border-radius: 4px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(30, 35, 45, 0.6);
+      color: rgba(255, 255, 255, 0.35);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
 
       &:hover {
-        background: var(--primary-hover);
+        border-color: rgba(255, 255, 255, 0.15);
+        background: rgba(35, 40, 50, 0.7);
+        color: rgba(255, 255, 255, 0.5);
+      }
+
+      &.active {
+        border-color: rgba(255, 255, 255, 0.2);
+        background: rgba(35, 40, 50, 0.7);
+        color: var(--primary-color);
+      }
+
+      &.search-btn {
+        background: var(--primary-color);
+        border: none;
+        color: #fff;
+
+        &:hover {
+          background: var(--primary-hover);
+        }
       }
     }
   }
@@ -773,13 +1052,16 @@ const vClickOutside = {
       }
     }
 
-    .action-link {
+    .action-trigger {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
       color: var(--primary-color);
       cursor: pointer;
-      transition: color 0.3s;
-
+      font-size: 14px;
+      
       &:hover {
-        color: var(--primary-color-hover);
+        opacity: 0.8;
       }
     }
   }
@@ -855,24 +1137,35 @@ const vClickOutside = {
 
 :deep(.el-dropdown-menu) {
   background: var(--bg-dark);
-  border: none;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  
+  .el-dropdown-menu__item {
+    color: var(--text-primary);
+    
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.05);
+    }
+    
+    &:focus {
+      background-color: rgba(255, 255, 255, 0.05);
+    }
+  }
 }
 
-:deep(.el-select__popper) {
-  background: var(--bg-dark) !important;
-  border: none;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-
-:deep(.el-picker__popper) {
-  background: var(--bg-dark) !important;
-  border: none;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-
-  .el-picker-panel {
-    background: var(--bg-dark);
-    border: none;
+:deep(.el-select-dropdown) {
+  background: var(--bg-dark);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  
+  .el-select-dropdown__item {
+    color: var(--text-primary);
+    
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.05);
+    }
+    
+    &.selected {
+      background-color: rgba(255, 255, 255, 0.1);
+    }
   }
 }
 </style> 

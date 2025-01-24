@@ -1,336 +1,572 @@
 // Form3461 模块样式
 
 .form3461-page {
-  padding: 32px;
+  padding: 24px;
+  background-color: #f5f7fa;
   min-height: 100vh;
-  background: var(--bg-dark);
-  color: var(--text-primary);
-}
 
-.page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 32px;
+  .page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+    padding: 24px;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.05);
 
-  .header-content {
-    h1 {
-      font-size: 32px;
+    .header-content {
+      h1 {
+        font-size: 24px;
+        color: #1f2937;
+        margin: 0;
+        font-weight: 600;
+      }
+
+      .subtitle {
+        margin: 8px 0 0;
+        color: #6b7280;
+        font-size: 14px;
+      }
+    }
+
+    .add-btn {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 20px;
       font-weight: 500;
-      margin: 0;
-      color: var(--text-primary);
-    }
-
-    .subtitle {
-      margin: 8px 0 0;
-      color: var(--text-secondary);
-      font-size: 14px;
-    }
-  }
-
-  .add-btn {
-    background: var(--primary-color);
-    border: none;
-    height: 36px;
-    padding: 0 20px;
-    border-radius: 4px;
-    font-weight: 500;
-    
-    .icon {
-      margin-right: 8px;
-    }
-
-    &:hover {
-      background: var(--primary-hover);
-    }
-  }
-}
-
-// 搜索区域样式
-.search-section {
-  margin-bottom: 24px;
-  
-  .search-form {
-    display: grid;
-    gap: 16px;
-    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  }
-}
-
-// 输入框样式
-.form-input {
-  width: 100%;
-  height: 40px;
-  background: rgba(30, 34, 42, 0.5);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 6px;
-  padding: 0 12px;
-  color: #fff;
-  font-size: 14px;
-  transition: all 0.3s;
-  
-  &:hover {
-    background: rgba(37, 41, 50, 0.7);
-    border-color: rgba(255, 255, 255, 0.2);
-  }
-  
-  &:focus {
-    outline: none;
-    background: rgba(37, 41, 50, 0.7);
-    border-color: rgba(255, 255, 255, 0.3);
-  }
-  
-  &::placeholder {
-    color: rgba(255, 255, 255, 0.35);
-  }
-}
-
-// 下拉框样式
-.el-select {
-  width: 100%;
-  
-  :deep(.el-input__wrapper) {
-    background: rgba(30, 34, 42, 0.5) !important;
-    box-shadow: none !important;
-    border: 1px solid rgba(255, 255, 255, 0.1) !important;
-    border-radius: 6px !important;
-    
-    &:hover {
-      background: rgba(37, 41, 50, 0.7) !important;
-      border-color: rgba(255, 255, 255, 0.2) !important;
-    }
-    
-    &.is-focus {
-      background: rgba(37, 41, 50, 0.7) !important;
-      border-color: rgba(255, 255, 255, 0.3) !important;
-    }
-    
-    .el-input__inner {
-      height: 40px !important;
-      color: #fff !important;
-      font-size: 14px !important;
       
-      &::placeholder {
-        color: rgba(255, 255, 255, 0.35) !important;
+      .icon {
+        font-size: 16px;
+      }
+    }
+  }
+
+  .search-section {
+    background: #fff;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 24px;
+    box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.05);
+
+    .search-title {
+      font-size: 16px;
+      color: #1f2937;
+      font-weight: 500;
+      margin-bottom: 16px;
+    }
+
+    .search-row {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 16px;
+
+      &:last-child {
+        margin-bottom: 0;
+      }
+
+      .custom-input {
+        position: relative;
+        flex: 1;
+
+        input {
+          width: 100%;
+          height: 36px;
+          padding: 0 32px 0 12px;
+          border: 1px solid #e5e7eb;
+          border-radius: 6px;
+          font-size: 14px;
+          color: #1f2937;
+          transition: all 0.3s;
+
+          &:focus {
+            outline: none;
+            border-color: #409eff;
+            box-shadow: 0 0 0 2px rgba(64, 158, 255, 0.1);
+          }
+
+          &::placeholder {
+            color: #9ca3af;
+          }
+        }
+
+        .clear-icon {
+          position: absolute;
+          right: 8px;
+          top: 50%;
+          transform: translateY(-50%);
+          font-size: 16px;
+          color: #9ca3af;
+          cursor: pointer;
+          transition: color 0.3s;
+
+          &:hover {
+            color: #6b7280;
+          }
+        }
+      }
+
+      .custom-select {
+        position: relative;
+        flex: 1;
+
+        .select-trigger {
+          height: 36px;
+          padding: 0 32px 0 12px;
+          border: 1px solid #e5e7eb;
+          border-radius: 6px;
+          display: flex;
+          align-items: center;
+          cursor: pointer;
+          transition: all 0.3s;
+          background: #fff;
+
+          &.is-focus {
+            border-color: #409eff;
+            box-shadow: 0 0 0 2px rgba(64, 158, 255, 0.1);
+          }
+
+          .placeholder {
+            color: #9ca3af;
+          }
+
+          .select-icons {
+            position: absolute;
+            right: 8px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+
+            .clear-icon {
+              font-size: 16px;
+              color: #9ca3af;
+              cursor: pointer;
+              transition: color 0.3s;
+
+              &:hover {
+                color: #6b7280;
+              }
+            }
+
+            .el-icon {
+              font-size: 14px;
+              color: #6b7280;
+              transition: transform 0.3s;
+
+              &.is-reverse {
+                transform: rotate(180deg);
+              }
+            }
+          }
+        }
+
+        .select-dropdown {
+          position: absolute;
+          top: calc(100% + 4px);
+          left: 0;
+          width: 100%;
+          background: #fff;
+          border-radius: 6px;
+          box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+          z-index: 10;
+          max-height: 200px;
+          overflow-y: auto;
+
+          .select-option {
+            padding: 8px 12px;
+            cursor: pointer;
+            transition: background 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+
+            .status-dot {
+              width: 8px;
+              height: 8px;
+              border-radius: 50%;
+            }
+
+            &:hover {
+              background: #f3f4f6;
+            }
+
+            &.active {
+              background: #e5f2ff;
+              color: #409eff;
+            }
+          }
+        }
+      }
+
+      .action-btns {
+        display: flex;
+        gap: 8px;
+
+        .custom-btn {
+          width: 36px;
+          height: 36px;
+          border: 1px solid #e5e7eb;
+          border-radius: 6px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          transition: all 0.3s;
+          background: #fff;
+
+          &:hover {
+            border-color: #409eff;
+            color: #409eff;
+          }
+
+          &.filter-btn {
+            &.active {
+              background: #409eff;
+              border-color: #409eff;
+              color: #fff;
+            }
+          }
+
+          &.search-btn {
+            background: #409eff;
+            border-color: #409eff;
+            color: #fff;
+
+            &:hover {
+              background: #66b1ff;
+              border-color: #66b1ff;
+            }
+          }
+        }
+      }
+    }
+
+    .custom-date-range {
+      flex: 2;
+    }
+  }
+
+  .table-section {
+    background: #fff;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.05);
+
+    .data-table {
+      margin-bottom: 16px;
+
+      .link-text {
+        color: #409eff;
+        cursor: pointer;
+        transition: color 0.3s;
+
+        &:hover {
+          color: #66b1ff;
+        }
+      }
+
+      .status-cell {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+
+        .info-icon {
+          font-size: 16px;
+          color: #9ca3af;
+          cursor: pointer;
+          transition: color 0.3s;
+
+          &:hover {
+            color: #6b7280;
+          }
+        }
+      }
+
+      .action-cell {
+        display: flex;
+        gap: 16px;
+
+        .action-link {
+          color: #409eff;
+          cursor: pointer;
+          transition: color 0.3s;
+
+          &:hover {
+            color: #66b1ff;
+          }
+
+          &.delete {
+            color: #f56c6c;
+
+            &:hover {
+              color: #f78989;
+            }
+          }
+
+          &.edit, &.resubmit {
+            color: #67c23a;
+
+            &:hover {
+              color: #85ce61;
+            }
+          }
+
+          &.upload, &.contact {
+            color: #e6a23c;
+
+            &:hover {
+              color: #ebb563;
+            }
+          }
+        }
+      }
+    }
+
+    .pagination {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-top: 16px;
+      border-top: 1px solid #e5e7eb;
+
+      .total {
+        color: #6b7280;
+        font-size: 14px;
+      }
+
+      .page-nav {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+
+        .nav-btn {
+          width: 32px;
+          height: 32px;
+          padding: 0;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .page-num {
+          min-width: 32px;
+          height: 32px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 14px;
+          color: #1f2937;
+          border-radius: 4px;
+
+          &.active {
+            background: #409eff;
+            color: #fff;
+          }
+        }
+      }
+
+      .page-size {
+        color: #6b7280;
+        font-size: 14px;
+        cursor: pointer;
       }
     }
   }
 }
 
-// 下拉菜单样式
-:deep(.el-select__popper) {
-  background: rgba(45, 49, 57, 0.95) !important;
-  border: none !important;
-  border-radius: 6px !important;
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1) !important;
-  backdrop-filter: blur(8px);
-  
-  .el-select-dropdown__item {
-    color: rgba(255, 255, 255, 0.85) !important;
-    height: 40px !important;
-    line-height: 40px !important;
-    padding: 0 12px !important;
-    
-    &:hover {
-      background: rgba(54, 59, 68, 0.6) !important;
-    }
-    
-    &.selected {
-      background: var(--primary-color) !important;
-      color: #fff !important;
-    }
-  }
-}
-
-// 日期选择器样式
-.el-date-editor {
-  width: 100% !important;
-  
-  :deep(.el-input__wrapper) {
-    background: rgba(30, 34, 42, 0.5) !important;
-    box-shadow: none !important;
-    border: 1px solid rgba(255, 255, 255, 0.1) !important;
-    border-radius: 6px !important;
-    
-    &:hover {
-      background: rgba(37, 41, 50, 0.7) !important;
-      border-color: rgba(255, 255, 255, 0.2) !important;
-    }
-    
-    &.is-focus {
-      background: rgba(37, 41, 50, 0.7) !important;
-      border-color: rgba(255, 255, 255, 0.3) !important;
-    }
-    
-    .el-input__inner {
-      height: 40px !important;
-      color: #fff !important;
-      font-size: 14px !important;
-      
-      &::placeholder {
-        color: rgba(255, 255, 255, 0.35) !important;
-      }
-    }
-    
-    .el-range-separator {
-      color: rgba(255, 255, 255, 0.35) !important;
-    }
-    
-    .el-range-input {
-      background: transparent !important;
-      color: #fff !important;
-      
-      &::placeholder {
-        color: rgba(255, 255, 255, 0.35) !important;
-      }
-    }
-  }
-}
-
-// 日期选择面板样式
-:deep(.el-picker__popper) {
-  background: rgba(45, 49, 57, 0.95) !important;
-  border: none !important;
-  border-radius: 6px !important;
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1) !important;
-  backdrop-filter: blur(8px);
-  
+// 自定义日期选择器样式
+.custom-date-picker {
   .el-date-picker__header {
-    color: #fff !important;
+    margin: 8px 0;
   }
-  
-  .el-date-picker__header-label {
-    color: #fff !important;
-    font-size: 14px !important;
-    
-    &:hover {
-      color: var(--primary-color) !important;
-    }
+
+  .el-picker-panel__content {
+    margin: 0;
   }
-  
-  .el-date-table {
-    th {
-      color: rgba(255, 255, 255, 0.45) !important;
-      font-size: 12px !important;
-    }
-    
-    td {
-      &.available:hover {
-        color: var(--primary-color) !important;
-      }
-      
-      &.current:not(.disabled) span {
-        background: var(--primary-color) !important;
-        color: #fff !important;
-      }
-      
-      &.today span {
-        color: var(--primary-color) !important;
-      }
-      
-      span {
-        color: rgba(255, 255, 255, 0.85) !important;
-      }
-    }
+
+  .el-date-table td {
+    padding: 2px 0;
   }
 }
 
-// 表格区域
-.table-section {
-  background: var(--bg-darker);
+// 对话框样式
+.el-dialog {
   border-radius: 8px;
-  overflow: hidden;
-
-  :deep(.el-table) {
-    background: transparent;
-    
-    th.el-table__cell {
-      background: transparent;
-      border-bottom: 1px solid var(--border-color);
-      color: var(--text-secondary);
-      font-weight: 500;
-      padding: 12px 16px;
-    }
-
-    td.el-table__cell {
-      background: var(--bg-dark);
-      border-bottom: 1px solid var(--border-color);
-      color: var(--text-primary);
-      padding: 12px 16px;
-    }
-
-    tr:hover > td.el-table__cell {
-      background: var(--bg-darker);
-    }
-  }
-}
-
-// 链接文本
-.link-text {
-  color: var(--primary-color);
-  cursor: pointer;
   
-  &:hover {
-    color: var(--primary-hover);
+  .el-dialog__header {
+    margin: 0;
+    padding: 20px;
+    border-bottom: 1px solid #e5e7eb;
+    
+    .el-dialog__title {
+      font-size: 18px;
+      font-weight: 600;
+      color: #1f2937;
+    }
   }
-}
-
-// 分页区域
-.pagination {
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  gap: 16px;
-  padding: 16px 24px;
-  background: var(--bg-dark);
-  border-top: 1px solid var(--border-color);
-
-  .total {
-    color: var(--text-secondary);
+  
+  .el-dialog__body {
+    padding: 24px;
+    color: #4b5563;
     font-size: 14px;
   }
+  
+  .el-dialog__footer {
+    padding: 16px 20px;
+    border-top: 1px solid #e5e7eb;
+    
+    .dialog-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+    }
+  }
+}
 
-  .page-nav {
-    display: flex;
-    align-items: center;
-    gap: 8px;
+// Form 3461 Styles
+.form3461-edit-page {
+  --form-bg: var(--el-bg-color);
+  --section-bg: var(--el-bg-color-overlay);
+  --border-color: var(--el-border-color);
+  --text-primary: var(--el-text-color-primary);
+  --text-regular: var(--el-text-color-regular);
+  --text-secondary: var(--el-text-color-secondary);
 
-    .nav-btn {
-      width: 32px;
-      height: 32px;
+  background-color: var(--form-bg);
+  min-height: 100vh;
+  padding: 24px;
+
+  .page-header {
+    margin-bottom: 24px;
+    
+    .el-page-header {
       padding: 0;
-      background: var(--bg-darker);
-      border: 1px solid var(--border-color);
-      border-radius: 4px;
-      color: var(--text-secondary);
-
-      &:hover {
-        border-color: var(--primary-color);
-        color: var(--primary-color);
-      }
-
-      &:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
-      }
     }
 
-    .page-num {
-      min-width: 32px;
-      height: 32px;
-      line-height: 32px;
-      text-align: center;
-      background: var(--bg-darker);
-      border: 1px solid var(--border-color);
-      border-radius: 4px;
-      color: var(--text-secondary);
+    .page-title {
+      font-size: 18px;
+      font-weight: 500;
+      color: var(--text-primary);
+    }
+  }
 
-      &.active {
-        background: var(--primary-color);
-        border-color: var(--primary-color);
-        color: #fff;
+  .form-container {
+    .form-section {
+      background: var(--section-bg);
+      border-radius: 8px;
+      padding: 24px;
+      margin-bottom: 24px;
+      border: 1px solid var(--border-color);
+
+      .section-title {
+        font-size: 14px;
+        font-weight: 500;
+        color: var(--text-primary);
+        margin-bottom: 24px;
+        text-transform: uppercase;
+      }
+
+      .section-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 24px;
+      }
+
+      .form-row {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 24px;
+        margin-bottom: 16px;
+
+        &:last-child {
+          margin-bottom: 0;
+        }
+      }
+
+      .line-items-container {
+        .line-item {
+          background: var(--form-bg);
+          border: 1px solid var(--border-color);
+          border-radius: 4px;
+          padding: 16px;
+          margin-bottom: 16px;
+
+          &:last-child {
+            margin-bottom: 0;
+          }
+
+          .el-button {
+            margin-top: 24px;
+          }
+        }
       }
     }
   }
-} 
+
+  .form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 16px;
+    margin-top: 24px;
+    padding: 24px;
+    background: var(--section-bg);
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+  }
+
+  // Element Plus 组件样式覆盖
+  :deep() {
+    .el-form-item {
+      margin-bottom: 0;
+
+      .el-form-item__label {
+        color: var(--text-regular);
+        padding-bottom: 8px;
+      }
+
+      .el-form-item__content {
+        .el-input__wrapper,
+        .el-textarea__wrapper {
+          background-color: var(--form-bg);
+          box-shadow: 0 0 0 1px var(--border-color);
+
+          &.is-focus {
+            box-shadow: 0 0 0 1px var(--el-color-primary);
+          }
+        }
+
+        .el-input-number {
+          width: 100%;
+        }
+
+        .el-select {
+          width: 100%;
+        }
+
+        .el-date-editor {
+          width: 100%;
+        }
+
+        .el-radio-group {
+          .el-radio {
+            margin-right: 24px;
+            
+            &:last-child {
+              margin-right: 0;
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+// Dark theme overrides
+html.dark {
+  .form3461-edit-page {
+    --form-bg: var(--el-bg-color-overlay);
+    --section-bg: var(--el-bg-color);
+  }
 } 

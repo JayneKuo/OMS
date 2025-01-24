@@ -1,12 +1,23 @@
-import { ref, reactive } from 'vue'
-import type { Form3461SearchFormState, PaginationState } from '../types'
+import { ref, computed } from 'vue'
+import type { Form3461SearchFormState, Form3461TableItem } from '../types'
+import { useTableData } from './useTableData'
 
-export function useSearch(initialForm: Form3461SearchFormState) {
-  // 搜索表单状态
-  const searchForm = reactive<Form3461SearchFormState>({ ...initialForm })
+export const useSearch = () => {
+  const { tableData } = useTableData()
   
-  // 分页状态
-  const pagination = reactive<PaginationState>({
+  // 初始化搜索表单
+  const searchForm = ref<Form3461SearchFormState>({
+    entryNo: '',
+    importerNo: '',
+    entryType: '',
+    portOfEntry: '',
+    billOfLading: '',
+    dateRange: null,
+    status: ''
+  })
+  
+  // 分页配置
+  const pagination = ref({
     currentPage: 1,
     pageSize: 10
   })
@@ -14,45 +25,108 @@ export function useSearch(initialForm: Form3461SearchFormState) {
   // 高级搜索显示状态
   const showAdvancedSearch = ref(false)
   
-  // 重置搜索表单
-  const resetSearch = () => {
-    Object.assign(searchForm, initialForm)
-    pagination.currentPage = 1
-    handleSearch()
+  // 过滤数据
+  const filteredTableData = computed(() => {
+    let result = tableData.value
+    
+    // 按报关单号筛选
+    if (searchForm.value.entryNo) {
+      result = result.filter(item => 
+        item.entryNo.toLowerCase().includes(searchForm.value.entryNo.toLowerCase())
+      )
+    }
+    
+    // 按进口商编号筛选
+    if (searchForm.value.importerNo) {
+      result = result.filter(item => 
+        item.importerNo.toLowerCase().includes(searchForm.value.importerNo.toLowerCase())
+      )
+    }
+    
+    // 按报关类型筛选
+    if (searchForm.value.entryType) {
+      result = result.filter(item => 
+        item.entryType === searchForm.value.entryType
+      )
+    }
+    
+    // 按入境口岸筛选
+    if (searchForm.value.portOfEntry) {
+      result = result.filter(item => 
+        item.portOfEntry === searchForm.value.portOfEntry
+      )
+    }
+    
+    // 按提单号筛选
+    if (searchForm.value.billOfLading) {
+      result = result.filter(item => 
+        item.billOfLading.toLowerCase().includes(searchForm.value.billOfLading.toLowerCase())
+      )
+    }
+    
+    // 按状态筛选
+    if (searchForm.value.status) {
+      result = result.filter(item => 
+        item.status === searchForm.value.status
+      )
+    }
+    
+    // 按日期范围筛选
+    if (searchForm.value.dateRange) {
+      const [startDate, endDate] = searchForm.value.dateRange
+      result = result.filter(item => {
+        const itemDate = new Date(item.entryDate)
+        return itemDate >= new Date(startDate) && itemDate <= new Date(endDate)
+      })
+    }
+    
+    // 分页
+    const start = (pagination.value.currentPage - 1) * pagination.value.pageSize
+    const end = start + pagination.value.pageSize
+    return result.slice(start, end)
+  })
+  
+  // 处理搜索
+  const handleSearch = () => {
+    pagination.value.currentPage = 1
   }
   
-  // 切换高级搜索显示状态
+  // 处理输入
+  const handleInput = (field: keyof Form3461SearchFormState, event: Event) => {
+    const target = event.target as HTMLInputElement
+    searchForm.value[field] = target.value
+  }
+  
+  // 清除输入
+  const clearInput = (field: keyof Form3461SearchFormState) => {
+    searchForm.value[field] = ''
+  }
+  
+  // 切换高级搜索
   const toggleAdvancedSearch = () => {
     showAdvancedSearch.value = !showAdvancedSearch.value
   }
   
-  // 处理搜索
-  const handleSearch = () => {
-    pagination.currentPage = 1
-    // 这里可以添加具体的搜索逻辑
-    console.log('Search with:', searchForm)
-  }
-  
-  // 处理分页变化
+  // 处理页码变化
   const handlePageChange = (page: number) => {
-    pagination.currentPage = page
-    handleSearch()
+    pagination.value.currentPage = page
   }
   
   // 处理每页条数变化
   const handleSizeChange = (size: number) => {
-    pagination.pageSize = size
-    pagination.currentPage = 1
-    handleSearch()
+    pagination.value.pageSize = size
+    pagination.value.currentPage = 1
   }
-
+  
   return {
     searchForm,
     pagination,
     showAdvancedSearch,
-    resetSearch,
-    toggleAdvancedSearch,
+    filteredTableData,
     handleSearch,
+    handleInput,
+    clearInput,
+    toggleAdvancedSearch,
     handlePageChange,
     handleSizeChange
   }
