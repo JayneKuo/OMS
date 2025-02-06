@@ -13,7 +13,7 @@
     </div>
 
     <!-- Search Section -->
-    <div class="search-section">
+      <div class="search-section">
       <div class="search-title">SEARCH BY</div>
       <div class="search-form">
         <!-- 主搜索行：4个输入项 + 操作按钮 -->
@@ -38,15 +38,44 @@
               <CircleClose />
             </el-icon>
           </div>
-          <div class="custom-input">
-            <input 
-              v-model="searchForm.billOfLading" 
-              placeholder="Bill of Lading"
-              @input="handleInput('billOfLading', $event)"
-            />
-            <el-icon class="clear-icon" v-show="searchForm.billOfLading" @click="clearInput('billOfLading')">
-              <CircleClose />
-            </el-icon>
+          <div class="custom-select" v-click-outside="() => handleClickOutside('bondType')">
+            <div 
+              class="select-trigger" 
+              :class="{ 'is-focus': showBondTypeDropdown }"
+            >
+              <input
+                v-model="bondTypeSearch"
+                :placeholder="searchForm.bondType || 'Bond Type'"
+                @input="handleSearchInput('bondType')"
+                @click.stop="toggleDropdown('bondType')"
+                @focus="toggleDropdown('bondType')"
+              />
+              <div class="select-icons">
+                <el-icon 
+                  class="clear-icon" 
+                  v-show="bondTypeSearch || searchForm.bondType" 
+                  @click.stop="clearSelect('bondType')"
+                >
+                  <CircleClose />
+                </el-icon>
+                <el-icon :class="{ 'is-reverse': showBondTypeDropdown }"><ArrowDown /></el-icon>
+              </div>
+            </div>
+            <div 
+              class="select-dropdown" 
+              v-show="showBondTypeDropdown"
+              @click.stop
+            >
+              <div 
+                v-for="type in filteredBondTypeOptions"
+                :key="type.value"
+                class="select-option" 
+                @click.stop="handleSelectOption('bondType', type.value)"
+                :class="{ active: searchForm.bondType === type.value }"
+              >
+                {{ type.label }}
+              </div>
+            </div>
           </div>
           <div class="custom-select" v-click-outside="() => handleClickOutside('status')">
             <div 
@@ -104,7 +133,7 @@
             </button>
           </div>
         </div>
-        
+
         <!-- 高级搜索行：3个字段 -->
         <div class="search-row" v-show="showAdvancedSearch">
           <div class="custom-select" v-click-outside="() => handleClickOutside('entryType')">
@@ -112,7 +141,7 @@
               class="select-trigger" 
               :class="{ 'is-focus': showEntryTypeDropdown }"
             >
-              <input
+            <input 
                 v-model="entryTypeSearch"
                 :placeholder="searchForm.entryType || 'Entry Type'"
                 @input="handleSearchInput('entryType')"
@@ -125,8 +154,8 @@
                   v-show="entryTypeSearch || searchForm.entryType" 
                   @click.stop="clearSelect('entryType')"
                 >
-                  <CircleClose />
-                </el-icon>
+              <CircleClose />
+            </el-icon>
                 <el-icon :class="{ 'is-reverse': showEntryTypeDropdown }"><ArrowDown /></el-icon>
               </div>
             </div>
@@ -216,7 +245,7 @@
         </el-table-column>
         <el-table-column prop="entryType" label="Entry Type" />
         <el-table-column prop="portOfEntry" label="Port of Entry" />
-        <el-table-column prop="billOfLading" label="Bill of Lading" />
+        <el-table-column prop="bondType" label="Bond Type" />
         <el-table-column prop="entryDate" label="Entry Date" />
         <el-table-column prop="status" label="Status">
           <template #default="{ row }">
@@ -306,7 +335,7 @@
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import type { Form3461SearchFormState, Form3461TableItem, Form3461Status } from './types'
-import { STATUS_CONFIG, ENTRY_TYPES, PORTS_OF_ENTRY } from './types'
+import { STATUS_CONFIG, ENTRY_TYPES, PORTS_OF_ENTRY, BOND_TYPES } from './types'
 import { useSearch } from './composables/useSearch'
 import { useTableData } from './composables/useTableData'
 import { ElMessage, ElMessageBox } from 'element-plus'
@@ -317,12 +346,12 @@ import {
 } from '@element-plus/icons-vue'
 
 const router = useRouter()
-const { 
-  searchForm, 
-  pagination, 
+const {
+  searchForm,
+  pagination,
   showAdvancedSearch,
   filteredTableData,
-  handleSearch, 
+  handleSearch,
   handleInput, 
   clearInput,
   toggleAdvancedSearch,
@@ -334,6 +363,7 @@ const {
 const showStatusDropdown = ref(false)
 const showEntryTypeDropdown = ref(false)
 const showPortDropdown = ref(false)
+const showBondTypeDropdown = ref(false)
 
 const toggleDropdown = (field: string) => {
   switch (field) {
@@ -341,16 +371,25 @@ const toggleDropdown = (field: string) => {
       showStatusDropdown.value = !showStatusDropdown.value
       showEntryTypeDropdown.value = false
       showPortDropdown.value = false
+      showBondTypeDropdown.value = false
       break
     case 'entryType':
       showEntryTypeDropdown.value = !showEntryTypeDropdown.value
       showStatusDropdown.value = false
       showPortDropdown.value = false
+      showBondTypeDropdown.value = false
       break
     case 'portOfEntry':
       showPortDropdown.value = !showPortDropdown.value
       showStatusDropdown.value = false
       showEntryTypeDropdown.value = false
+      showBondTypeDropdown.value = false
+      break
+    case 'bondType':
+      showBondTypeDropdown.value = !showBondTypeDropdown.value
+      showStatusDropdown.value = false
+      showEntryTypeDropdown.value = false
+      showPortDropdown.value = false
       break
   }
 }
@@ -365,6 +404,9 @@ const handleClickOutside = (field: string) => {
       break
     case 'portOfEntry':
       showPortDropdown.value = false
+      break
+    case 'bondType':
+      showBondTypeDropdown.value = false
       break
   }
 }
@@ -386,6 +428,11 @@ const handleSelectOption = (field: string, value: string) => {
       portSearch.value = ''
       showPortDropdown.value = false
       break
+    case 'bondType':
+      searchForm.value.bondType = value
+      bondTypeSearch.value = ''
+      showBondTypeDropdown.value = false
+      break
   }
 }
 
@@ -402,6 +449,10 @@ const clearSelect = (field: string) => {
     case 'portOfEntry':
       searchForm.value.portOfEntry = ''
       portSearch.value = ''
+      break
+    case 'bondType':
+      searchForm.value.bondType = ''
+      bondTypeSearch.value = ''
       break
   }
 }
@@ -431,126 +482,84 @@ const getActionLabel = (action: string) => {
 
 const handleAction = async (handler: string, row: Form3461TableItem) => {
   switch (handler) {
-    case 'handleSaveDraft':
-      // 保存草稿
-      ElMessage.success('Draft saved successfully')
-      break
-      
-    case 'handleSubmitForm':
-      // 提交表单
-      try {
-        await ElMessageBox.confirm(
-          'Are you sure you want to submit this form?',
-          'Submit Confirmation',
-          { type: 'warning' }
-        )
-        updateStatus(row.id, 'Submitted')
-        ElMessage.success('Form submitted successfully')
-      } catch {
-        // 用户取消操作
-      }
-      break
-      
     case 'handleViewDetails':
-      // 查看详情
+      // View details
       handleViewDetails(row)
       break
       
-    case 'handleTrackStatus':
-      // 查看状态
-      router.push(`/customs/form3461/track/${row.id}`)
-      break
-      
-    case 'handleApproveAndRelease':
-      // 放行
+    case 'handleSubmitForm':
       try {
         await ElMessageBox.confirm(
-          'Are you sure you want to approve and release this entry?',
-          'Release Confirmation',
+          'Are you sure you want to submit this form? It will enter the review process.',
+          'Submit Confirmation',
           { type: 'warning' }
         )
-        updateStatus(row.id, 'Release')
-        ElMessage.success('Entry released successfully')
+        updateStatus(row.id, 'Processing')
+        ElMessage.success('Form submitted successfully')
       } catch {
-        // 用户取消操作
+        // User cancelled
       }
       break
       
-    case 'handleRequestDocuments':
-      // 要求补充材料
+    case 'handleApproveAndComplete':
+      // Approve and complete
       try {
-        const reason = await ElMessageBox.prompt(
-          'Please specify the required documents:',
-          'Request Additional Documents',
+        await ElMessageBox.confirm(
+          'Are you sure you want to approve and complete this form?',
+          'Completion Confirmation',
           { type: 'warning' }
         )
-        updateStatus(row.id, 'Hold')
-        ElMessage.success('Additional documents requested')
+        updateStatus(row.id, 'Completed')
+        ElMessage.success('Form completed successfully')
       } catch {
-        // 用户取消操作
+        // User cancelled
       }
       break
       
     case 'handleRejectForm':
-      // 驳回表单
+      // Reject form
       try {
-        const reason = await ElMessageBox.prompt(
-          'Please specify the rejection reason:',
+        const { value: reason } = await ElMessageBox.prompt(
+          'Please enter the rejection reason:',
           'Reject Form',
           { type: 'warning' }
         )
-        updateStatus(row.id, 'Rejected')
-        ElMessage.success('Form rejected')
+        if (reason) {
+          updateStatus(row.id, 'Failed')
+          ElMessage.success('Form rejected')
+        }
       } catch {
-        // 用户取消操作
+        // User cancelled
       }
       break
       
-    case 'handleViewHoldReason':
-      // 查看扣留原因
+    case 'handleCancelForm':
+      // Cancel form
+      try {
+        await ElMessageBox.confirm(
+          'Are you sure you want to cancel this form? This action cannot be undone.',
+          'Cancel Confirmation',
+          { type: 'warning' }
+        )
+        updateStatus(row.id, 'Cancelled')
+        ElMessage.success('Form cancelled')
+      } catch {
+        // User cancelled
+      }
+      break
+      
+    case 'handleViewFailureReason':
+      // View failure reason
       ElMessageBox.alert(
-        'Additional documents required for customs clearance',
-        'Hold Reason',
-        { type: 'warning' }
-      )
-      break
-      
-    case 'handleUploadDocuments':
-      // 上传补充材料
-      router.push(`/customs/form3461/upload/${row.id}`)
-      break
-      
-    case 'handleViewReleaseDetails':
-      // 查看放行详情
-      ElMessageBox.alert(
-        'Entry has been approved and goods are cleared for entry',
-        'Release Details',
-        { type: 'success' }
-      )
-      break
-      
-    case 'handleDownloadNotice':
-      // 下载放行通知单
-      ElMessage.success('Release notice downloaded')
-      break
-      
-    case 'handleGenerate7501':
-      // 生成7501表单
-      router.push(`/customs/form7501/create?form3461Id=${row.id}`)
-      break
-      
-    case 'handleViewRejectReason':
-      // 查看驳回原因
-      ElMessageBox.alert(
-        'Form requires modification before resubmission',
-        'Rejection Reason',
+        'Form data is incomplete or incorrect. Please review and resubmit.',
+        'Failure Reason',
         { type: 'error' }
       )
       break
       
     case 'handleEditForm':
-      // 编辑表单
-      router.push(`/customs/form3461/edit/${row.id}`)
+      // Edit form
+      router.push(`/customs/form3461/edit/${row.systemId}`)
       break
   }
 }
@@ -639,6 +648,7 @@ const vClickOutside = {
 const statusSearch = ref('')
 const entryTypeSearch = ref('')
 const portSearch = ref('')
+const bondTypeSearch = ref('')
 
 // 过滤后的选项
 const filteredStatusOptions = computed(() => {
@@ -665,6 +675,14 @@ const filteredPortOptions = computed(() => {
   )
 })
 
+const filteredBondTypeOptions = computed(() => {
+  const search = bondTypeSearch.value.toLowerCase()
+  return BOND_TYPES.filter(type => 
+    type.value.toLowerCase().includes(search) || 
+    type.label.toLowerCase().includes(search)
+  )
+})
+
 // 处理搜索输入
 const handleSearchInput = (field: string) => {
   switch (field) {
@@ -676,6 +694,9 @@ const handleSearchInput = (field: string) => {
       break
     case 'portOfEntry':
       showPortDropdown.value = true
+      break
+    case 'bondType':
+      showBondTypeDropdown.value = true
       break
   }
 }
@@ -838,7 +859,7 @@ const handleViewDetails = (row: Form3461TableItem) => {
         font-size: 14px;
 
         &::placeholder {
-          color: rgba(255, 255, 255, 0.35);
+        color: rgba(255, 255, 255, 0.35);
         }
 
         &:focus {
@@ -965,38 +986,38 @@ const handleViewDetails = (row: Form3461TableItem) => {
     display: flex;
     gap: 8px;
 
-    .custom-btn {
-      width: 40px;
-      height: 40px;
-      border-radius: 4px;
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      background: rgba(30, 35, 45, 0.6);
-      color: rgba(255, 255, 255, 0.35);
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: all 0.2s;
+  .custom-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 4px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(30, 35, 45, 0.6);
+    color: rgba(255, 255, 255, 0.35);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+
+    &:hover {
+      border-color: rgba(255, 255, 255, 0.15);
+      background: rgba(35, 40, 50, 0.7);
+      color: rgba(255, 255, 255, 0.5);
+    }
+
+    &.active {
+      border-color: rgba(255, 255, 255, 0.2);
+      background: rgba(35, 40, 50, 0.7);
+      color: var(--primary-color);
+    }
+
+    &.search-btn {
+      background: var(--primary-color);
+      border: none;
+      color: #fff;
 
       &:hover {
-        border-color: rgba(255, 255, 255, 0.15);
-        background: rgba(35, 40, 50, 0.7);
-        color: rgba(255, 255, 255, 0.5);
-      }
-
-      &.active {
-        border-color: rgba(255, 255, 255, 0.2);
-        background: rgba(35, 40, 50, 0.7);
-        color: var(--primary-color);
-      }
-
-      &.search-btn {
-        background: var(--primary-color);
-        border: none;
-        color: #fff;
-
-        &:hover {
-          background: var(--primary-hover);
+        background: var(--primary-hover);
         }
       }
     }
@@ -1059,7 +1080,7 @@ const handleViewDetails = (row: Form3461TableItem) => {
       color: var(--primary-color);
       cursor: pointer;
       font-size: 14px;
-      
+
       &:hover {
         opacity: 0.8;
       }
@@ -1153,7 +1174,7 @@ const handleViewDetails = (row: Form3461TableItem) => {
 }
 
 :deep(.el-select-dropdown) {
-  background: var(--bg-dark);
+    background: var(--bg-dark);
   border: 1px solid rgba(255, 255, 255, 0.1);
   
   .el-select-dropdown__item {

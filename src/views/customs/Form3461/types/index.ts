@@ -34,9 +34,7 @@ export interface Form3461FormState {
   importerNumberUltimate: string
 
   // Transportation Information
-  transportationMode: string
-  vesselName: string
-  voyageNumber: string
+  transportationMode: string[]
 
   // Line Items
   lineItems: LineItem[]
@@ -46,7 +44,7 @@ export interface Form3461FormState {
   selfFilingCertification: boolean
 }
 
-export type Form3461Status = 'Draft' | 'Submitted' | 'Pending Review' | 'Hold' | 'Release' | 'Rejected'
+export type Form3461Status = 'Pending' | 'Processing' | 'Completed' | 'Failed' | 'Cancelled'
 
 export interface ActionConfig {
   label: string
@@ -69,7 +67,12 @@ export const ENTRY_TYPES = [
   { label: 'FTZ', value: 'FTZ' },
   { label: 'T&E', value: 'T&E' },
   { label: 'Informal', value: 'Informal' }
-]
+] as const
+
+export const BOND_TYPES = [
+  { label: 'Single Transaction Bond', value: 'Single Transaction Bond' },
+  { label: 'Continuous Bond', value: 'Continuous Bond' }
+] as const
 
 export const PORTS_OF_ENTRY = [
   { label: 'Los Angeles', value: 'Los Angeles' },
@@ -80,71 +83,56 @@ export const PORTS_OF_ENTRY = [
 ]
 
 export const STATUS_CONFIG: Record<Form3461Status, Form3461StatusConfig> = {
-  Draft: {
-    label: 'Draft',
-    value: 'Draft',
+  Pending: {
+    label: 'Pending',
+    value: 'Pending',
     color: '#8C8C8C',
-    description: 'Entry is being filled out and has not been submitted',
+    description: 'Entry has been created but not submitted, waiting for review',
     actions: [
       { label: 'View Details', value: 'view', color: '#8C8C8C', handler: 'handleViewDetails' },
-      { label: 'Edit Form', value: 'edit', color: '#1890FF', handler: 'handleEditForm' },
       { label: 'Submit Form', value: 'submit', color: '#52C41A', handler: 'handleSubmitForm' }
     ]
   },
-  Submitted: {
-    label: 'Submitted',
-    value: 'Submitted',
-    color: '#1890FF',
-    description: 'Entry has been submitted to CBP system and is awaiting processing',
-    actions: [
-      { label: 'View Details', value: 'view', color: '#8C8C8C', handler: 'handleViewDetails' },
-      { label: 'Track Status', value: 'track', color: '#1890FF', handler: 'handleTrackStatus' }
-    ]
-  },
-  'Pending Review': {
-    label: 'Pending Review',
-    value: 'Pending Review',
+  Processing: {
+    label: 'Processing',
+    value: 'Processing',
     color: '#FAAD14',
-    description: 'Under CBP review, additional documents may be required',
+    description: 'Entry is under review, assessing completeness and accuracy',
     actions: [
       { label: 'View Details', value: 'view', color: '#8C8C8C', handler: 'handleViewDetails' },
-      { label: 'Approve and Release', value: 'approve', color: '#52C41A', handler: 'handleApproveAndRelease' },
-      { label: 'Request Additional Documents', value: 'request', color: '#FAAD14', handler: 'handleRequestDocuments' },
-      { label: 'Reject Form', value: 'reject', color: '#FF4D4F', handler: 'handleRejectForm' }
+      { label: 'Approve & Complete', value: 'approve', color: '#52C41A', handler: 'handleApproveAndComplete' },
+      { label: 'Reject Form', value: 'reject', color: '#FF4D4F', handler: 'handleRejectForm' },
+      { label: 'Cancel Form', value: 'cancel', color: '#FF4D4F', handler: 'handleCancelForm' }
     ]
   },
-  Hold: {
-    label: 'Hold',
-    value: 'Hold',
-    color: '#FF7A45',
-    description: 'Goods held by CBP for further examination',
-    actions: [
-      { label: 'View Details', value: 'view', color: '#8C8C8C', handler: 'handleViewDetails' },
-      { label: 'View Hold Reason', value: 'viewHold', color: '#FF7A45', handler: 'handleViewHoldReason' },
-      { label: 'Upload Additional Documents', value: 'upload', color: '#1890FF', handler: 'handleUploadDocuments' }
-    ]
-  },
-  Release: {
-    label: 'Release',
-    value: 'Release',
+  Completed: {
+    label: 'Completed',
+    value: 'Completed',
     color: '#52C41A',
-    description: 'Entry approved, goods cleared for entry',
+    description: 'Entry approved, goods cleared for entry, process completed',
     actions: [
-      { label: 'View Details', value: 'view', color: '#8C8C8C', handler: 'handleViewDetails' },
-      { label: 'View Release Details', value: 'viewRelease', color: '#52C41A', handler: 'handleViewReleaseDetails' },
-      { label: 'Download Release Notice', value: 'download', color: '#1890FF', handler: 'handleDownloadNotice' },
-      { label: 'Generate Form 7501', value: 'generate7501', color: '#FAAD14', handler: 'handleGenerate7501' }
+      { label: 'View Details', value: 'view', color: '#8C8C8C', handler: 'handleViewDetails' }
     ]
   },
-  Rejected: {
-    label: 'Rejected',
-    value: 'Rejected',
+  Failed: {
+    label: 'Failed',
+    value: 'Failed',
     color: '#FF4D4F',
-    description: 'Entry rejected by CBP, requires modification and resubmission',
+    description: 'Entry review failed, usually due to data errors or missing information',
     actions: [
       { label: 'View Details', value: 'view', color: '#8C8C8C', handler: 'handleViewDetails' },
-      { label: 'View Rejection Reason', value: 'viewReject', color: '#FF4D4F', handler: 'handleViewRejectReason' },
-      { label: 'Edit Form', value: 'edit', color: '#1890FF', handler: 'handleEditForm' }
+      { label: 'View Failure Reason', value: 'viewFailure', color: '#FF4D4F', handler: 'handleViewFailureReason' },
+      { label: 'Edit Form', value: 'edit', color: '#1890FF', handler: 'handleEditForm' },
+      { label: 'Cancel Form', value: 'cancel', color: '#FF4D4F', handler: 'handleCancelForm' }
+    ]
+  },
+  Cancelled: {
+    label: 'Cancelled',
+    value: 'Cancelled',
+    color: '#FF4D4F',
+    description: 'Entry has been cancelled, no further actions can be taken',
+    actions: [
+      { label: 'View Details', value: 'view', color: '#8C8C8C', handler: 'handleViewDetails' }
     ]
   }
 }
@@ -154,7 +142,7 @@ export interface Form3461SearchFormState {
   importerNo: string
   entryType: string
   portOfEntry: string
-  billOfLading: string
+  bondType: string
   dateRange: [string, string] | null
   status: Form3461Status | ''
 }
@@ -166,7 +154,7 @@ export interface Form3461TableItem {
   importerNo: string
   entryType: string
   portOfEntry: string
-  billOfLading: string
+  bondType: string
   entryDate: string
   status: Form3461Status
   description: string

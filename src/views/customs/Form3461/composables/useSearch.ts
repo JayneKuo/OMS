@@ -11,7 +11,7 @@ export const useSearch = () => {
     importerNo: '',
     entryType: '',
     portOfEntry: '',
-    billOfLading: '',
+    bondType: '',
     dateRange: null,
     status: ''
   })
@@ -57,10 +57,10 @@ export const useSearch = () => {
       )
     }
     
-    // 按提单号筛选
-    if (searchForm.value.billOfLading) {
+    // 按保证金类型筛选
+    if (searchForm.value.bondType) {
       result = result.filter(item => 
-        item.billOfLading.toLowerCase().includes(searchForm.value.billOfLading.toLowerCase())
+        item.bondType === searchForm.value.bondType
       )
     }
     

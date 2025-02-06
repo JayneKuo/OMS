@@ -29,7 +29,14 @@
                 <el-input v-model="formData.entryNumber" placeholder="XXX-XXXXXXX-X" />
               </el-form-item>
               <el-form-item label="Entry Type" prop="entryType" required>
-                <el-input v-model="formData.entryType" placeholder="Enter Entry Type" />
+                <el-select v-model="formData.entryType" placeholder="Select Entry Type">
+                  <el-option
+                    v-for="item in ENTRY_TYPES"
+                    :key="item.value"
+                    :label="item.label"
+                    :value="item.value"
+                  />
+                </el-select>
               </el-form-item>
             </div>
             <div class="form-row">
@@ -94,7 +101,7 @@
               <el-form-item label="Bond Type" prop="bondType">
                 <el-select v-model="formData.bondType" placeholder="Select Bond Type">
                   <el-option
-                    v-for="item in bondTypes"
+                    v-for="item in BOND_TYPES"
                     :key="item.value"
                     :label="item.label"
                     :value="item.value"
@@ -111,7 +118,7 @@
               <el-form-item label="Consignee Number" prop="consigneeNumber">
                 <el-input v-model="formData.consigneeNumber" placeholder="XX-XXXXXXX" />
               </el-form-item>
-              <el-form-item label="Importer Number" prop="importerNumberUltimate">
+              <el-form-item label="Importer Number" prop="importerNumberUltimate" required>
                 <el-input v-model="formData.importerNumberUltimate" placeholder="XX-XXXXXXX" />
               </el-form-item>
             </div>
@@ -122,12 +129,17 @@
             <div class="section-title">TRANSPORTATION INFORMATION</div>
             <div class="form-row">
               <el-form-item label="Mode of Transportation" prop="transportationMode">
-                <el-select v-model="formData.transportationMode" placeholder="Select modes">
+                <el-select
+                  v-model="formData.transportationMode"
+                  multiple
+                  placeholder="Select modes"
+                  class="full-width-tags"
+                >
                   <el-option
-                    v-for="item in transportModes"
-                    :key="item.value"
-                    :label="item.label"
-                    :value="item.value"
+                    v-for="mode in transportModes"
+                    :key="mode.value"
+                    :label="mode.label"
+                    :value="mode.value"
                   />
                 </el-select>
               </el-form-item>
@@ -210,6 +222,7 @@ import { ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import type { FormInstance } from 'element-plus'
 import { ArrowLeft } from '@element-plus/icons-vue'
+import { ENTRY_TYPES, BOND_TYPES } from './types/index'
 
 const router = useRouter()
 const route = useRoute()
@@ -250,7 +263,7 @@ interface FormData {
   bondType: string
   consigneeNumber: string
   importerNumberUltimate: string
-  transportationMode: string
+  transportationMode: string[]
   vesselName: string
   voyageNumber: string
   lineItems: LineItem[]
@@ -274,7 +287,7 @@ const formData = ref<FormData>({
   bondType: '',
   consigneeNumber: '',
   importerNumberUltimate: '',
-  transportationMode: '',
+  transportationMode: [],
   vesselName: '',
   voyageNumber: '',
   lineItems: [],
@@ -282,17 +295,14 @@ const formData = ref<FormData>({
   selfFilingCertification: false
 })
 
-const bondTypes = [
-  { value: 'type1', label: 'Type 1' },
-  { value: 'type2', label: 'Type 2' },
-  { value: 'type3', label: 'Type 3' }
-]
-
 const transportModes = [
-  { value: 'air', label: 'Air' },
-  { value: 'sea', label: 'Sea' },
-  { value: 'rail', label: 'Rail' },
-  { value: 'road', label: 'Road' }
+  { value: '1', label: 'Vessel' },
+  { value: '2', label: 'Rail' },
+  { value: '3', label: 'Truck' },
+  { value: '4', label: 'Air' },
+  { value: '5', label: 'Mail' },
+  { value: '6', label: 'Passenger' },
+  { value: '7', label: 'Fixed Transport' }
 ]
 
 const formRules = {
@@ -303,7 +313,8 @@ const formRules = {
   portCode: [{ required: true, message: 'Port Code is required', trigger: 'blur' }],
   importerNumber: [{ required: true, message: 'Importer Number is required', trigger: 'blur' }],
   importerNumberConsignee: [{ required: true, message: 'Importer Number is required', trigger: 'blur' }],
-  importerConsigneeName: [{ required: true, message: 'Importer/Consignee Name is required', trigger: 'blur' }]
+  importerConsigneeName: [{ required: true, message: 'Importer/Consignee Name is required', trigger: 'blur' }],
+  importerNumberUltimate: [{ required: true, message: 'Ultimate Importer Number is required', trigger: 'blur' }]
 }
 
 // 加载表单数据
@@ -610,6 +621,35 @@ const removeLineItem = (index: number) => {
           &:hover {
             background: #7c4dff;
             border-color: #7c4dff;
+          }
+        }
+      }
+    }
+  }
+
+  :deep(.el-select) {
+    &.full-width-tags {
+      .el-select__tags {
+        flex-wrap: wrap;
+        max-width: 100%;
+        height: auto;
+        padding: 2px;
+        
+        .el-tag {
+          margin: 2px 4px 2px 0;
+          height: 24px;
+          padding: 0 8px;
+          background-color: rgba(107, 79, 255, 0.1);
+          border-color: rgba(107, 79, 255, 0.2);
+          color: #6b4fff;
+          
+          .el-tag__close {
+            color: #6b4fff;
+            
+            &:hover {
+              background-color: #6b4fff;
+              color: #fff;
+            }
           }
         }
       }
