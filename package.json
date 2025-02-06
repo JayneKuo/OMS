@@ -1,11 +1,12 @@
 {
-  "name": "oms-system",
-  "version": "0.0.1",
+  "name": "oms",
   "private": true,
+  "version": "0.0.0",
+  "type": "module",
   "scripts": {
     "predev": "node scripts/check-port.js",
     "dev": "vite",
-    "build": "vite build",
+    "build": "vue-tsc --noEmit && vite build",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -25,7 +26,6 @@
     "vue-tsc": "1.8.27"
   },
   "engines": {
-    "node": "18.x"
-    
+    "node": ">=16.0.0"
   }
 }
