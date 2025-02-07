@@ -18,14 +18,29 @@ export default defineConfig({
     assetsDir: 'assets',
     rollupOptions: {
       output: {
-        manualChunks: {
-          'element-plus': ['element-plus'],
-          'vue': ['vue', '@vue/shared', '@vue/runtime-core', '@vue/runtime-dom']
+        manualChunks(id) {
+          // 将 element-plus 及其依赖打包到一个文件中
+          if (id.includes('node_modules/element-plus')) {
+            return 'element-plus'
+          }
+          // 将 Vue 相关依赖打包到一个文件中
+          if (id.includes('node_modules/vue') || 
+              id.includes('node_modules/@vue') || 
+              id.includes('node_modules/@element-plus')) {
+            return 'vue-vendor'
+          }
         }
       }
     }
   },
   optimizeDeps: {
-    include: ['element-plus', '@vue/shared']
+    include: [
+      'vue',
+      'vue-router',
+      'element-plus',
+      '@vue/shared',
+      '@vue/runtime-core',
+      '@vue/runtime-dom'
+    ]
   }
 }) 
