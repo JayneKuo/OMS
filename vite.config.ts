@@ -10,11 +10,26 @@ export default defineConfig({
   plugins: [vue()],
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, 'src')
+      '@': path.resolve(__dirname, 'src'),
+      '@vue/shared': path.resolve(__dirname, 'node_modules/@vue/shared')
     }
   },
   build: {
     outDir: 'dist',
-    assetsDir: 'assets'
+    assetsDir: 'assets',
+    rollupOptions: {
+      external: ['@vue/shared'],
+      output: {
+        globals: {
+          '@vue/shared': 'VueShared'
+        }
+      }
+    },
+    commonjsOptions: {
+      esmExternals: true
+    }
+  },
+  optimizeDeps: {
+    include: ['@vue/shared']
   }
 }) 
