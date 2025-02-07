@@ -41,21 +41,6 @@ const routes: RouteRecordRaw[] = [
             path: 'form3461/track/:id',
             name: 'TrackForm3461',
             component: () => import('@/views/customs/Form3461/track.vue')
-          },
-          {
-            path: 'form3461/upload/:id',
-            name: 'UploadForm3461',
-            component: () => import('@/views/customs/Form3461/upload.vue')
-          },
-          {
-            path: 'form3461/contact/:id',
-            name: 'ContactForm3461',
-            component: () => import('@/views/customs/Form3461/contact.vue')
-          },
-          {
-            path: 'form3461/arrange/:id',
-            name: 'ArrangeForm3461',
-            component: () => import('@/views/customs/Form3461/arrange.vue')
           }
         ]
       }
