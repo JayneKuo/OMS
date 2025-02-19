@@ -18,6 +18,36 @@ const routes: RouteRecordRaw[] = [
             component: () => import('@/views/customs/ISF/index.vue')
           },
           {
+            path: 't86',
+            name: 'T86',
+            component: () => import('@/views/customs/T86/index.vue')
+          },
+          {
+            path: 'ftze214',
+            name: 'FTZe214',
+            component: () => import('@/views/customs/FTZe214/index.vue')
+          },
+          {
+            path: 'ftze214/create',
+            name: 'CreateFTZe214',
+            component: () => import('@/views/customs/FTZe214/edit.vue')
+          },
+          {
+            path: 'ftze214/edit/:id',
+            name: 'EditFTZe214',
+            component: () => import('@/views/customs/FTZe214/edit.vue')
+          },
+          {
+            path: 'ftze214/view/:id',
+            name: 'ViewFTZe214',
+            component: () => import('@/views/customs/FTZe214/edit.vue')
+          },
+          {
+            path: 'ftze214/track/:id',
+            name: 'TrackFTZe214',
+            component: () => import('@/views/customs/FTZe214/track.vue')
+          },
+          {
             path: 'form3461',
             name: 'Form3461',
             component: () => import('@/views/customs/Form3461/index.vue')

@@ -1,7 +1,8 @@
 import {
   Location,
   Document,
-  Ship
+  Ship,
+  Files
 } from '@element-plus/icons-vue'
 
 export interface MenuItem {
@@ -23,8 +24,18 @@ export const menuConfig: MenuItem[] = [
         icon: Ship
       },
       {
+        title: 'T86',
+        path: '/customs/t86',
+        icon: Files
+      },
+      {
         title: 'Form 3461',
         path: '/customs/form3461',
+        icon: Document
+      },
+      {
+        title: 'FTZ e-214',
+        path: '/customs/ftze214',
         icon: Document
       }
     ]
