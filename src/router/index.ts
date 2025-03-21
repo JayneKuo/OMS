@@ -73,6 +73,22 @@ const routes: RouteRecordRaw[] = [
             component: () => import('@/views/customs/Form3461/track.vue')
           }
         ]
+      },
+      {
+        path: '/order',
+        name: 'Order',
+        children: [
+          {
+            path: 'sales',
+            name: 'SalesOrder',
+            component: () => import('@/views/order/sales/index.vue')
+          },
+          {
+            path: 'sales/:id',
+            name: 'SalesOrderDetail',
+            component: () => import('@/views/order/sales/detail.vue')
+          }
+        ]
       }
     ]
   }

@@ -2,7 +2,8 @@ import {
   Location,
   Document,
   Ship,
-  Files
+  Files,
+  ShoppingCart
 } from '@element-plus/icons-vue'
 
 export interface MenuItem {
@@ -36,6 +37,18 @@ export const menuConfig: MenuItem[] = [
       {
         title: 'FTZ e-214',
         path: '/customs/ftze214',
+        icon: Document
+      }
+    ]
+  },
+  {
+    title: 'Order',
+    path: '/order',
+    icon: ShoppingCart,
+    children: [
+      {
+        title: 'Sales Order',
+        path: '/order/sales',
         icon: Document
       }
     ]
