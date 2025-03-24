@@ -3,7 +3,9 @@ import {
   Document,
   Ship,
   Files,
-  ShoppingCart
+  ShoppingCart,
+  Setting,
+  Operation
 } from '@element-plus/icons-vue'
 
 export interface MenuItem {
@@ -50,6 +52,18 @@ export const menuConfig: MenuItem[] = [
         title: 'Sales Order',
         path: '/order/sales',
         icon: Document
+      }
+    ]
+  },
+  {
+    title: 'Settings',
+    path: '/settings',
+    icon: Setting,
+    children: [
+      {
+        title: 'Automation',
+        path: '/settings/automation',
+        icon: Operation
       }
     ]
   }

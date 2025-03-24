@@ -89,6 +89,17 @@ const routes: RouteRecordRaw[] = [
             component: () => import('@/views/order/sales/detail.vue')
           }
         ]
+      },
+      {
+        path: '/settings',
+        name: 'Settings',
+        children: [
+          {
+            path: 'automation',
+            name: 'Automation',
+            component: () => import('@/views/settings/Automation.vue')
+          }
+        ]
       }
     ]
   }
