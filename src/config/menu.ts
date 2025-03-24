@@ -6,7 +6,10 @@ import {
   ShoppingCart,
   Setting,
   Operation,
-  Box
+  Box,
+  Grid,
+  Share,
+  Goods
 } from '@element-plus/icons-vue'
 
 export interface MenuItem {
@@ -77,6 +80,23 @@ export const menuConfig: MenuItem[] = [
         title: 'Warehouse List',
         path: '/warehouse/list',
         icon: Files
+      }
+    ]
+  },
+  {
+    title: 'Foundation Data',
+    path: '/foundation-data',
+    icon: Grid,
+    children: [
+      {
+        title: 'Mapping',
+        path: '/foundation-data/mapping',
+        icon: Share
+      },
+      {
+        title: 'Inventory',
+        path: '/foundation-data/inventory',
+        icon: Goods
       }
     ]
   }

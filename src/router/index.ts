@@ -111,6 +111,23 @@ const routes: RouteRecordRaw[] = [
             component: () => import('@/views/warehouse/WarehouseList.vue')
           }
         ]
+      },
+      {
+        path: '/foundation-data',
+        name: 'FoundationData',
+        component: () => import('@/layouts/RouterView.vue'),
+        children: [
+          {
+            path: 'mapping',
+            name: 'Mapping',
+            component: () => import('@/views/foundation-data/Mapping.vue')
+          },
+          {
+            path: 'inventory',
+            name: 'Inventory',
+            component: () => import('@/views/foundation-data/components/Inventory.vue')
+          }
+        ]
       }
     ]
   }

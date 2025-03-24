@@ -57,8 +57,19 @@
                   :value="wh.value"
                 >
                   <div class="warehouse-option">
-                    <span>{{ wh.label }}</span>
-                    <el-tag size="small" type="info">Stock: {{ wh.availableQty }}</el-tag>
+                    <div class="warehouse-info">
+                      <span class="warehouse-name">{{ wh.label }}</span>
+                      <el-tag size="small" :type="getWmsTagType(wh.wmsType)" class="wms-tag">
+                        {{ wh.wmsType.toUpperCase() }}
+                      </el-tag>
+                    </div>
+                    <div class="warehouse-stock-info">
+                      <template v-for="item in orderItems" :key="item.sku">
+                        <el-tag size="small" :type="getStockTagType(wh.stockInfo?.[item.sku] || 0, item.quantity)">
+                          {{ item.sku }}: {{ wh.stockInfo?.[item.sku] || 0 }}/{{ item.quantity }}
+                        </el-tag>
+                      </template>
+                    </div>
                   </div>
                 </el-option>
               </el-select>
@@ -97,8 +108,19 @@
                       :value="warehouse.value"
                     >
                       <div class="warehouse-option">
-                        <span>{{ warehouse.label }}</span>
-                        <el-tag size="small" type="info">Stock: {{ warehouse.availableQty }}</el-tag>
+                        <div class="warehouse-info">
+                          <span class="warehouse-name">{{ warehouse.label }}</span>
+                          <el-tag size="small" :type="getWmsTagType(warehouse.wmsType)" class="wms-tag">
+                            {{ warehouse.wmsType.toUpperCase() }}
+                          </el-tag>
+                        </div>
+                        <div class="warehouse-stock-info">
+                          <template v-for="item in orderItems" :key="item.sku">
+                            <el-tag size="small" :type="getStockTagType(warehouse.stockInfo?.[item.sku] || 0, item.quantity)">
+                              {{ item.sku }}: {{ warehouse.stockInfo?.[item.sku] || 0 }}/{{ item.quantity }}
+                            </el-tag>
+                          </template>
+                        </div>
                       </div>
                     </el-option>
                   </el-select>
@@ -132,7 +154,7 @@
                       v-model="row.sku"
                       placeholder="Select SKU"
                       style="width: 100%"
-                      @change="(value) => handleSkuChange(whIndex, $index, value)"
+                      @change="(value: string) => handleSkuChange(whIndex, $index, value)"
                     >
                       <el-option
                         v-for="item in getAvailableSkus(whIndex, $index)"
@@ -165,7 +187,7 @@
                       :max="getMaxQuantity(row.sku)"
                       :controls="false"
                       style="width: 100%"
-                      @change="(value) => handleQuantityChange(whIndex, $index, value)"
+                      @change="(value: number) => handleQuantityChange(whIndex, $index, value)"
                     />
                   </template>
                 </el-table-column>
@@ -224,14 +246,48 @@
       </template>
     </el-dialog>
 
-    <!-- 挂起对话框 -->
+    <!-- Hold Dialog -->
     <el-dialog
       v-model="holdDialogVisible"
       title="Hold Order"
       width="500px"
       destroy-on-close
     >
-      <el-form ref="holdFormRef" :model="holdForm" label-width="100px">
+      <el-form ref="holdFormRef" :model="holdForm" label-width="120px">
+        <el-form-item 
+          label="Hold Mode" 
+          required
+          :rules="[{ required: true, message: 'Please select hold mode' }]"
+        >
+          <el-radio-group v-model="holdForm.mode">
+            <el-radio label="permanent">Permanent Hold</el-radio>
+            <el-radio label="temporary">Custom Period</el-radio>
+          </el-radio-group>
+        </el-form-item>
+
+        <template v-if="holdForm.mode === 'temporary'">
+          <el-form-item 
+            label="Time Period"
+            required
+            :rules="[{ required: true, message: 'Please select time period' }]"
+          >
+            <el-date-picker
+              v-model="holdForm.timeRange"
+              type="datetimerange"
+              range-separator="to"
+              start-placeholder="Start Time"
+              end-placeholder="End Time"
+              format="YYYY-MM-DD HH:mm"
+              value-format="YYYY-MM-DD HH:mm:ss"
+              :default-time="defaultTime"
+              :disabled-date="disabledDate"
+              :shortcuts="dateShortcuts"
+              style="width: 100%"
+              @change="handleTimeRangeChange"
+            />
+          </el-form-item>
+        </template>
+
         <el-form-item 
           label="Reason" 
           required
@@ -265,53 +321,116 @@
     <el-dialog
       v-model="cancelDialogVisible"
       title="Cancel Order"
-      width="500px"
+      width="1000px"
       destroy-on-close
     >
-      <el-form ref="cancelFormRef" :model="cancelForm" label-width="100px">
-        <!-- 子单信息 -->
-        <template v-if="hasSubOrders">
-          <div class="sub-orders-section">
-            <div class="section-title">Sub-Orders to Cancel</div>
-            <el-table :data="currentOrder?.subOrders" border>
-              <el-table-column type="selection" width="55" />
-              <el-table-column label="Sub-Order No." prop="subOrderNo" />
-              <el-table-column label="Status" prop="status">
-                <template #default="{ row }">
-                  <el-tag>{{ row.status }}</el-tag>
-                </template>
-              </el-table-column>
-              <el-table-column label="Warehouse" prop="warehouse" />
-            </el-table>
-          </div>
-        </template>
+      <el-alert
+        v-if="!canCancelOrder"
+        type="error"
+        :closable="false"
+        show-icon
+        title="Cannot cancel this order"
+        description="Orders that have been shipped or partially shipped cannot be cancelled."
+      />
+      
+      <template v-else>
+        <el-form ref="cancelFormRef" :model="cancelForm" label-width="120px">
+          <!-- 分配后显示取消模式选择 -->
+          <template v-if="isAllocated">
+            <el-form-item label="Cancel Mode" required>
+              <el-radio-group v-model="cancelForm.mode">
+                <el-radio label="whole">Cancel Entire Order</el-radio>
+                <el-radio label="partial">Cancel Selected Warehouses</el-radio>
+              </el-radio-group>
+            </el-form-item>
+          </template>
 
-        <el-form-item 
-          label="Reason" 
-          required
-          :rules="[{ required: true, message: 'Please select a reason' }]"
-        >
-          <el-select v-model="cancelForm.reason" placeholder="Select Reason">
-            <el-option
-              v-for="item in CANCEL_REASONS"
-              :key="item.value"
-              :label="item.label"
-              :value="item.value"
+          <!-- 部分取消时显示仓库选择 -->
+          <template v-if="isAllocated && cancelForm.mode === 'partial'">
+            <div class="sub-orders-section">
+              <div class="section-title">Select Warehouses to Cancel</div>
+              <el-table 
+                :data="cancelableSubOrders" 
+                @selection-change="handleSelectionChange"
+                border
+                v-if="cancelableSubOrders.length > 0"
+              >
+                <el-table-column type="selection" width="55" />
+                <el-table-column label="Sub-Order No." prop="subOrderNo" width="150" />
+                <el-table-column label="Status" prop="status" width="120">
+                  <template #default="{ row }">
+                    <el-tag>{{ row.status }}</el-tag>
+                  </template>
+                </el-table-column>
+                <el-table-column label="Warehouse" min-width="200">
+                  <template #default="{ row }">
+                    <div class="warehouse-cell">
+                      <span>{{ row.warehouse.split(' (')[0] }}</span>
+                      <el-tag 
+                        size="small" 
+                        :type="getWmsTypeFromWarehouse(row.warehouse)"
+                      >
+                        {{ row.warehouse.match(/\((.*?)\)/)?.[1] || 'OTHER' }}
+                      </el-tag>
+                    </div>
+                  </template>
+                </el-table-column>
+                <el-table-column label="Product" prop="product" min-width="150" />
+                <el-table-column label="Quantity" prop="quantity" width="100" align="right" />
+              </el-table>
+              <el-empty v-else description="No Cancellable Sub-Orders" />
+            </div>
+          </template>
+
+          <!-- WMS警告提示 -->
+          <template v-if="needCallWMS">
+            <el-alert
+              type="warning"
+              :closable="false"
+              show-icon
+              title="WMS Cancellation Required"
+              description="This order is being processed in WMS. The system will attempt to cancel it in WMS first."
+              style="margin-bottom: 16px"
             />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="Remarks">
-          <el-input
-            v-model="cancelForm.remarks"
-            type="textarea"
-            rows="3"
-            placeholder="Enter additional remarks"
-          />
-        </el-form-item>
-      </el-form>
+          </template>
+
+          <el-form-item 
+            label="Reason" 
+            required
+            :rules="[{ required: true, message: 'Please select a reason' }]"
+          >
+            <el-select v-model="cancelForm.reason" placeholder="Select Reason">
+              <el-option
+                v-for="item in CANCEL_REASONS"
+                :key="item.value"
+                :label="item.label"
+                :value="item.value"
+              />
+            </el-select>
+          </el-form-item>
+
+          <el-form-item label="Remarks">
+            <el-input
+              v-model="cancelForm.remarks"
+              type="textarea"
+              rows="3"
+              placeholder="Enter additional remarks"
+            />
+          </el-form-item>
+        </el-form>
+      </template>
+
       <template #footer>
-        <el-button @click="cancelDialogVisible = false">Cancel</el-button>
-        <el-button type="primary" @click="handleCancelConfirm">Confirm</el-button>
+        <div class="dialog-footer">
+          <el-button @click="cancelDialogVisible = false">Back</el-button>
+          <el-button 
+            type="primary" 
+            :disabled="!canCancelOrder || (cancelForm.mode === 'partial' && cancelForm.selectedSubOrders.length === 0)"
+            @click="handleCancelConfirm"
+          >
+            Confirm Cancel
+          </el-button>
+        </div>
       </template>
     </el-dialog>
 
@@ -323,6 +442,89 @@
       destroy-on-close
     >
       <el-form ref="reopenFormRef" :model="reopenForm" label-width="100px">
+        <!-- 重开模式选择 -->
+        <el-form-item label="Reopen Mode" required>
+          <el-radio-group v-model="reopenForm.mode" class="inline-radio-group">
+            <el-radio label="whole">
+              <div class="mode-option">
+                <span class="mode-title">Reopen Entire Order</span>
+                <el-tooltip effect="dark" placement="right">
+                  <template #content>
+                    <div class="mode-tooltip">
+                      <p>Reopen the entire order, including:</p>
+                      <ul>
+                        <li>All exception sub-orders will be reopened and set to Allocated status</li>
+                        <li>Main order status will be updated based on fulfillment mode</li>
+                        <li>Best for orders that need to reprocess all exception sub-orders</li>
+                      </ul>
+                    </div>
+                  </template>
+                  <el-icon><QuestionFilled /></el-icon>
+                </el-tooltip>
+              </div>
+            </el-radio>
+            <el-radio 
+              label="partial" 
+              :disabled="!hasExceptionSubOrders"
+            >
+              <div class="mode-option">
+                <span class="mode-title">Reopen Selected Sub-Orders</span>
+                <el-tooltip effect="dark" placement="right">
+                  <template #content>
+                    <div class="mode-tooltip">
+                      <p>Selectively reopen specific sub-orders:</p>
+                      <ul>
+                        <li>Choose which exception sub-orders to reopen</li>
+                        <li>Selected sub-orders will be set to Allocated status</li>
+                        <li>Main order status updates based on remaining exceptions</li>
+                      </ul>
+                    </div>
+                  </template>
+                  <el-icon><QuestionFilled /></el-icon>
+                </el-tooltip>
+              </div>
+              <el-tag 
+                v-if="!hasExceptionSubOrders" 
+                size="small" 
+                type="info" 
+                style="margin-left: 8px"
+              >
+                No exception sub-orders
+              </el-tag>
+            </el-radio>
+          </el-radio-group>
+        </el-form-item>
+
+        <!-- 子单选择 -->
+        <template v-if="reopenForm.mode === 'partial'">
+          <div class="sub-orders-section">
+            <div class="section-header">
+              <div class="section-title">Select Sub-Orders to Reopen</div>
+              <div class="selection-info">
+                Selected: {{ reopenForm.selectedSubOrders.length }} / {{ exceptionSubOrders.length }}
+              </div>
+            </div>
+            <el-table 
+              :data="exceptionSubOrders" 
+              @selection-change="handleReopenSelectionChange"
+              border
+              v-if="exceptionSubOrders.length > 0"
+            >
+              <el-table-column type="selection" width="55" />
+              <el-table-column label="Sub-Order No." prop="subOrderNo" width="150" />
+              <el-table-column label="Status" prop="status" width="120">
+                <template #default="{ row }">
+                  <el-tag type="danger">{{ row.status }}</el-tag>
+                </template>
+              </el-table-column>
+              <el-table-column label="Warehouse" prop="warehouse" min-width="150" />
+              <el-table-column label="Product" prop="product" min-width="150" />
+              <el-table-column label="Quantity" prop="quantity" width="100" align="right" />
+            </el-table>
+            <el-empty v-else description="No Exception Sub-Orders" />
+          </div>
+        </template>
+
         <el-form-item 
           label="Reason" 
           required
@@ -337,6 +539,7 @@
             />
           </el-select>
         </el-form-item>
+
         <el-form-item label="Remarks">
           <el-input
             v-model="reopenForm.remarks"
@@ -348,7 +551,13 @@
       </el-form>
       <template #footer>
         <el-button @click="reopenDialogVisible = false">Cancel</el-button>
-        <el-button type="primary" @click="handleReopenConfirm">Confirm</el-button>
+        <el-button 
+          type="primary" 
+          :disabled="!canReopenOrder"
+          @click="handleReopenConfirm"
+        >
+          Confirm
+        </el-button>
       </template>
     </el-dialog>
 
@@ -356,7 +565,7 @@
     <el-dialog
       v-model="deallocateDialogVisible"
       title="Deallocate Order"
-      width="500px"
+      width="1000px"
       destroy-on-close
     >
       <div class="warning-message">
@@ -366,29 +575,86 @@
           :closable="false"
           show-icon
         >
-          <p>Are you sure you want to deallocate this order?</p>
           <p>This action will remove the warehouse allocation for the selected order(s).</p>
+          <p>Please confirm the warehouses you want to deallocate.</p>
         </el-alert>
       </div>
-      
-      <!-- 子单信息 -->
-      <template v-if="hasSubOrders">
-        <div class="sub-orders-section">
-          <div class="section-title">Sub-Orders to Deallocate</div>
-          <el-table :data="currentOrder?.subOrders" border>
-            <el-table-column type="selection" width="55" />
-            <el-table-column label="Sub-Order No." prop="subOrderNo" />
-            <el-table-column label="Status" prop="status">
-              <template #default="{ row }">
-                <el-tag>{{ row.status }}</el-tag>
-              </template>
-            </el-table-column>
-            <el-table-column label="Warehouse" prop="warehouse" />
-          </el-table>
-        </div>
-      </template>
 
-      <el-form :model="deallocateForm" label-width="100px">
+      <el-form ref="deallocateFormRef" :model="deallocateForm" label-width="120px">
+        <!-- 分配后显示解除模式选择 -->
+        <template v-if="isAllocated">
+          <el-form-item label="Deallocate Mode" required>
+            <el-radio-group v-model="deallocateForm.mode" class="inline-radio-group">
+              <el-radio label="whole">Deallocate Entire Order</el-radio>
+              <el-radio label="partial">Deallocate Selected Warehouses</el-radio>
+            </el-radio-group>
+          </el-form-item>
+        </template>
+
+        <!-- 部分解除时显示仓库选择 -->
+        <template v-if="isAllocated && deallocateForm.mode === 'partial'">
+          <div class="sub-orders-section">
+            <div class="section-title">Select Warehouses to Deallocate</div>
+            <el-table 
+              :data="deallocatableSubOrders" 
+              @selection-change="handleDeallocateSelectionChange"
+              border
+              v-if="deallocatableSubOrders.length > 0"
+            >
+              <el-table-column type="selection" width="55" />
+              <el-table-column label="Sub-Order No." prop="subOrderNo" width="150" />
+              <el-table-column label="Status" prop="status" width="120">
+                <template #default="{ row }">
+                  <el-tag>{{ row.status }}</el-tag>
+                </template>
+              </el-table-column>
+              <el-table-column label="Warehouse" min-width="200">
+                <template #default="{ row }">
+                  <div class="warehouse-cell">
+                    <span>{{ row.warehouse.split(' (')[0] }}</span>
+                    <el-tag 
+                      size="small" 
+                      :type="getWmsTypeFromWarehouse(row.warehouse)"
+                    >
+                      {{ row.warehouse.match(/\((.*?)\)/)?.[1] || 'OTHER' }}
+                    </el-tag>
+                  </div>
+                </template>
+              </el-table-column>
+              <el-table-column label="Product" prop="product" min-width="150" />
+              <el-table-column label="Quantity" prop="quantity" width="100" align="right" />
+            </el-table>
+            <el-empty v-else description="No Deallocatable Sub-Orders" />
+          </div>
+        </template>
+
+        <!-- WMS警告提示 -->
+        <template v-if="needCallWMS">
+          <el-alert
+            type="warning"
+            :closable="false"
+            show-icon
+            title="WMS Deallocation Required"
+            description="This order is being processed in WMS. The system will attempt to deallocate it in WMS first."
+            style="margin-bottom: 16px"
+          />
+        </template>
+
+        <el-form-item 
+          label="Reason" 
+          required
+          :rules="[{ required: true, message: 'Please select a reason' }]"
+        >
+          <el-select v-model="deallocateForm.reason" placeholder="Select Reason">
+            <el-option
+              v-for="item in DEALLOCATE_REASONS"
+              :key="item.value"
+              :label="item.label"
+              :value="item.value"
+            />
+          </el-select>
+        </el-form-item>
+
         <el-form-item label="Remarks">
           <el-input
             v-model="deallocateForm.remarks"
@@ -398,19 +664,30 @@
           />
         </el-form-item>
       </el-form>
+
       <template #footer>
-        <el-button @click="deallocateDialogVisible = false">Cancel</el-button>
-        <el-button type="primary" @click="handleDeallocateConfirm">Confirm</el-button>
+        <el-button @click="deallocateDialogVisible = false">Back</el-button>
+        <el-button 
+          type="primary" 
+          :disabled="!canDeallocate || (deallocateForm.mode === 'partial' && deallocateForm.selectedSubOrders.length === 0)"
+          @click="handleDeallocateConfirm"
+        >
+          Confirm Deallocate
+        </el-button>
       </template>
     </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, reactive, onMounted, watch } from 'vue'
+import { ref, computed, reactive, onMounted, watch, nextTick } from 'vue'
 import type { FormInstance } from 'element-plus'
 import { ElMessage } from 'element-plus'
+import { QuestionFilled } from '@element-plus/icons-vue'
 import {
+  OrderStatus,
+  OrderAction,
+  SubOrderStatus,
   FulfillmentMode,
   WAREHOUSE_OPTIONS,
   HOLD_REASONS,
@@ -431,7 +708,8 @@ interface OrderSku {
 interface Warehouse {
   value: string
   label: string
-  availableQty: number
+  stockInfo: Record<string, number> // 每个SKU的库存信息
+  wmsType: 'wmsv1' | 'wmsv2' | 'other' // 添加WMS类型
 }
 
 interface WarehouseAllocation {
@@ -446,18 +724,11 @@ interface WarehouseAllocation {
 const holdFormRef = ref<FormInstance>()
 const cancelFormRef = ref<FormInstance>()
 const reopenFormRef = ref<FormInstance>()
+const deallocateFormRef = ref<FormInstance>()
 
 // Props and emits
 const props = defineProps<{
-  currentOrder?: {
-    id: string
-    items: Array<{
-      sku: string
-      productName: string
-      quantity: number
-    }>
-    subOrders?: Array<SubOrder>
-  }
+  currentOrder?: any
 }>()
 
 const emit = defineEmits<{
@@ -484,24 +755,24 @@ const allocateForm = reactive({
 })
 
 const holdForm = reactive({
+  mode: 'permanent',
+  timeRange: [] as string[],
   reason: '',
   remarks: ''
 })
 
 const cancelForm = reactive({
+  mode: 'whole' as 'whole' | 'partial',
   reason: '',
   remarks: '',
-  selectedSubOrders: []
+  selectedSubOrders: [] as string[]
 })
 
 const reopenForm = reactive({
+  mode: 'whole' as 'whole' | 'partial',
   reason: '',
-  remarks: ''
-})
-
-const deallocateForm = reactive({
   remarks: '',
-  selectedSubOrders: []
+  selectedSubOrders: [] as string[]
 })
 
 // Data
@@ -533,28 +804,126 @@ const orderItems = ref<OrderSku[]>([
 ])
 
 const warehouses = ref<Warehouse[]>([
-  { value: 'WH001', label: 'Shanghai Warehouse', availableQty: 100 },
-  { value: 'WH002', label: 'Beijing Warehouse', availableQty: 150 },
-  { value: 'WH003', label: 'Guangzhou Warehouse', availableQty: 200 }
+  { 
+    value: 'WH001', 
+    label: 'Shanghai Warehouse', 
+    stockInfo: {
+      'SKU001': 100,
+      'SKU002': 50,
+      'SKU003': 30,
+      'SKU004': 80
+    },
+    wmsType: 'wmsv1'
+  },
+  { 
+    value: 'WH002', 
+    label: 'Beijing Warehouse', 
+    stockInfo: {
+      'SKU001': 80,
+      'SKU002': 40,
+      'SKU003': 20,
+      'SKU004': 60
+    },
+    wmsType: 'wmsv2'
+  },
+  { 
+    value: 'WH003', 
+    label: 'Guangzhou Warehouse', 
+    stockInfo: {
+      'SKU001': 60,
+      'SKU002': 30,
+      'SKU003': 15,
+      'SKU004': 40
+    },
+    wmsType: 'other'
+  }
 ])
 
 const warehouseAllocations = ref<WarehouseAllocation[]>([])
 
-// Watch for changes in currentOrder
-watch(
-  () => props.currentOrder?.items,
-  (newItems) => {
-    if (newItems) {
-      orderItems.value = newItems.map(item => ({
-        sku: item.sku,
-        productName: item.productName,
-        quantity: item.quantity,
-        remainingQuantity: item.quantity
-      }))
+// 修改模拟订单数据
+const mockCurrentOrder = ref({
+  id: 'ORD001',
+  status: 'Allocated',
+  items: [
+    {
+      sku: 'SKU001',
+      productName: 'iPhone 14 Pro Max',
+      quantity: 10
+    },
+    {
+      sku: 'SKU002',
+      productName: 'AirPods Pro 2nd Gen',
+      quantity: 5
     }
-  },
-  { immediate: true }
-)
+  ],
+  subOrders: [
+    {
+      id: 'SUB001',
+      subOrderNo: 'SO001-001',
+      status: 'Allocated',
+      warehouse: 'Shanghai Warehouse (WMS V1)',
+      quantity: 5,
+      product: 'iPhone 14 Pro Max'
+    },
+    {
+      id: 'SUB002',
+      subOrderNo: 'SO001-002',
+      status: 'Allocated',
+      warehouse: 'Beijing Warehouse (WMS V2)',
+      quantity: 5,
+      product: 'iPhone 14 Pro Max'
+    },
+    {
+      id: 'SUB003',
+      subOrderNo: 'SO001-003',
+      status: 'Allocated',
+      warehouse: 'Shanghai Warehouse (WMS V1)',
+      quantity: 3,
+      product: 'AirPods Pro 2nd Gen'
+    },
+    {
+      id: 'SUB004',
+      subOrderNo: 'SO001-004',
+      status: 'Allocated',
+      warehouse: 'Guangzhou Warehouse (Other WMS)',
+      quantity: 2,
+      product: 'AirPods Pro 2nd Gen'
+    }
+  ]
+})
+
+// 确保在开发环境中使用模拟数据
+const currentOrderData = computed(() => {
+  if (import.meta.env.DEV) {
+    console.log('Using mock data in DEV mode')
+    return mockCurrentOrder.value
+  }
+  return props.currentOrder
+})
+
+// 修改 watch
+watch(() => currentOrderData.value, (newOrder) => {
+  console.log('Order Data Changed:', newOrder)
+  if (newOrder?.items) {
+    orderItems.value = newOrder.items.map(item => ({
+      sku: item.sku,
+      productName: item.productName,
+      quantity: item.quantity,
+      remainingQuantity: item.quantity
+    }))
+  }
+}, { immediate: true, deep: true })
+
+// 修改 cancelableSubOrders 计算属性
+const cancelableSubOrders = computed(() => {
+  const subOrders = currentOrderData.value?.subOrders || []
+  console.log('Computing cancelable sub-orders:', subOrders)
+  return subOrders.filter(sub => 
+    sub.status !== 'Shipped' && 
+    sub.status !== 'Short Shipped'
+  )
+})
 
 // Computed
 const canAddWarehouse = computed(() => {
@@ -585,7 +954,33 @@ const isAllocationValid = computed(() => {
 })
 
 const hasSubOrders = computed(() => {
-  return props.currentOrder?.subOrders && props.currentOrder.subOrders.length > 0
+  return currentOrderData.value?.subOrders && currentOrderData.value.subOrders.length > 0
+})
+
+const canCancelOrder = computed(() => {
+  if (!currentOrderData.value) return false
+  
+  // 已发货状态不可取消
+  if (currentOrderData.value.status === 'Shipped') return false
+  
+  // 检查子订单状态
+  if (currentOrderData.value.subOrders?.some(
+    sub => sub.status === 'Shipped' || sub.status === 'Short Shipped'
+  )) {
+    return false
+  }
+  
+  return true
+})
+
+const needCallWMS = computed(() => {
+  if (!currentOrderData.value) return false
+  return currentOrderData.value.status === 'Warehouse Processing'
+})
+
+const isAllocated = computed(() => {
+  if (!currentOrderData.value) return false
+  return ['Allocated', 'Exception', 'Deallocated', 'Warehouse Processing'].includes(currentOrderData.value.status)
 })
 
 // Methods
@@ -835,11 +1230,24 @@ const handleHoldConfirm = async () => {
   
   await holdFormRef.value.validate((valid: boolean) => {
     if (valid) {
+      // If permanent hold, clear time range
+      if (holdForm.mode === 'permanent') {
+        holdForm.timeRange = []
+      }
+      
       emit('hold', {
         ...holdForm,
-        orderId: props.currentOrder?.id
+        orderId: props.currentOrder?.id,
+        startTime: holdForm.timeRange[0] || null,
+        endTime: holdForm.timeRange[1] || null
       })
       holdDialogVisible.value = false
+      
+      // Reset form
+      holdForm.mode = 'permanent'
+      holdForm.timeRange = []
+      holdForm.reason = ''
+      holdForm.remarks = ''
     }
   })
 }
@@ -847,37 +1255,196 @@ const handleHoldConfirm = async () => {
 const handleCancelConfirm = async () => {
   if (!cancelFormRef.value) return
   
-  await cancelFormRef.value.validate((valid: boolean) => {
+  await cancelFormRef.value.validate(async (valid: boolean) => {
     if (valid) {
-      emit('cancel', {
-        ...cancelForm,
-        orderId: props.currentOrder?.id
-      })
-      cancelDialogVisible.value = false
+      loading.value = true
+      try {
+        // 如果需要调用WMS
+        if (needCallWMS.value) {
+          // 调用WMS取消接口
+          await cancelInWMS({
+            orderId: props.currentOrder?.id,
+            mode: cancelForm.mode,
+            subOrders: cancelForm.selectedSubOrders
+          })
+        }
+
+        // 更新订单状态为Cancelling
+        await updateOrderStatus(props.currentOrder?.id, 'Cancelling')
+
+        // 发送取消请求
+        emit('cancel', {
+          ...cancelForm,
+          orderId: props.currentOrder?.id,
+          mode: cancelForm.mode,
+          subOrders: cancelForm.selectedSubOrders
+        })
+
+        ElMessage.success('Order cancellation initiated')
+        cancelDialogVisible.value = false
+      } catch (error) {
+        console.error('Cancel failed:', error)
+        ElMessage.error('Failed to cancel order')
+      } finally {
+        loading.value = false
+      }
     }
+  })
+}
+
+// WMS取消接口调用
+const cancelInWMS = async (params: {
+  orderId?: string
+  mode: 'whole' | 'partial'
+  subOrders: string[]
+}) => {
+  // TODO: 实现WMS取消接口调用
+  // 这里模拟API调用
+  return new Promise((resolve) => {
+    setTimeout(resolve, 1000)
+  })
+}
+
+// 更新订单状态
+const updateOrderStatus = async (orderId?: string, status?: string) => {
+  // TODO: 实现更新订单状态接口调用
+  // 这里模拟API调用
+  return new Promise((resolve) => {
+    setTimeout(resolve, 500)
   })
 }
 
 const handleReopenConfirm = async () => {
   if (!reopenFormRef.value) return
   
-  await reopenFormRef.value.validate((valid: boolean) => {
+  await reopenFormRef.value.validate(async (valid: boolean) => {
     if (valid) {
-      emit('reopen', {
-        ...reopenForm,
-        orderId: props.currentOrder?.id
-      })
-      reopenDialogVisible.value = false
+      loading.value = true
+      try {
+        const currentOrder = props.currentOrder
+        if (!currentOrder) throw new Error('No order selected')
+
+        // 检查履约模式
+        const fulfillmentMode = currentOrder.fulfillmentMode
+        const requireWarehouse = fulfillmentMode === 'Manual' || fulfillmentMode === 'Auto Allocate'
+
+        // 检查是否有子单
+        const hasSubOrders = currentOrder.subOrders && currentOrder.subOrders.length > 0
+        const exceptionSubOrders = hasSubOrders ? 
+          currentOrder.subOrders.filter((sub: SubOrder) => sub.status === SubOrderStatus.Exception) : 
+          []
+        const hasExceptionSubOrders = exceptionSubOrders.length > 0
+
+        // 确定新状态和要处理的子单
+        let newStatus
+        let subOrdersToReopen: string[] = []
+
+        if (reopenForm.mode === 'whole') {
+          // 整单重开时，如果有异常子单，全部重开
+          if (hasExceptionSubOrders) {
+            subOrdersToReopen = exceptionSubOrders.map(sub => sub.subOrderNo)
+          }
+          // 根据履约模式决定新状态
+          newStatus = requireWarehouse ? OrderStatus.Imported : OrderStatus.Pending
+        } else {
+          // 部分重开时，只重开选中的子单
+          subOrdersToReopen = reopenForm.selectedSubOrders
+          // 检查是否还有未选择的异常子单
+          const hasRemainingExceptionSubOrders = exceptionSubOrders.some(
+            sub => !reopenForm.selectedSubOrders.includes(sub.subOrderNo)
+          )
+          // 如果还有未处理的异常子单，保持Exception状态
+          newStatus = hasRemainingExceptionSubOrders ? 
+            OrderStatus.Exception : 
+            (requireWarehouse ? OrderStatus.Imported : OrderStatus.Pending)
+        }
+
+        // 更新订单状态
+        await updateOrderStatus(currentOrder.id, newStatus)
+
+        emit('reopen', {
+          ...reopenForm,
+          orderId: currentOrder.id,
+          newStatus,
+          requireWarehouse,
+          subOrdersToReopen
+        })
+
+        ElMessage.success('Order reopened successfully')
+        reopenDialogVisible.value = false
+
+        // 重置表单
+        reopenForm.mode = 'whole'
+        reopenForm.reason = ''
+        reopenForm.remarks = ''
+        reopenForm.selectedSubOrders = []
+      } catch (error) {
+        console.error('Reopen failed:', error)
+        ElMessage.error('Failed to reopen order')
+      } finally {
+        loading.value = false
+      }
     }
   })
 }
 
-const handleDeallocateConfirm = () => {
-  emit('deallocate', {
-    ...deallocateForm,
-    orderId: props.currentOrder?.id
+const handleDeallocateConfirm = async () => {
+  if (!deallocateFormRef.value) return
+  
+  loading.value = true
+  try {
+    // 如果需要调用WMS
+    if (needCallWMS.value) {
+      await deallocateInWMS({
+        orderId: props.currentOrder?.id,
+        mode: deallocateForm.mode,
+        reason: deallocateForm.reason,
+        subOrders: deallocateForm.selectedSubOrders
+      })
+    }
+
+    const newStatus = deallocateForm.mode === 'whole' ? 
+      OrderStatus.Deallocated : 
+      OrderStatus.Exception
+
+    await updateOrderStatus(props.currentOrder?.id, newStatus)
+
+    emit('deallocate', {
+      ...deallocateForm,
+      orderId: props.currentOrder?.id,
+      mode: deallocateForm.mode,
+      reason: deallocateForm.reason,
+      subOrders: deallocateForm.selectedSubOrders
+    })
+
+    ElMessage.success('Order deallocation successful')
+    deallocateDialogVisible.value = false
+
+    // 重置表单
+    deallocateForm.mode = 'whole'
+    deallocateForm.reason = ''
+    deallocateForm.remarks = ''
+    deallocateForm.selectedSubOrders = []
+  } catch (error) {
+    console.error('Deallocate failed:', error)
+    ElMessage.error('Failed to deallocate order')
+  } finally {
+    loading.value = false
+  }
+}
+
+// WMS解除分仓接口调用
+const deallocateInWMS = async (params: {
+  orderId?: string
+  mode: 'whole' | 'partial'
+  reason: string
+  subOrders: string[]
+}) => {
+  // TODO: 实现WMS解除分仓接口调用
+  // 这里模拟API调用
+  return new Promise((resolve) => {
+    setTimeout(resolve, 1000)
   })
-  deallocateDialogVisible.value = false
 }
 
 // Dialog open methods
@@ -890,7 +1457,17 @@ const openHoldDialog = () => {
 }
 
 const openCancelDialog = () => {
+  console.log('Opening Cancel Dialog...'); // 添加调试日志
+  cancelForm.mode = isAllocated.value ? 'partial' : 'whole'
+  cancelForm.selectedSubOrders = []
+  cancelForm.reason = ''
+  cancelForm.remarks = ''
   cancelDialogVisible.value = true
+  
+  // 强制更新数据
+  nextTick(() => {
+    console.log('Dialog Opened, Sub Orders:', cancelableSubOrders.value); // 添加调试日志
+  })
 }
 
 const openReopenDialog = () => {
@@ -898,7 +1475,15 @@ const openReopenDialog = () => {
 }
 
 const openDeallocateDialog = () => {
+  deallocateForm.mode = isAllocated.value ? 'partial' : 'whole'
+  deallocateForm.selectedSubOrders = []
+  deallocateForm.remarks = ''
   deallocateDialogVisible.value = true
+  
+  // 强制更新数据
+  nextTick(() => {
+    console.log('Dialog Opened, Sub Orders:', deallocatableSubOrders.value)
+  })
 }
 
 // Expose methods to parent
@@ -909,12 +1494,320 @@ defineExpose({
   openReopenDialog,
   openDeallocateDialog
 })
+
+// 添加新的方法用于确定库存标签的类型
+const getStockTagType = (stock: number, required: number) => {
+  if (stock >= required) return 'success'
+  if (stock > 0) return 'warning'
+  return 'danger'
+}
+
+// 添加获取WMS标签类型的方法
+const getWmsTagType = (wmsType: string) => {
+  switch (wmsType) {
+    case 'wmsv1':
+      return 'success'
+    case 'wmsv2':
+      return 'warning'
+    default:
+      return 'info'
+  }
+}
+
+// 添加 API 接口类型定义
+interface WarehouseApiResponse {
+  id: string
+  name: string
+  stockInfo: Record<string, number>
+  wmsType: 'wmsv1' | 'wmsv2' | 'other'
+}
+
+// 修改仓库数据获取函数
+const fetchWarehouseData = async () => {
+  try {
+    // 这里需要调用后端API获取仓库及其库存信息
+    const response = await fetch('/api/warehouses/stock', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        skus: orderItems.value.map(item => item.sku)
+      })
+    })
+    
+    const data = await response.json() as WarehouseApiResponse[]
+    
+    warehouses.value = data.map(wh => ({
+      value: wh.id,
+      label: wh.name,
+      stockInfo: wh.stockInfo,
+      wmsType: wh.wmsType
+    }))
+  } catch (error) {
+    console.error('Failed to fetch warehouse data:', error)
+    ElMessage.error('Failed to load warehouse data')
+  }
+}
+
+// 修改表格的selection-change事件处理
+interface SubOrderRow {
+  subOrderNo: string
+  [key: string]: any
+}
+
+const handleSelectionChange = (rows: SubOrderRow[]) => {
+  cancelForm.selectedSubOrders = rows.map(r => r.subOrderNo)
+}
+
+// 添加获取WMS类型的辅助方法
+const getWmsTypeFromWarehouse = (warehouse: string) => {
+  if (warehouse.includes('WMS V1')) return 'success'
+  if (warehouse.includes('WMS V2')) return 'warning'
+  return 'info'
+}
+
+// 在 script setup 的开头添加
+const isDev = import.meta.env.DEV
+console.log('Development mode:', isDev)
+
+// 修改初始化函数
+const initializeData = () => {
+  console.log('Initializing data...')
+  if (isDev) {
+    console.log('Mock order data:', mockCurrentOrder.value)
+    // 强制使用模拟数据
+    orderItems.value = mockCurrentOrder.value.items.map(item => ({
+      sku: item.sku,
+      productName: item.productName,
+      quantity: item.quantity,
+      remainingQuantity: item.quantity
+    }))
+  }
+}
+
+// 修改组件挂载逻辑
+onMounted(() => {
+  console.log('Component mounted')
+  initializeData()
+})
+
+// 添加调试信息到模板
+const debugInfo = computed(() => ({
+  isDev,
+  hasCurrentOrder: !!currentOrderData.value,
+  subOrdersCount: currentOrderData.value?.subOrders?.length || 0,
+  cancelableSubOrdersCount: cancelableSubOrders.value.length
+}))
+
+// Default time for time picker
+const defaultTime = [
+  new Date(new Date().setHours(0, 0, 0, 0)),
+  new Date(new Date().setHours(23, 59, 59, 999))
+]
+
+// Date shortcuts for time picker
+const dateShortcuts = [
+  {
+    text: '1 Day',
+    value: () => {
+      const end = new Date()
+      const start = new Date()
+      end.setTime(end.getTime() + 3600 * 1000 * 24)
+      return [start, end]
+    }
+  },
+  {
+    text: '1 Week',
+    value: () => {
+      const end = new Date()
+      const start = new Date()
+      end.setTime(end.getTime() + 3600 * 1000 * 24 * 7)
+      return [start, end]
+    }
+  },
+  {
+    text: '1 Month',
+    value: () => {
+      const end = new Date()
+      const start = new Date()
+      end.setTime(end.getTime() + 3600 * 1000 * 24 * 30)
+      return [start, end]
+    }
+  }
+]
+
+// Disable dates before today
+const disabledDate = (time: Date) => {
+  return time.getTime() < Date.now() - 8.64e7
+}
+
+// Handle time range change
+const handleTimeRangeChange = (val: string[]) => {
+  if (val && val.length === 2) {
+    const start = new Date(val[0])
+    const end = new Date(val[1])
+    
+    // Validate time range
+    if (start >= end) {
+      ElMessage.warning('End time must be greater than start time')
+      holdForm.timeRange = []
+      return
+    }
+    
+    if (start < new Date()) {
+      ElMessage.warning('Start time cannot be earlier than current time')
+      holdForm.timeRange = []
+      return
+    }
+  }
+}
+
+// Deallocate form data
+const deallocatableSubOrders = computed(() => {
+  if (!currentOrderData.value?.subOrders) return []
+  return currentOrderData.value.subOrders.filter(
+    sub => ['Allocated', 'Exception'].includes(sub.status)
+  )
+})
+
+// 是否可以解除分仓
+const canDeallocate = computed(() => {
+  if (!currentOrderData.value) return false
+  
+  // 已发货状态不可解除分仓
+  if (currentOrderData.value.status === 'Shipped') return false
+  
+  // 检查子订单状态
+  if (currentOrderData.value.subOrders?.some(
+    sub => sub.status === 'Shipped' || sub.status === 'Short Shipped'
+  )) {
+    return false
+  }
+  
+  return true
+})
+
+// 处理解除分仓子订单选择
+const handleDeallocateSelectionChange = (selection: any[]) => {
+  deallocateForm.selectedSubOrders = selection.map(item => item.subOrderNo)
+}
+
+// 在script setup部分添加DEALLOCATE_REASONS常量
+const DEALLOCATE_REASONS = [
+  { value: 'stock_adjustment', label: '库存调整' },
+  { value: 'system_error', label: '系统错误' },
+  { value: 'warehouse_issue', label: '仓库问题' },
+  { value: 'reallocation', label: '需要重新分配' },
+  { value: 'other', label: '其他原因' }
+]
+
+// 计算是否有异常子单
+const hasExceptionSubOrders = computed(() => {
+  return props.currentOrder?.subOrders?.some(
+    (sub: SubOrder) => sub.status === SubOrderStatus.Exception
+  ) ?? false
+})
+
+// 获取异常状态的子单
+const exceptionSubOrders = computed(() => {
+  return props.currentOrder?.subOrders?.filter(
+    (sub: SubOrder) => sub.status === SubOrderStatus.Exception
+  ) ?? []
+})
+
+// 判断是否可以重开
+const canReopenOrder = computed(() => {
+  if (reopenForm.mode === 'whole') {
+    return true
+  }
+  return reopenForm.selectedSubOrders?.length > 0
+})
+
+// 处理子单选择变更
+const handleReopenSelectionChange = (rows: SubOrder[]) => {
+  reopenForm.selectedSubOrders = rows.map(row => row.subOrderNo)
+}
 </script>
 
 <style lang="scss" scoped>
 .action-dialogs {
   :deep(.el-dialog__body) {
     padding: 20px;
+  }
+
+  // 添加取消弹窗的样式
+  :deep(.el-dialog) {
+    min-width: 800px;  // 设置最小宽度
+    
+    .sub-orders-section {
+      margin: 20px 0;
+      
+      .section-title {
+        font-size: 16px;
+        font-weight: 500;
+        margin-bottom: 16px;
+      }
+      
+      .el-table {
+        margin-bottom: 20px;
+      }
+    }
+  }
+
+  .mode-option {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    .mode-title {
+      font-weight: 500;
+    }
+
+    .el-icon {
+      color: var(--el-text-color-secondary);
+      cursor: help;
+    }
+  }
+
+  .mode-tooltip {
+    max-width: 300px;
+    
+    p {
+      margin: 0 0 8px;
+      font-weight: 500;
+    }
+
+    ul {
+      margin: 0;
+      padding-left: 16px;
+
+      li {
+        margin-bottom: 4px;
+        color: var(--el-text-color-regular);
+
+        &:last-child {
+          margin-bottom: 0;
+        }
+      }
+    }
+  }
+
+  .section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+
+    .section-title {
+      font-size: 16px;
+      font-weight: 500;
+    }
+
+    .selection-info {
+      color: var(--el-text-color-secondary);
+      font-size: 14px;
+    }
   }
 }
 
@@ -994,9 +1887,49 @@ defineExpose({
   }
 }
 
+.warehouse-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.warehouse-name {
+  font-weight: 500;
+}
+
+.wms-tag {
+  text-transform: uppercase;
+}
+
+.warehouse-stock-info {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.warehouse-stock-info .el-tag {
+  margin-right: 4px;
+  margin-bottom: 4px;
+}
+
 .dialog-footer {
   display: flex;
   justify-content: flex-end;
   gap: 12px;
+}
+
+.warehouse-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  .el-tag {
+    text-transform: uppercase;
+  }
+}
+
+.inline-radio-group {
+  display: inline-flex !important;
+  gap: 20px;
 }
 </style> 
