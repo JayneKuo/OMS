@@ -100,6 +100,17 @@ const routes: RouteRecordRaw[] = [
             component: () => import('@/views/settings/Automation.vue')
           }
         ]
+      },
+      {
+        path: '/warehouse',
+        name: 'Warehouse',
+        children: [
+          {
+            path: 'list',
+            name: 'WarehouseList',
+            component: () => import('@/views/warehouse/WarehouseList.vue')
+          }
+        ]
       }
     ]
   }

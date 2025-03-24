@@ -5,7 +5,8 @@ import {
   Files,
   ShoppingCart,
   Setting,
-  Operation
+  Operation,
+  Box
 } from '@element-plus/icons-vue'
 
 export interface MenuItem {
@@ -64,6 +65,18 @@ export const menuConfig: MenuItem[] = [
         title: 'Automation',
         path: '/settings/automation',
         icon: Operation
+      }
+    ]
+  },
+  {
+    title: 'Warehouse',
+    path: '/warehouse',
+    icon: Box,
+    children: [
+      {
+        title: 'Warehouse List',
+        path: '/warehouse/list',
+        icon: Files
       }
     ]
   }
