@@ -140,6 +140,13 @@ interface Warehouse {
   wmsVersion?: 'V1' | 'V2' | null
   availableVersions: ('V1' | 'V2')[]
   loading?: boolean
+  isAvailable?: boolean
+  lastStatusCheck?: Date
+  statusCheckResult?: {
+    connected: boolean
+    lastSuccessful: Date
+    errorMessage?: string
+  }
 }
 
 interface BatchConfigForm {
