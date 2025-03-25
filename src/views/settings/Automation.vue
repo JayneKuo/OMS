@@ -151,6 +151,22 @@
         </template>
       </el-table-column>
 
+      <el-table-column label="Hold Mode" min-width="150">
+        <template #default="{ row }">
+          <div class="hold-info">
+            <el-tag 
+              :type="row.config.holdMode === 'permanent' ? 'danger' : row.config.holdMode === 'duration' ? 'warning' : 'info'"
+              size="small"
+            >
+              {{ row.config.holdMode === 'permanent' ? 'Permanent' : row.config.holdMode === 'duration' ? 'Duration' : 'Date Range' }}
+            </el-tag>
+            <div v-if="row.config.holdMode === 'duration' || row.config.holdMode === 'dateRange'" class="duration-info">
+              {{ row.config.holdDuration.value }} {{ row.config.holdDuration.unit }}
+            </div>
+          </div>
+        </template>
+      </el-table-column>
+
       <el-table-column label="Notifications" min-width="250">
         <template #default="{ row }">
           <div class="notification-info">
@@ -268,6 +284,57 @@
               v-model="editDialog.currentRule.config.mutuallyExclusive"
               active-text="Yes"
               inactive-text="No"
+            />
+          </el-form-item>
+
+          <!-- Hold模式设置 -->
+          <el-divider content-position="left">Hold Settings</el-divider>
+          <el-form-item label="Hold Mode">
+            <el-radio-group v-model="editDialog.currentRule.config.holdMode">
+              <el-radio label="permanent">Permanent</el-radio>
+              <el-radio label="duration">Duration</el-radio>
+              <el-radio label="dateRange">Date Range</el-radio>
+            </el-radio-group>
+          </el-form-item>
+
+          <!-- 自定义时长 -->
+          <el-form-item 
+            v-if="editDialog.currentRule.config.holdMode === 'duration'"
+            label="Hold Duration"
+          >
+            <div class="duration-input">
+              <el-input-number
+                v-model="editDialog.currentRule.config.holdDuration.value"
+                :min="1"
+                controls-position="right"
+                style="width: 120px"
+              />
+              <el-select
+                v-model="editDialog.currentRule.config.holdDuration.unit"
+                style="width: 120px; margin-left: 12px"
+              >
+                <el-option label="Minutes" value="minutes" />
+                <el-option label="Hours" value="hours" />
+                <el-option label="Days" value="days" />
+              </el-select>
+            </div>
+          </el-form-item>
+
+          <!-- 日期范围 -->
+          <el-form-item 
+            v-if="editDialog.currentRule.config.holdMode === 'dateRange'"
+            label="Date Range"
+          >
+            <el-date-picker
+              v-model="editDialog.currentRule.config.holdDateRange"
+              type="datetimerange"
+              range-separator="To"
+              start-placeholder="Start Date"
+              end-placeholder="End Date"
+              format="YYYY-MM-DD HH:mm"
+              value-format="YYYY-MM-DD HH:mm"
+              :default-time="['00:00:00', '23:59:59']"
+              style="width: 400px"
             />
           </el-form-item>
 
@@ -514,6 +581,12 @@ interface RuleConfig {
   skus: SKURule;
   notifications: Notification;
   mutuallyExclusive: boolean;
+  holdMode: 'permanent' | 'duration' | 'dateRange';
+  holdDuration: {
+    value: number;
+    unit: 'minutes' | 'hours' | 'days';
+  };
+  holdDateRange: [string, string] | null;
 }
 
 interface Rule {
@@ -659,7 +732,13 @@ const holdRules = ref([
           url: 'https://api.example.com/webhook/vip'
         }
       },
-      mutuallyExclusive: true
+      mutuallyExclusive: true,
+      holdMode: 'permanent',
+      holdDuration: {
+        value: 1,
+        unit: 'days'
+      },
+      holdDateRange: null
     }
   },
   {
@@ -693,7 +772,13 @@ const holdRules = ref([
         emails: ['overseas@example.com'],
         webhook: null
       },
-      mutuallyExclusive: false
+      mutuallyExclusive: false,
+      holdMode: 'permanent',
+      holdDuration: {
+        value: 1,
+        unit: 'days'
+      },
+      holdDateRange: null
     }
   },
   {
@@ -729,7 +814,13 @@ const holdRules = ref([
           url: 'https://api.example.com/webhook/large-order'
         }
       },
-      mutuallyExclusive: true
+      mutuallyExclusive: true,
+      holdMode: 'permanent',
+      holdDuration: {
+        value: 1,
+        unit: 'days'
+      },
+      holdDateRange: null
     }
   }
 ])
@@ -766,7 +857,13 @@ const createDefaultRule = (): Rule => ({
       emails: [],
       webhook: null
     },
-    mutuallyExclusive: false
+    mutuallyExclusive: false,
+    holdMode: 'custom',
+    holdDuration: {
+      value: 24,
+      unit: 'hours'
+    },
+    holdDateRange: null
   }
 })
 
@@ -1048,21 +1145,19 @@ const removeEmail = (index: number) => {
         margin-bottom: 0;
       }
     }
-    
-    .address-detail,
-    .sku-detail,
-    .time-detail,
-    .notification-detail {
-      > div {
-        margin-bottom: 8px;
-        
-        &:last-child {
-          margin-bottom: 0;
-        }
-      }
-    }
   }
   
+  .hold-info {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    
+    .duration-info {
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+  }
+
   .rule-name-section {
     display: flex;
     align-items: center;
@@ -1117,6 +1212,17 @@ const removeEmail = (index: number) => {
     margin-top: 20px;
   }
   
+  .duration-input {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    
+    .el-input-number,
+    .el-select {
+      width: 120px;
+    }
+  }
+
   .address-filters {
     display: flex;
     gap: 12px;
