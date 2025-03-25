@@ -13,16 +13,6 @@
         </template>
       </el-input>
       <el-input 
-        v-model="searchForm.channelSku" 
-        placeholder="Channel SKU" 
-        clearable
-        class="search-input"
-      >
-        <template #prefix>
-          <el-icon><Link /></el-icon>
-        </template>
-      </el-input>
-      <el-input 
         v-model="searchForm.warehouseCode" 
         placeholder="Warehouse Code" 
         clearable
@@ -84,9 +74,9 @@
       <div class="table-header">
         <h3>Inventory List</h3>
         <div class="header-actions">
-          <el-button type="primary" @click="handleSyncChannel" :loading="syncing">
+          <el-button type="primary" @click="handleBatchSync" :loading="syncing">
             <el-icon><Refresh /></el-icon>
-            Sync to Channel
+            Sync All
           </el-button>
         </div>
       </div>
@@ -96,50 +86,6 @@
           <template #default="{ row }">
             <div class="sku-cell">
               <span>{{ row.sku }}</span>
-              <el-tooltip 
-                v-if="!row.syncEnabled" 
-                content="Sync Disabled" 
-                placement="right"
-              >
-                <el-icon class="sync-disabled-icon"><CircleClose /></el-icon>
-              </el-tooltip>
-            </div>
-          </template>
-        </el-table-column>
-        <el-table-column label="Channel SKU" min-width="200">
-          <template #default="{ row }">
-            <div class="channel-sku-list">
-              <div v-if="!row.syncEnabled" class="sync-disabled-notice">
-                Sync Disabled
-              </div>
-              <div v-else v-for="channelSku in row.channelSkus" 
-                   :key="channelSku.sku"
-                   class="channel-sku-item"
-              >
-                <el-tooltip placement="top">
-                  <template #content>
-                    <div class="allocation-tooltip">
-                      <div class="tooltip-title">{{ channelSku.channel }}</div>
-                      <div class="tooltip-content" v-if="channelSku.allocation">
-                        <div class="allocation-info">
-                          <span>Allocation:</span>
-                          <span>{{ channelSku.allocation.quantity }} units ({{ channelSku.allocation.percentage }}%)</span>
-                        </div>
-                      </div>
-                    </div>
-                  </template>
-                  <el-tag 
-                    size="small" 
-                    :type="getChannelTagType(channelSku.channel)"
-                    class="channel-sku-tag"
-                  >
-                    {{ channelSku.sku }}
-                    <span class="allocation-text" v-if="channelSku.allocation">
-                      ({{ channelSku.allocation.quantity }})
-                    </span>
-                  </el-tag>
-                </el-tooltip>
-              </div>
             </div>
           </template>
         </el-table-column>
@@ -237,14 +183,17 @@
             <span class="time-cell">{{ row.lastSync || '-' }}</span>
           </template>
         </el-table-column>
-        <el-table-column label="Actions" width="100" fixed="right">
+        <el-table-column label="Actions" width="120" fixed="right">
           <template #default="{ row }">
-            <el-switch
-              v-model="row.syncEnabled"
-              :active-text="row.syncEnabled ? 'Sync On' : 'Sync Off'"
-              inline-prompt
-              @change="handleSyncStatusChange(row)"
-            />
+            <el-button
+              size="small"
+              type="primary"
+              :loading="row.syncing"
+              @click="handleSyncStock(row)"
+            >
+              <el-icon><Refresh /></el-icon>
+              Sync Stock
+            </el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -316,28 +265,16 @@ interface WarehouseStock {
   }[]
 }
 
-interface ChannelAllocation {
-  channel: string
-  percentage: number
-  quantity: number
-}
-
 interface InventoryItem {
   sku: string
-  channelSkus: {
-    channel: string
-    sku: string
-    allocation?: ChannelAllocation
-  }[]
   warehouses: WarehouseStock[]
   lastSync?: string
-  syncEnabled: boolean
+  syncing?: boolean
 }
 
 // 搜索表单
 const searchForm = reactive({
   sku: '',
-  channelSku: '',
   warehouseCode: '',
   wmsSystem: '',
   stockType: ''
@@ -354,36 +291,7 @@ const warehouseInfo = reactive({
 const inventoryData = ref<InventoryItem[]>([
   {
     sku: 'SKU001',
-    syncEnabled: true,
-    channelSkus: [
-      {
-        channel: 'Shopify',
-        sku: 'SHOP-001',
-        allocation: {
-          channel: 'Shopify',
-          percentage: 40,
-          quantity: 90
-        }
-      },
-      {
-        channel: 'Amazon',
-        sku: 'AMZN-001',
-        allocation: {
-          channel: 'Amazon',
-          percentage: 35,
-          quantity: 79
-        }
-      },
-      {
-        channel: 'eBay',
-        sku: 'EBAY-001',
-        allocation: {
-          channel: 'eBay',
-          percentage: 25,
-          quantity: 56
-        }
-      }
-    ],
+    syncing: false,
     warehouses: [
       {
         id: 'wh1',
@@ -439,27 +347,7 @@ const inventoryData = ref<InventoryItem[]>([
   },
   {
     sku: 'SKU002',
-    syncEnabled: false,
-    channelSkus: [
-      {
-        channel: 'Shopify',
-        sku: 'SHOP-002',
-        allocation: {
-          channel: 'Shopify',
-          percentage: 40,
-          quantity: 140
-        }
-      },
-      {
-        channel: 'Walmart',
-        sku: 'WM-002',
-        allocation: {
-          channel: 'Walmart',
-          percentage: 60,
-          quantity: 210
-        }
-      }
-    ],
+    syncing: false,
     warehouses: [
       {
         id: 'wh1',
@@ -577,15 +465,41 @@ const getSyncResultMessage = () => {
   return `Successfully synced ${syncResult.syncedItems} out of ${syncResult.totalItems} items`
 }
 
-// 获取 Channel 标签类型
-const getChannelTagType = (channel: string) => {
-  const channelTypes: Record<string, string> = {
-    'shopify': '',
-    'amazon': 'success',
-    'ebay': 'warning',
-    'walmart': 'info'
+// 处理单个SKU同步
+const handleSyncStock = async (row: InventoryItem) => {
+  row.syncing = true
+  try {
+    // 实际项目中这里需要调用后端 API
+    await new Promise(resolve => setTimeout(resolve, 1000))
+    
+    row.lastSync = new Date().toLocaleString()
+    ElMessage.success(`${row.sku} 库存同步成功`)
+  } catch (error) {
+    ElMessage.error(`${row.sku} 库存同步失败`)
+  } finally {
+    row.syncing = false
   }
-  return channelTypes[channel.toLowerCase()] || 'info'
+}
+
+// 处理批量同步
+const handleBatchSync = async () => {
+  syncing.value = true
+  try {
+    // 实际项目中这里需要调用后端 API
+    await new Promise(resolve => setTimeout(resolve, 1000))
+    
+    // 更新所有项的同步时间
+    const now = new Date().toLocaleString()
+    inventoryData.value.forEach(item => {
+      item.lastSync = now
+    })
+    
+    ElMessage.success('All items synced successfully')
+  } catch (error) {
+    ElMessage.error('Failed to sync items')
+  } finally {
+    syncing.value = false
+  }
 }
 
 // 处理搜索
@@ -603,9 +517,6 @@ const handleSearch = async () => {
     // 前端筛选示例：
     const filteredData = inventoryData.value.filter(item => {
       const skuMatch = !searchForm.sku || item.sku.toLowerCase().includes(searchForm.sku.toLowerCase())
-      const channelSkuMatch = !searchForm.channelSku || item.channelSkus.some(cs => 
-        cs.sku.toLowerCase().includes(searchForm.channelSku.toLowerCase())
-      )
       const warehouseMatch = !searchForm.warehouseCode || item.warehouses.some(w => 
         w.code.toLowerCase().includes(searchForm.warehouseCode.toLowerCase())
       )
@@ -613,11 +524,8 @@ const handleSearch = async () => {
         w.system === searchForm.wmsSystem
       )
       
-      return skuMatch && channelSkuMatch && warehouseMatch && systemMatch
+      return skuMatch && warehouseMatch && systemMatch
     })
-    
-    // 重新计算每个 SKU 的渠道分配
-    filteredData.forEach(item => calculateChannelAllocation(item))
     
     // 更新显示数据
     inventoryData.value = filteredData
@@ -626,57 +534,6 @@ const handleSearch = async () => {
     ElMessage.error('Failed to fetch inventory data')
   } finally {
     loading.value = false
-  }
-}
-
-// 处理同步状态变更
-const handleSyncStatusChange = async (row: InventoryItem) => {
-  try {
-    // 实际项目中这里需要调用后端 API
-    await new Promise(resolve => setTimeout(resolve, 500))
-    
-    ElMessage.success(`${row.sku} sync ${row.syncEnabled ? 'enabled' : 'disabled'}`)
-  } catch (error) {
-    row.syncEnabled = !row.syncEnabled // 恢复状态
-    ElMessage.error('Failed to update sync status')
-  }
-}
-
-// 修改同步到渠道的处理函数
-const handleSyncChannel = async () => {
-  if (!warehouseInfo.warehouseCode) {
-    ElMessage.warning('Please search for inventory data first')
-    return
-  }
-
-  syncing.value = true
-  try {
-    // 只同步启用了同步的 SKU
-    const enabledSkus = inventoryData.value
-      .filter(item => item.syncEnabled)
-      .map(item => item.sku)
-    
-    if (enabledSkus.length === 0) {
-      ElMessage.warning('No SKUs enabled for sync')
-      return
-    }
-
-    // 模拟同步过程
-    await new Promise(resolve => setTimeout(resolve, 2000))
-    
-    // 模拟同步结果
-    syncResult.success = true
-    syncResult.totalItems = enabledSkus.length
-    syncResult.syncedItems = enabledSkus.length - 1
-    syncResult.failedItems = [
-      'SKU001: Channel mapping not found'
-    ]
-    
-    syncResultVisible.value = true
-  } catch (error) {
-    ElMessage.error('Failed to sync inventory data')
-  } finally {
-    syncing.value = false
   }
 }
 
@@ -694,7 +551,6 @@ const handleCurrentChange = (page: number) => {
 // 重置搜索条件
 const resetSearch = () => {
   searchForm.sku = ''
-  searchForm.channelSku = ''
   searchForm.warehouseCode = ''
   searchForm.wmsSystem = ''
   searchForm.stockType = ''
@@ -726,19 +582,6 @@ const calculateDaysToETA = (etaString: string) => {
   } else {
     return `${diffDays} days remaining`
   }
-}
-
-// 添加计算渠道分配数量的方法
-const calculateChannelAllocation = (row: InventoryItem) => {
-  // 计算总可用库存
-  const totalAvailable = row.warehouses.reduce((sum, warehouse) => sum + warehouse.availableStock, 0)
-  
-  // 更新每个渠道的分配数量
-  row.channelSkus.forEach(channelSku => {
-    if (channelSku.allocation) {
-      channelSku.allocation.quantity = Math.floor(totalAvailable * (channelSku.allocation.percentage / 100))
-    }
-  })
 }
 </script>
 
@@ -809,11 +652,6 @@ const calculateChannelAllocation = (row: InventoryItem) => {
       display: flex;
       align-items: center;
       gap: 8px;
-
-      .sync-disabled-icon {
-        color: var(--el-color-danger);
-        font-size: 16px;
-      }
     }
 
     .warehouse-list {
@@ -1063,48 +901,6 @@ const calculateChannelAllocation = (row: InventoryItem) => {
           color: var(--el-color-info);
         }
       }
-    }
-  }
-}
-
-.channel-sku-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-
-  .channel-sku-item {
-    .channel-sku-tag {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      
-      .allocation-text {
-        font-size: 12px;
-        opacity: 0.8;
-        font-family: monospace;
-      }
-    }
-  }
-
-  .sync-disabled-notice {
-    color: var(--el-color-danger);
-    font-size: 12px;
-    font-style: italic;
-  }
-}
-
-.allocation-tooltip {
-  .tooltip-title {
-    font-weight: 500;
-    margin-bottom: 4px;
-  }
-
-  .tooltip-content {
-    .allocation-info {
-      display: flex;
-      justify-content: space-between;
-      gap: 8px;
-      font-size: 12px;
     }
   }
 }

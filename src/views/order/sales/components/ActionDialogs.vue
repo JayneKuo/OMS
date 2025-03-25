@@ -340,7 +340,7 @@
             <el-form-item label="Cancel Mode" required>
               <el-radio-group v-model="cancelForm.mode">
                 <el-radio label="whole">Cancel Entire Order</el-radio>
-                <el-radio label="partial">Cancel Selected Warehouses</el-radio>
+                <el-radio label="partial">Partial Cancel</el-radio>
               </el-radio-group>
             </el-form-item>
           </template>
@@ -348,7 +348,7 @@
           <!-- 部分取消时显示仓库选择 -->
           <template v-if="isAllocated && cancelForm.mode === 'partial'">
             <div class="sub-orders-section">
-              <div class="section-title">Select Warehouses to Cancel</div>
+              <div class="section-title">Select Sub-Orders to Cancel</div>
               <el-table 
                 :data="cancelableSubOrders" 
                 @selection-change="handleSelectionChange"
@@ -442,89 +442,6 @@
       destroy-on-close
     >
       <el-form ref="reopenFormRef" :model="reopenForm" label-width="100px">
-        <!-- 重开模式选择 -->
-        <el-form-item label="Reopen Mode" required>
-          <el-radio-group v-model="reopenForm.mode" class="inline-radio-group">
-            <el-radio label="whole">
-              <div class="mode-option">
-                <span class="mode-title">Reopen Entire Order</span>
-                <el-tooltip effect="dark" placement="right">
-                  <template #content>
-                    <div class="mode-tooltip">
-                      <p>Reopen the entire order, including:</p>
-                      <ul>
-                        <li>All exception sub-orders will be reopened and set to Allocated status</li>
-                        <li>Main order status will be updated based on fulfillment mode</li>
-                        <li>Best for orders that need to reprocess all exception sub-orders</li>
-                      </ul>
-                    </div>
-                  </template>
-                  <el-icon><QuestionFilled /></el-icon>
-                </el-tooltip>
-              </div>
-            </el-radio>
-            <el-radio 
-              label="partial" 
-              :disabled="!hasExceptionSubOrders"
-            >
-              <div class="mode-option">
-                <span class="mode-title">Reopen Selected Sub-Orders</span>
-                <el-tooltip effect="dark" placement="right">
-                  <template #content>
-                    <div class="mode-tooltip">
-                      <p>Selectively reopen specific sub-orders:</p>
-                      <ul>
-                        <li>Choose which exception sub-orders to reopen</li>
-                        <li>Selected sub-orders will be set to Allocated status</li>
-                        <li>Main order status updates based on remaining exceptions</li>
-                      </ul>
-                    </div>
-                  </template>
-                  <el-icon><QuestionFilled /></el-icon>
-                </el-tooltip>
-              </div>
-              <el-tag 
-                v-if="!hasExceptionSubOrders" 
-                size="small" 
-                type="info" 
-                style="margin-left: 8px"
-              >
-                No exception sub-orders
-              </el-tag>
-            </el-radio>
-          </el-radio-group>
-        </el-form-item>
-
-        <!-- 子单选择 -->
-        <template v-if="reopenForm.mode === 'partial'">
-          <div class="sub-orders-section">
-            <div class="section-header">
-              <div class="section-title">Select Sub-Orders to Reopen</div>
-              <div class="selection-info">
-                Selected: {{ reopenForm.selectedSubOrders.length }} / {{ exceptionSubOrders.length }}
-              </div>
-            </div>
-            <el-table 
-              :data="exceptionSubOrders" 
-              @selection-change="handleReopenSelectionChange"
-              border
-              v-if="exceptionSubOrders.length > 0"
-            >
-              <el-table-column type="selection" width="55" />
-              <el-table-column label="Sub-Order No." prop="subOrderNo" width="150" />
-              <el-table-column label="Status" prop="status" width="120">
-                <template #default="{ row }">
-                  <el-tag type="danger">{{ row.status }}</el-tag>
-                </template>
-              </el-table-column>
-              <el-table-column label="Warehouse" prop="warehouse" min-width="150" />
-              <el-table-column label="Product" prop="product" min-width="150" />
-              <el-table-column label="Quantity" prop="quantity" width="100" align="right" />
-            </el-table>
-            <el-empty v-else description="No Exception Sub-Orders" />
-          </div>
-        </template>
-
         <el-form-item 
           label="Reason" 
           required
@@ -539,7 +456,6 @@
             />
           </el-select>
         </el-form-item>
-
         <el-form-item label="Remarks">
           <el-input
             v-model="reopenForm.remarks"
@@ -551,13 +467,7 @@
       </el-form>
       <template #footer>
         <el-button @click="reopenDialogVisible = false">Cancel</el-button>
-        <el-button 
-          type="primary" 
-          :disabled="!canReopenOrder"
-          @click="handleReopenConfirm"
-        >
-          Confirm
-        </el-button>
+        <el-button type="primary" @click="handleReopenConfirm">Confirm</el-button>
       </template>
     </el-dialog>
 
@@ -586,7 +496,7 @@
           <el-form-item label="Deallocate Mode" required>
             <el-radio-group v-model="deallocateForm.mode" class="inline-radio-group">
               <el-radio label="whole">Deallocate Entire Order</el-radio>
-              <el-radio label="partial">Deallocate Selected Warehouses</el-radio>
+              <el-radio label="partial">Partial Deallocate</el-radio>
             </el-radio-group>
           </el-form-item>
         </template>
@@ -594,7 +504,7 @@
         <!-- 部分解除时显示仓库选择 -->
         <template v-if="isAllocated && deallocateForm.mode === 'partial'">
           <div class="sub-orders-section">
-            <div class="section-title">Select Warehouses to Deallocate</div>
+            <div class="section-title">Select Sub-Orders to Deallocate</div>
             <el-table 
               :data="deallocatableSubOrders" 
               @selection-change="handleDeallocateSelectionChange"
@@ -683,11 +593,7 @@
 import { ref, computed, reactive, onMounted, watch, nextTick } from 'vue'
 import type { FormInstance } from 'element-plus'
 import { ElMessage } from 'element-plus'
-import { QuestionFilled } from '@element-plus/icons-vue'
 import {
-  OrderStatus,
-  OrderAction,
-  SubOrderStatus,
   FulfillmentMode,
   WAREHOUSE_OPTIONS,
   HOLD_REASONS,
@@ -769,6 +675,11 @@ const cancelForm = reactive({
 })
 
 const reopenForm = reactive({
+  reason: '',
+  remarks: ''
+})
+
+const deallocateForm = reactive({
   mode: 'whole' as 'whole' | 'partial',
   reason: '',
   remarks: '',
@@ -1317,73 +1228,13 @@ const updateOrderStatus = async (orderId?: string, status?: string) => {
 const handleReopenConfirm = async () => {
   if (!reopenFormRef.value) return
   
-  await reopenFormRef.value.validate(async (valid: boolean) => {
+  await reopenFormRef.value.validate((valid: boolean) => {
     if (valid) {
-      loading.value = true
-      try {
-        const currentOrder = props.currentOrder
-        if (!currentOrder) throw new Error('No order selected')
-
-        // 检查履约模式
-        const fulfillmentMode = currentOrder.fulfillmentMode
-        const requireWarehouse = fulfillmentMode === 'Manual' || fulfillmentMode === 'Auto Allocate'
-
-        // 检查是否有子单
-        const hasSubOrders = currentOrder.subOrders && currentOrder.subOrders.length > 0
-        const exceptionSubOrders = hasSubOrders ? 
-          currentOrder.subOrders.filter((sub: SubOrder) => sub.status === SubOrderStatus.Exception) : 
-          []
-        const hasExceptionSubOrders = exceptionSubOrders.length > 0
-
-        // 确定新状态和要处理的子单
-        let newStatus
-        let subOrdersToReopen: string[] = []
-
-        if (reopenForm.mode === 'whole') {
-          // 整单重开时，如果有异常子单，全部重开
-          if (hasExceptionSubOrders) {
-            subOrdersToReopen = exceptionSubOrders.map(sub => sub.subOrderNo)
-          }
-          // 根据履约模式决定新状态
-          newStatus = requireWarehouse ? OrderStatus.Imported : OrderStatus.Pending
-        } else {
-          // 部分重开时，只重开选中的子单
-          subOrdersToReopen = reopenForm.selectedSubOrders
-          // 检查是否还有未选择的异常子单
-          const hasRemainingExceptionSubOrders = exceptionSubOrders.some(
-            sub => !reopenForm.selectedSubOrders.includes(sub.subOrderNo)
-          )
-          // 如果还有未处理的异常子单，保持Exception状态
-          newStatus = hasRemainingExceptionSubOrders ? 
-            OrderStatus.Exception : 
-            (requireWarehouse ? OrderStatus.Imported : OrderStatus.Pending)
-        }
-
-        // 更新订单状态
-        await updateOrderStatus(currentOrder.id, newStatus)
-
-        emit('reopen', {
-          ...reopenForm,
-          orderId: currentOrder.id,
-          newStatus,
-          requireWarehouse,
-          subOrdersToReopen
-        })
-
-        ElMessage.success('Order reopened successfully')
-        reopenDialogVisible.value = false
-
-        // 重置表单
-        reopenForm.mode = 'whole'
-        reopenForm.reason = ''
-        reopenForm.remarks = ''
-        reopenForm.selectedSubOrders = []
-      } catch (error) {
-        console.error('Reopen failed:', error)
-        ElMessage.error('Failed to reopen order')
-      } finally {
-        loading.value = false
-      }
+      emit('reopen', {
+        ...reopenForm,
+        orderId: props.currentOrder?.id
+      })
+      reopenDialogVisible.value = false
     }
   })
 }
@@ -1702,31 +1553,10 @@ const DEALLOCATE_REASONS = [
   { value: 'other', label: '其他原因' }
 ]
 
-// 计算是否有异常子单
-const hasExceptionSubOrders = computed(() => {
-  return props.currentOrder?.subOrders?.some(
-    (sub: SubOrder) => sub.status === SubOrderStatus.Exception
-  ) ?? false
-})
-
-// 获取异常状态的子单
-const exceptionSubOrders = computed(() => {
-  return props.currentOrder?.subOrders?.filter(
-    (sub: SubOrder) => sub.status === SubOrderStatus.Exception
-  ) ?? []
-})
-
-// 判断是否可以重开
-const canReopenOrder = computed(() => {
-  if (reopenForm.mode === 'whole') {
-    return true
-  }
-  return reopenForm.selectedSubOrders?.length > 0
-})
-
-// 处理子单选择变更
-const handleReopenSelectionChange = (rows: SubOrder[]) => {
-  reopenForm.selectedSubOrders = rows.map(row => row.subOrderNo)
+// 添加OrderStatus枚举
+enum OrderStatus {
+  Deallocated = 'Deallocated',
+  Exception = 'Exception'
 }
 </script>
 
@@ -1752,61 +1582,6 @@ const handleReopenSelectionChange = (rows: SubOrder[]) => {
       .el-table {
         margin-bottom: 20px;
       }
-    }
-  }
-
-  .mode-option {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-
-    .mode-title {
-      font-weight: 500;
-    }
-
-    .el-icon {
-      color: var(--el-text-color-secondary);
-      cursor: help;
-    }
-  }
-
-  .mode-tooltip {
-    max-width: 300px;
-    
-    p {
-      margin: 0 0 8px;
-      font-weight: 500;
-    }
-
-    ul {
-      margin: 0;
-      padding-left: 16px;
-
-      li {
-        margin-bottom: 4px;
-        color: var(--el-text-color-regular);
-
-        &:last-child {
-          margin-bottom: 0;
-        }
-      }
-    }
-  }
-
-  .section-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 16px;
-
-    .section-title {
-      font-size: 16px;
-      font-weight: 500;
-    }
-
-    .selection-info {
-      color: var(--el-text-color-secondary);
-      font-size: 14px;
     }
   }
 }

@@ -104,14 +104,14 @@ export const STATUS_CONFIG: Record<OrderStatus, StatusAction> = {
     requireSubOrderCheck: false
   },
   [OrderStatus.Allocated]: {
-    availableActions: [OrderAction.Dispatch, OrderAction.Deallocate, OrderAction.Cancel],
+    availableActions: [OrderAction.Deallocate, OrderAction.Cancel],
     allowSplit: true,
     allowMerge: false,
     requireWarehouse: false,
     requireSubOrderCheck: true
   },
   [OrderStatus.Exception]: {
-    availableActions: [OrderAction.Allocate, OrderAction.Cancel, OrderAction.Edit, OrderAction.Reopen],
+    availableActions: [OrderAction.Allocate, OrderAction.Cancel, OrderAction.Edit],
     allowSplit: false,
     allowMerge: true,
     requireWarehouse: true,
@@ -197,9 +197,7 @@ export const CANCEL_REASONS: CancelReason[] = [
 export const REOPEN_REASONS = [
   { value: 'customer_request', label: 'Customer Requested' },
   { value: 'system_error', label: 'System Error' },
-  { value: 'wrong_operation', label: 'Wrong Operation' },
-  { value: 'stock_available', label: 'Stock Now Available' },
-  { value: 'exception_resolved', label: 'Exception Resolved' }
+  { value: 'wrong_operation', label: 'Wrong Operation' }
 ]
 
 export interface SubOrder {

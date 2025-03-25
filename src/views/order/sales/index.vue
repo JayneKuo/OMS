@@ -126,7 +126,7 @@
         <el-radio-button label="deallocated">Deallocated({{ getTotalByStatus(OrderStatus.Deallocated) }})</el-radio-button>
         <el-radio-button label="cancelling">Cancelling({{ getTotalByStatus(OrderStatus.Cancelling) }})</el-radio-button>
         <el-radio-button label="cancelled">Cancelled({{ getTotalByStatus(OrderStatus.Cancelled) }})</el-radio-button>
-        <el-radio-button label="warehouse_processing">Processing({{ getTotalByStatus(OrderStatus.WarehouseProcessing) }})</el-radio-button>
+        <el-radio-button label="warehouse_processing">Warehouse Processing({{ getTotalByStatus(OrderStatus.WarehouseProcessing) }})</el-radio-button>
         <el-radio-button label="shipped">Shipped({{ getTotalByStatus(OrderStatus.Shipped) }})</el-radio-button>
         <el-radio-button label="completed">Completed({{ getTotalByStatus(OrderStatus.Completed) }})</el-radio-button>
       </el-radio-group>
@@ -237,7 +237,7 @@ import {
   Document
 } from '@element-plus/icons-vue'
 import type { FormInstance } from 'element-plus'
-import { OrderStatus, OrderAction, STATUS_CONFIG, type OrderItem, FulfillmentMode, SubOrderStatus } from './types'
+import { OrderStatus, OrderAction, STATUS_CONFIG, type OrderItem } from './types'
 import ActionDialogs from './components/ActionDialogs.vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
@@ -299,9 +299,7 @@ const mockTableData: OrderItem[] = [
     orderDate: '2024-03-19T07:55:00',
     grandTotal: 4.10,
     shipDate: null,
-    product: 'Product A',
-    fulfillmentMode: FulfillmentMode.Manual,
-    subOrders: []
+    product: 'Product A'
   },
   {
     id: '2',
@@ -318,9 +316,7 @@ const mockTableData: OrderItem[] = [
     orderDate: '2024-03-18T07:12:00',
     grandTotal: 13.00,
     shipDate: null,
-    product: 'Product B',
-    fulfillmentMode: FulfillmentMode.AutoAllocate,
-    subOrders: []
+    product: 'Product B'
   },
   {
     id: '3',
@@ -337,9 +333,7 @@ const mockTableData: OrderItem[] = [
     orderDate: '2024-03-18T08:30:00',
     grandTotal: 25.50,
     shipDate: null,
-    product: 'Product C',
-    fulfillmentMode: FulfillmentMode.Manual,
-    subOrders: []
+    product: 'Product C'
   },
   {
     id: '4',
@@ -356,19 +350,7 @@ const mockTableData: OrderItem[] = [
     orderDate: '2024-03-17T10:30:00',
     grandTotal: 45.99,
     shipDate: null,
-    product: 'Product D',
-    fulfillmentMode: FulfillmentMode.Manual,
-    subOrders: [
-      {
-        id: 'SUB001',
-        orderNo: 'SO00184656',
-        subOrderNo: 'SO00184656-01',
-        status: SubOrderStatus.Exception,
-        warehouse: 'WH_US_01',
-        quantity: 2,
-        product: 'Product D'
-      }
-    ]
+    product: 'Product D'
   },
   {
     id: '5',
@@ -385,9 +367,7 @@ const mockTableData: OrderItem[] = [
     orderDate: '2024-03-16T15:20:00',
     grandTotal: 32.75,
     shipDate: null,
-    product: 'Product E',
-    fulfillmentMode: FulfillmentMode.AutoAllocate,
-    subOrders: []
+    product: 'Product E'
   },
   {
     id: '6',
@@ -404,9 +384,7 @@ const mockTableData: OrderItem[] = [
     orderDate: '2024-03-15T09:45:00',
     grandTotal: 67.50,
     shipDate: null,
-    product: 'Product F',
-    fulfillmentMode: FulfillmentMode.Manual,
-    subOrders: []
+    product: 'Product F'
   },
   {
     id: '7',
@@ -423,9 +401,7 @@ const mockTableData: OrderItem[] = [
     orderDate: '2024-03-14T14:15:00',
     grandTotal: 19.99,
     shipDate: null,
-    product: 'Product G',
-    fulfillmentMode: FulfillmentMode.Manual,
-    subOrders: []
+    product: 'Product G'
   },
   {
     id: '8',
@@ -442,9 +418,7 @@ const mockTableData: OrderItem[] = [
     orderDate: '2024-03-13T11:30:00',
     grandTotal: 88.25,
     shipDate: null,
-    product: 'Product H',
-    fulfillmentMode: FulfillmentMode.AutoDispatch,
-    subOrders: []
+    product: 'Product H'
   },
   {
     id: '9',
@@ -461,9 +435,7 @@ const mockTableData: OrderItem[] = [
     orderDate: '2024-03-12T16:20:00',
     grandTotal: 54.99,
     shipDate: '2024-03-13T10:00:00',
-    product: 'Product I',
-    fulfillmentMode: FulfillmentMode.AutoDispatch,
-    subOrders: []
+    product: 'Product I'
   },
   {
     id: '10',
@@ -480,9 +452,7 @@ const mockTableData: OrderItem[] = [
     orderDate: '2024-03-11T13:45:00',
     grandTotal: 129.99,
     shipDate: '2024-03-12T09:30:00',
-    product: 'Product J',
-    fulfillmentMode: FulfillmentMode.AutoDispatch,
-    subOrders: []
+    product: 'Product J'
   }
 ]
 
@@ -552,10 +522,7 @@ const getActionLabel = (action: OrderAction) => {
     [OrderAction.Cancel]: 'Cancel',
     [OrderAction.Edit]: 'Edit',
     [OrderAction.Deallocate]: 'Deallocate',
-    [OrderAction.Dispatch]: 'Dispatch',
-    [OrderAction.Reopen]: 'Reopen',
-    [OrderAction.Split]: 'Split',
-    [OrderAction.Merge]: 'Merge'
+    [OrderAction.Dispatch]: 'Dispatch'
   }
   return labels[action]
 }
@@ -627,36 +594,12 @@ const handleCancel = (data: any) => {
 }
 
 // 处理重开确认
-const handleReopen = async (data: any) => {
-  try {
-    // 调用重开API
-    const response = await fetch('/api/orders/reopen', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        orderId: data.orderId,
-        reason: data.reason,
-        remarks: data.remarks,
-        newStatus: data.newStatus,
-        requireWarehouse: data.requireWarehouse,
-        mode: data.mode,
-        subOrdersToReopen: data.subOrdersToReopen
-      })
-    })
-
-    if (!response.ok) {
-      throw new Error('Failed to reopen order')
-    }
-
-    ElMessage.success('Order reopened successfully')
-    // 刷新列表
-    fetchData()
-  } catch (error) {
-    console.error('Reopen failed:', error)
-    ElMessage.error('Failed to reopen order')
-  }
+const handleReopen = (data: any) => {
+  console.log('Reopen:', data)
+  // TODO: 调用重开 API
+  ElMessage.success('Order reopened successfully')
+  // 刷新列表
+  fetchData()
 }
 
 // 处理解除分仓确认

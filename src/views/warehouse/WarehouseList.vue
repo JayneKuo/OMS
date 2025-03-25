@@ -85,8 +85,8 @@
         <el-form :model="batchForm" label-width="120px" class="batch-form">
           <el-form-item label="WMS Version">
             <el-select v-model="batchForm.wmsVersion" placeholder="Select WMS Version">
-              <el-option label="WMS V1" value="V1" />
-              <el-option label="WMS V2" value="V2" />
+              <el-option label="WMS V1" value="WMS V1" />
+              <el-option label="WMS V2" value="WMS V2" />
             </el-select>
           </el-form-item>
         </el-form>
@@ -325,12 +325,12 @@ const getAvailableWmsVersions = (warehouse: Warehouse) => {
     },
     { 
       value: 'V1', 
-      label: 'V1',
+      label: 'WMS V1',
       disabled: !warehouse.availableVersions.includes('V1')
     },
     { 
       value: 'V2', 
-      label: 'V2',
+      label: 'WMS V2',
       disabled: !warehouse.availableVersions.includes('V2')
     }
   ]
