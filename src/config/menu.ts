@@ -97,6 +97,11 @@ export const menuConfig: MenuItem[] = [
         title: 'Inventory',
         path: '/foundation-data/inventory',
         icon: Goods
+      },
+      {
+        title: 'Store Inventory',
+        path: '/foundation-data/store-inventory',
+        icon: ShoppingCart
       }
     ]
   }

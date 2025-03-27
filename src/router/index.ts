@@ -126,6 +126,11 @@ const routes: RouteRecordRaw[] = [
             path: 'inventory',
             name: 'Inventory',
             component: () => import('@/views/foundation-data/components/Inventory.vue')
+          },
+          {
+            path: 'store-inventory',
+            name: 'StoreInventory',
+            component: () => import('@/views/foundation-data/StoreInventory.vue')
           }
         ]
       }

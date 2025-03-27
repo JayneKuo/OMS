@@ -15,6 +15,7 @@
   "dependencies": {
     "@element-plus/icons-vue": "^2.1.0",
     "@types/google.maps": "^3.53.4",
+    "date-fns": "^4.1.0",
     "dayjs": "^1.11.9",
     "element-plus": "^2.3.8",
     "path": "^0.12.7",
