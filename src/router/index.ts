@@ -96,7 +96,7 @@ const routes: RouteRecordRaw[] = [
         name: 'Return',
         component: () => import('@/layouts/RouterView.vue'),
         meta: {
-          title: '退货管理',
+          title: 'Returns',
           icon: 'Return'
         },
         children: [
