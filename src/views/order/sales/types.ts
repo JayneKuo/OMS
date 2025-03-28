@@ -85,6 +85,26 @@ export interface OrderItem {
   product: string
   fulfillmentMode: FulfillmentMode
   subOrders: SubOrder[]
+  returnStatus?: ReturnOrderStatus
+  returnQuantity?: number
+  returnAmount?: number
+  returns?: ReturnRecord[]
+}
+
+// 新增退货记录接口
+export interface ReturnRecord {
+  returnOrderNo: string
+  type: ReturnType
+  status: ReturnOrderStatus
+  createDate: string
+  items: ReturnItem[]
+  amount: number
+}
+
+export interface ReturnItem {
+  sku: string
+  quantity: number
+  reason: ReturnReason
 }
 
 // 状态配置

@@ -324,108 +324,95 @@
       width="1000px"
       destroy-on-close
     >
-      <el-alert
-        v-if="!canCancelOrder"
-        type="error"
-        :closable="false"
-        show-icon
-        title="Cannot cancel this order"
-        description="Orders that have been shipped or partially shipped cannot be cancelled."
-      />
-      
-      <template v-else>
-        <el-form ref="cancelFormRef" :model="cancelForm" label-width="120px">
-          <!-- 分配后显示取消模式选择 -->
-          <template v-if="isAllocated">
-            <el-form-item label="Cancel Mode" required>
-              <el-radio-group v-model="cancelForm.mode">
-                <el-radio label="whole">Cancel Entire Order</el-radio>
-                <el-radio label="partial">Partial Cancel</el-radio>
-              </el-radio-group>
-            </el-form-item>
-          </template>
+      <el-form ref="cancelFormRef" :model="cancelForm" label-width="120px">
+        <!-- 取消模式选择 -->
+        <el-form-item label="Cancel Mode" required>
+          <el-radio-group v-model="cancelForm.mode">
+            <el-radio label="whole">Cancel Entire Order</el-radio>
+            <el-radio label="partial">Partial Cancel</el-radio>
+          </el-radio-group>
+        </el-form-item>
 
-          <!-- 部分取消时显示仓库选择 -->
-          <template v-if="isAllocated && cancelForm.mode === 'partial'">
-            <div class="sub-orders-section">
-              <div class="section-title">Select Sub-Orders to Cancel</div>
-              <el-table 
-                :data="cancelableSubOrders" 
-                @selection-change="handleSelectionChange"
-                border
-                v-if="cancelableSubOrders.length > 0"
-              >
-                <el-table-column type="selection" width="55" />
-                <el-table-column label="Sub-Order No." prop="subOrderNo" width="150" />
-                <el-table-column label="Status" prop="status" width="120">
-                  <template #default="{ row }">
-                    <el-tag>{{ row.status }}</el-tag>
-                  </template>
-                </el-table-column>
-                <el-table-column label="Warehouse" min-width="200">
-                  <template #default="{ row }">
-                    <div class="warehouse-cell">
-                      <span>{{ row.warehouse.split(' (')[0] }}</span>
-                      <el-tag 
-                        size="small" 
-                        :type="getWmsTypeFromWarehouse(row.warehouse)"
-                      >
-                        {{ row.warehouse.match(/\((.*?)\)/)?.[1] || 'OTHER' }}
-                      </el-tag>
-                    </div>
-                  </template>
-                </el-table-column>
-                <el-table-column label="Product" prop="product" min-width="150" />
-                <el-table-column label="Quantity" prop="quantity" width="100" align="right" />
-              </el-table>
-              <el-empty v-else description="No Cancellable Sub-Orders" />
-            </div>
-          </template>
+        <!-- 部分取消时显示子订单选择 -->
+        <template v-if="cancelForm.mode === 'partial'">
+          <div class="sub-orders-section">
+            <div class="section-title">Select Sub-Orders to Cancel</div>
+            <el-table 
+              :data="cancelableSubOrders" 
+              @selection-change="handleSelectionChange"
+              border
+              v-if="cancelableSubOrders.length > 0"
+            >
+              <el-table-column type="selection" width="55" :selectable="row => !row.disabled" />
+              <el-table-column label="Sub-Order No." prop="subOrderNo" width="150" />
+              <el-table-column label="Status" prop="status" width="120">
+                <template #default="{ row }">
+                  <el-tag :type="row.disabled ? 'info' : ''">{{ row.status }}</el-tag>
+                </template>
+              </el-table-column>
+              <el-table-column label="Warehouse" min-width="200">
+                <template #default="{ row }">
+                  <div class="warehouse-cell">
+                    <span>{{ row.warehouse.split(' (')[0] }}</span>
+                    <el-tag 
+                      size="small" 
+                      :type="getWmsTypeFromWarehouse(row.warehouse)"
+                    >
+                      {{ row.warehouse.match(/\((.*?)\)/)?.[1] || 'OTHER' }}
+                    </el-tag>
+                  </div>
+                </template>
+              </el-table-column>
+              <el-table-column label="Product" prop="product" min-width="150" />
+              <el-table-column label="Quantity" prop="quantity" width="100" align="right" />
+            </el-table>
+            <el-empty v-else description="No Sub-Orders Available" />
+          </div>
+        </template>
 
-          <!-- WMS警告提示 -->
-          <template v-if="needCallWMS">
-            <el-alert
-              type="warning"
-              :closable="false"
-              show-icon
-              title="WMS Cancellation Required"
-              description="This order is being processed in WMS. The system will attempt to cancel it in WMS first."
-              style="margin-bottom: 16px"
+        <!-- WMS警告提示 -->
+        <template v-if="needCallWMS">
+          <el-alert
+            type="warning"
+            :closable="false"
+            show-icon
+            title="WMS Cancellation Required"
+            description="This order is being processed in WMS. The system will attempt to cancel it in WMS first."
+            style="margin-bottom: 16px"
+          />
+        </template>
+
+        <el-form-item 
+          label="Reason" 
+          required
+          :rules="[{ required: true, message: 'Please select a reason' }]"
+        >
+          <el-select v-model="cancelForm.reason" placeholder="Select Reason">
+            <el-option
+              v-for="item in CANCEL_REASONS"
+              :key="item.value"
+              :label="item.label"
+              :value="item.value"
             />
-          </template>
+          </el-select>
+        </el-form-item>
 
-          <el-form-item 
-            label="Reason" 
-            required
-            :rules="[{ required: true, message: 'Please select a reason' }]"
-          >
-            <el-select v-model="cancelForm.reason" placeholder="Select Reason">
-              <el-option
-                v-for="item in CANCEL_REASONS"
-                :key="item.value"
-                :label="item.label"
-                :value="item.value"
-              />
-            </el-select>
-          </el-form-item>
-
-          <el-form-item label="Remarks">
-            <el-input
-              v-model="cancelForm.remarks"
-              type="textarea"
-              rows="3"
-              placeholder="Enter additional remarks"
-            />
-          </el-form-item>
-        </el-form>
-      </template>
+        <el-form-item label="Remarks">
+          <el-input
+            v-model="cancelForm.remarks"
+            type="textarea"
+            rows="3"
+            placeholder="Enter additional remarks"
+          />
+        </el-form-item>
+      </el-form>
 
       <template #footer>
         <div class="dialog-footer">
           <el-button @click="cancelDialogVisible = false">Back</el-button>
           <el-button 
             type="primary" 
-            :disabled="!canCancelOrder || (cancelForm.mode === 'partial' && cancelForm.selectedSubOrders.length === 0)"
+            :disabled="(cancelForm.mode === 'partial' && cancelForm.selectedSubOrders.length === 0)"
             @click="handleCancelConfirm"
           >
             Confirm Cancel
@@ -502,7 +489,7 @@
         </template>
 
         <!-- 部分解除时显示仓库选择 -->
-        <template v-if="isAllocated && deallocateForm.mode === 'partial'">
+        <template v-if="deallocateForm.mode === 'partial'">
           <div class="sub-orders-section">
             <div class="section-title">Select Sub-Orders to Deallocate</div>
             <el-table 
@@ -511,11 +498,11 @@
               border
               v-if="deallocatableSubOrders.length > 0"
             >
-              <el-table-column type="selection" width="55" />
+              <el-table-column type="selection" width="55" :selectable="row => !row.disabled" />
               <el-table-column label="Sub-Order No." prop="subOrderNo" width="150" />
               <el-table-column label="Status" prop="status" width="120">
                 <template #default="{ row }">
-                  <el-tag>{{ row.status }}</el-tag>
+                  <el-tag :type="row.disabled ? 'info' : ''">{{ row.status }}</el-tag>
                 </template>
               </el-table-column>
               <el-table-column label="Warehouse" min-width="200">
@@ -534,7 +521,7 @@
               <el-table-column label="Product" prop="product" min-width="150" />
               <el-table-column label="Quantity" prop="quantity" width="100" align="right" />
             </el-table>
-            <el-empty v-else description="No Deallocatable Sub-Orders" />
+            <el-empty v-else description="No Sub-Orders Available" />
           </div>
         </template>
 
@@ -780,7 +767,7 @@ const mockCurrentOrder = ref({
     {
       id: 'SUB002',
       subOrderNo: 'SO001-002',
-      status: 'Allocated',
+      status: 'Processing',
       warehouse: 'Beijing Warehouse (WMS V2)',
       quantity: 5,
       product: 'iPhone 14 Pro Max'
@@ -788,7 +775,7 @@ const mockCurrentOrder = ref({
     {
       id: 'SUB003',
       subOrderNo: 'SO001-003',
-      status: 'Allocated',
+      status: 'Exception',
       warehouse: 'Shanghai Warehouse (WMS V1)',
       quantity: 3,
       product: 'AirPods Pro 2nd Gen'
@@ -796,9 +783,17 @@ const mockCurrentOrder = ref({
     {
       id: 'SUB004',
       subOrderNo: 'SO001-004',
-      status: 'Allocated',
+      status: 'Warehouse Processing',
       warehouse: 'Guangzhou Warehouse (Other WMS)',
       quantity: 2,
+      product: 'AirPods Pro 2nd Gen'
+    },
+    {
+      id: 'SUB005',
+      subOrderNo: 'SO001-005',
+      status: 'Shipped',
+      warehouse: 'Shenzhen Warehouse (WMS V1)',
+      quantity: 1,
       product: 'AirPods Pro 2nd Gen'
     }
   ]
@@ -830,10 +825,10 @@ watch(() => currentOrderData.value, (newOrder) => {
 const cancelableSubOrders = computed(() => {
   const subOrders = currentOrderData.value?.subOrders || []
   console.log('Computing cancelable sub-orders:', subOrders)
-  return subOrders.filter(sub => 
-    sub.status !== 'Shipped' && 
-    sub.status !== 'Short Shipped'
-  )
+  return subOrders.map(sub => ({
+    ...sub,
+    disabled: sub.status === 'Shipped' || sub.status === 'Short Shipped'
+  }))
 })
 
 // Computed
@@ -871,17 +866,12 @@ const hasSubOrders = computed(() => {
 const canCancelOrder = computed(() => {
   if (!currentOrderData.value) return false
   
-  // 已发货状态不可取消
-  if (currentOrderData.value.status === 'Shipped') return false
-  
-  // 检查子订单状态
-  if (currentOrderData.value.subOrders?.some(
+  // 只有当整个订单都已发货时才不允许取消
+  const allSubOrdersShipped = currentOrderData.value.subOrders?.every(
     sub => sub.status === 'Shipped' || sub.status === 'Short Shipped'
-  )) {
-    return false
-  }
+  )
   
-  return true
+  return !allSubOrdersShipped
 })
 
 const needCallWMS = computed(() => {
@@ -1309,7 +1299,7 @@ const openHoldDialog = () => {
 
 const openCancelDialog = () => {
   console.log('Opening Cancel Dialog...'); // 添加调试日志
-  cancelForm.mode = isAllocated.value ? 'partial' : 'whole'
+  cancelForm.mode = 'partial' // 默认使用部分取消模式
   cancelForm.selectedSubOrders = []
   cancelForm.reason = ''
   cancelForm.remarks = ''
@@ -1517,9 +1507,10 @@ const handleTimeRangeChange = (val: string[]) => {
 // Deallocate form data
 const deallocatableSubOrders = computed(() => {
   if (!currentOrderData.value?.subOrders) return []
-  return currentOrderData.value.subOrders.filter(
-    sub => ['Allocated', 'Exception'].includes(sub.status)
-  )
+  return currentOrderData.value.subOrders.map(sub => ({
+    ...sub,
+    disabled: sub.status === 'Shipped' || sub.status === 'Short Shipped'
+  }))
 })
 
 // 是否可以解除分仓

@@ -77,6 +77,7 @@ const routes: RouteRecordRaw[] = [
       {
         path: '/order',
         name: 'Order',
+        component: () => import('@/layouts/RouterView.vue'),
         children: [
           {
             path: 'sales',
@@ -87,6 +88,32 @@ const routes: RouteRecordRaw[] = [
             path: 'sales/:id',
             name: 'SalesOrderDetail',
             component: () => import('@/views/order/sales/detail.vue')
+          }
+        ]
+      },
+      {
+        path: '/return',
+        name: 'Return',
+        component: () => import('@/layouts/RouterView.vue'),
+        meta: {
+          title: '退货管理',
+          icon: 'Return'
+        },
+        children: [
+          {
+            path: 'order',
+            name: 'ReturnOrderList',
+            component: () => import('@/views/return/index.vue')
+          },
+          {
+            path: 'create',
+            name: 'CreateReturnOrder',
+            component: () => import('@/views/return/create.vue')
+          },
+          {
+            path: ':id',
+            name: 'ReturnOrderDetail',
+            component: () => import('@/views/return/detail.vue')
           }
         ]
       },

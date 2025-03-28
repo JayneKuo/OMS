@@ -60,6 +60,18 @@ export const menuConfig: MenuItem[] = [
     ]
   },
   {
+    title: '退货管理',
+    path: '/return',
+    icon: Box,
+    children: [
+      {
+        title: '退货单列表',
+        path: '/return/order',
+        icon: Document
+      }
+    ]
+  },
+  {
     title: 'Settings',
     path: '/settings',
     icon: Setting,

@@ -197,6 +197,17 @@
           </template>
         </el-table-column>
         <el-table-column label="PRODUCT" prop="product" min-width="120" />
+        <el-table-column label="RETURN STATUS" min-width="120">
+          <template #default="{ row }">
+            <el-tag 
+              v-if="row.returnStatus"
+              :type="getReturnStatusType(row.returnStatus)"
+            >
+              {{ row.returnStatus }}
+            </el-tag>
+            <span v-else>-</span>
+          </template>
+        </el-table-column>
       </el-table>
 
       <!-- 分页 -->
@@ -241,6 +252,7 @@ import { OrderStatus, OrderAction, STATUS_CONFIG, type OrderItem } from './types
 import ActionDialogs from './components/ActionDialogs.vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import { ReturnOrderStatus } from '@/views/return/types'
 
 // 搜索表单
 const searchForm = reactive({
@@ -694,6 +706,23 @@ const handleShipOrder = () => {
   if (!selectedRows.value.length) return
   // TODO: 实现发货逻辑
   ElMessage.success('Orders shipped successfully')
+}
+
+// 获取退货状态类型
+const getReturnStatusType = (status?: ReturnOrderStatus) => {
+  if (!status) return ''
+  const types: Record<ReturnOrderStatus, string> = {
+    [ReturnOrderStatus.Created]: 'info',
+    [ReturnOrderStatus.Pending]: 'warning',
+    [ReturnOrderStatus.Approved]: 'success',
+    [ReturnOrderStatus.Processing]: 'primary',
+    [ReturnOrderStatus.Shipped]: 'info',
+    [ReturnOrderStatus.Received]: 'success',
+    [ReturnOrderStatus.Refunded]: 'success',
+    [ReturnOrderStatus.Completed]: 'success',
+    [ReturnOrderStatus.Cancelled]: 'danger'
+  }
+  return types[status] || ''
 }
 </script>
 

@@ -188,6 +188,27 @@
                     ${{ row.total.toFixed(2) }}
                   </template>
                 </el-table-column>
+                <el-table-column label="Return Status" min-width="120">
+                  <template #default="{ row }">
+                    <el-tag 
+                      v-if="row.returnStatus"
+                      :type="getReturnStatusType(row.returnStatus)"
+                    >
+                      {{ row.returnStatus }}
+                    </el-tag>
+                    <span v-else>-</span>
+                  </template>
+                </el-table-column>
+                <el-table-column label="Return Qty" width="100">
+                  <template #default="{ row }">
+                    {{ row.returnQuantity || 0 }}
+                  </template>
+                </el-table-column>
+                <el-table-column label="Return Amount" width="120">
+                  <template #default="{ row }">
+                    ${{ (row.returnAmount || 0).toFixed(2) }}
+                  </template>
+                </el-table-column>
                 <el-table-column label="Notes" prop="notes" min-width="200" />
               </el-table>
             </el-tab-pane>
@@ -237,6 +258,53 @@
                 </el-table-column>
               </el-table>
             </el-tab-pane>
+
+            <!-- 退货历史 Tab -->
+            <el-tab-pane label="Return History" name="returns">
+              <el-table :data="orderData?.returns || []" style="width: 100%">
+                <el-table-column label="Return Order No" min-width="150">
+                  <template #default="{ row }">
+                    <el-link 
+                      type="primary" 
+                      @click="viewReturnOrder(row.returnOrderNo)"
+                    >
+                      {{ row.returnOrderNo }}
+                    </el-link>
+                  </template>
+                </el-table-column>
+                <el-table-column label="Type" width="100">
+                  <template #default="{ row }">
+                    <el-tag :type="row.type === 'Refund' ? 'danger' : 'warning'">
+                      {{ row.type }}
+                    </el-tag>
+                  </template>
+                </el-table-column>
+                <el-table-column label="Status" width="120">
+                  <template #default="{ row }">
+                    <el-tag :type="getReturnStatusType(row.status)">
+                      {{ row.status }}
+                    </el-tag>
+                  </template>
+                </el-table-column>
+                <el-table-column label="Create Date" min-width="180">
+                  <template #default="{ row }">
+                    {{ formatDateTime(row.createDate) }}
+                  </template>
+                </el-table-column>
+                <el-table-column label="Items" min-width="200">
+                  <template #default="{ row }">
+                    <div v-for="item in row.items" :key="item.sku">
+                      {{ item.sku }} ({{ item.quantity }})
+                    </div>
+                  </template>
+                </el-table-column>
+                <el-table-column label="Amount" width="120">
+                  <template #default="{ row }">
+                    ${{ row.amount.toFixed(2) }}
+                  </template>
+                </el-table-column>
+              </el-table>
+            </el-tab-pane>
           </el-tabs>
         </div>
 
@@ -280,6 +348,7 @@ import { ElMessage } from 'element-plus'
 import { OrderStatus, OrderAction, STATUS_CONFIG } from './types'
 import ActionDialogs from './components/ActionDialogs.vue'
 import OrderTimeline from './components/OrderTimeline.vue'
+import { ReturnOrderStatus } from '@/views/return/types'
 
 const route = useRoute()
 const router = useRouter()
@@ -330,7 +399,10 @@ onMounted(() => {
         price: 2.10,
         discount: 1.00,
         total: 1.10,
-        notes: ''
+        notes: '',
+        returnStatus: null,
+        returnQuantity: null,
+        returnAmount: null
       }
     ],
     dispatchedDetails: [
@@ -574,6 +646,28 @@ const handleImport = () => {
 const handleViewRawData = () => {
   // TODO: 打开原始数据对话框
   console.log('View raw data')
+}
+
+// 获取退货状态类型
+const getReturnStatusType = (status?: ReturnOrderStatus) => {
+  if (!status) return ''
+  const types: Record<ReturnOrderStatus, string> = {
+    [ReturnOrderStatus.Created]: 'info',
+    [ReturnOrderStatus.Pending]: 'warning',
+    [ReturnOrderStatus.Approved]: 'success',
+    [ReturnOrderStatus.Processing]: 'primary',
+    [ReturnOrderStatus.Shipped]: 'info',
+    [ReturnOrderStatus.Received]: 'success',
+    [ReturnOrderStatus.Refunded]: 'success',
+    [ReturnOrderStatus.Completed]: 'success',
+    [ReturnOrderStatus.Cancelled]: 'danger'
+  }
+  return types[status] || ''
+}
+
+// 查看退货订单
+const viewReturnOrder = (returnOrderNo: string) => {
+  router.push(`/return/${returnOrderNo}`)
 }
 </script>
 
