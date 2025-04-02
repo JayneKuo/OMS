@@ -131,11 +131,17 @@ const routes: RouteRecordRaw[] = [
       {
         path: '/warehouse',
         name: 'Warehouse',
+        component: () => import('@/layouts/RouterView.vue'),
         children: [
           {
             path: 'list',
             name: 'WarehouseList',
             component: () => import('@/views/warehouse/WarehouseList.vue')
+          },
+          {
+            path: 'zipcode-range',
+            name: 'ZipcodeRange',
+            component: () => import('@/views/warehouse/ZipcodeRange.vue')
           }
         ]
       },

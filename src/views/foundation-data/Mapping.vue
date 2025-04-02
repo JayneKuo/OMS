@@ -678,6 +678,18 @@ const handleInputFieldChange = (condition: Condition) => {
     condition.value = ''
   }
 }
+
+const handleAddProduct = () => {
+  if (productMappingRef.value) {
+    productMappingRef.value.handleAddProduct()
+  }
+}
+
+const handleBulkImport = () => {
+  if (productMappingRef.value) {
+    productMappingRef.value.handleBulkImport()
+  }
+}
 </script>
 
 <style lang="scss" scoped>

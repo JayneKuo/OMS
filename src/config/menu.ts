@@ -92,6 +92,11 @@ export const menuConfig: MenuItem[] = [
         title: 'Warehouse List',
         path: '/warehouse/list',
         icon: Files
+      },
+      {
+        title: 'Zipcode Range',
+        path: '/warehouse/zipcode-range',
+        icon: Location
       }
     ]
   },
