@@ -9,7 +9,8 @@ import {
   Box,
   Grid,
   Share,
-  Goods
+  Goods,
+  TrendCharts
 } from '@element-plus/icons-vue'
 
 export interface MenuItem {
@@ -119,6 +120,23 @@ export const menuConfig: MenuItem[] = [
         title: 'Store Inventory',
         path: '/foundation-data/store-inventory',
         icon: ShoppingCart
+      }
+    ]
+  },
+  {
+    title: 'AI知识库',
+    path: '/knowledge-base',
+    icon: Files,
+    children: [
+      {
+        title: '知识中枢',
+        path: '/knowledge-base/knowledge-center',
+        icon: TrendCharts
+      },
+      {
+        title: '知识应用',
+        path: '/knowledge-base/knowledge-application',
+        icon: Document
       }
     ]
   }

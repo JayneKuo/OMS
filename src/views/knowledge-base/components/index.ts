@@ -1,0 +1,5 @@
+export { default as KnowledgeCollector } from './KnowledgeCollector.vue'
+export { default as KnowledgeGraph } from './KnowledgeGraph.vue'
+export { default as KnowledgeSearch } from './KnowledgeSearch.vue'
+export { default as SearchPanel } from './SearchPanel.vue'
+export { default as KnowledgeGraphPanel } from './KnowledgeGraphPanel.vue' 

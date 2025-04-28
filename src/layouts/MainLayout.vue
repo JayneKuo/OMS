@@ -1,49 +1,85 @@
 <template>
   <div class="app-container">
-    <aside class="sidebar" :class="{ collapsed: isCollapsed }">
-      <div class="logo-container">
-        <div class="logo-content">
+    <header class="main-header">
+      <div class="header-left">
+        <div class="logo-container">
           <img src="@/assets/logo.svg" alt="OMS" class="logo" />
-          <span class="logo-text" v-show="!isCollapsed">OMS</span>
+          <span class="logo-text">OMS</span>
         </div>
-        <el-button 
-          class="collapse-btn" 
-          @click="toggleSidebar"
+        <div class="module-selector">
+          <el-icon><HomeFilled /></el-icon>
+          <span class="module-name">LAUNDRY SAUCE</span>
+          <el-icon><ArrowDown /></el-icon>
+        </div>
+      </div>
+      <div class="header-right">
+        <user-info />
+      </div>
+    </header>
+    <nav class="main-nav">
+      <el-button 
+        class="collapse-btn" 
+        @click="toggleSidebar"
+      >
+        <el-icon>
+          <component :is="isCollapsed ? 'Expand' : 'Fold'" />
+        </el-icon>
+      </el-button>
+      <template v-for="menu in mainMenus" :key="menu.path">
+        <div 
+          class="nav-item" 
+          :class="{ active: isActiveMainMenu(menu.path) }"
+          @click="handleMainMenuClick(menu)"
         >
-          <el-icon>
-            <component :is="isCollapsed ? 'Expand' : 'Fold'" />
-          </el-icon>
-        </el-button>
-      </div>
-      <nav-menu :is-collapsed="isCollapsed" />
-    </aside>
-    <main class="main-content">
-      <header class="header">
-        <div class="header-left">
-          <div class="module-selector">
-            <el-icon><HomeFilled /></el-icon>
-            <span class="module-name">LAUNDRY SAUCE</span>
-            <el-icon><ArrowDown /></el-icon>
-          </div>
+          <el-icon><component :is="menu.icon" /></el-icon>
+          <span>{{ menu.title }}</span>
         </div>
-        <div class="header-right">
-          <user-info />
-        </div>
-      </header>
-      <div class="content">
+      </template>
+    </nav>
+    <div class="main-content">
+      <aside class="sidebar" :class="{ collapsed: isCollapsed }">
+        <nav-menu 
+          :menu-items="currentMainMenu?.children || []" 
+          :is-collapsed="isCollapsed" 
+        />
+      </aside>
+      <main class="page-content">
         <router-view />
-      </div>
-    </main>
+      </main>
+    </div>
   </div>
 </template>
 
 <script lang="ts" setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { Fold, Expand, HomeFilled, ArrowDown } from '@element-plus/icons-vue'
 import NavMenu from '@/components/navigation/NavMenu.vue'
 import UserInfo from '@/components/navigation/UserInfo.vue'
+import { menuConfig } from '@/config/menu'
 
+const route = useRoute()
+const router = useRouter()
 const isCollapsed = ref(false)
+
+const mainMenus = menuConfig
+
+const currentMainMenu = computed(() => {
+  const path = route.path
+  return mainMenus.find(menu => path.startsWith(menu.path))
+})
+
+const isActiveMainMenu = (path: string) => {
+  return route.path.startsWith(path)
+}
+
+const handleMainMenuClick = (menu: any) => {
+  if (menu.children && menu.children.length > 0) {
+    router.push(menu.children[0].path)
+  } else {
+    router.push(menu.path)
+  }
+}
 
 const toggleSidebar = () => {
   isCollapsed.value = !isCollapsed.value
@@ -53,85 +89,41 @@ const toggleSidebar = () => {
 <style lang="scss" scoped>
 .app-container {
   display: flex;
+  flex-direction: column;
   height: 100vh;
   background-color: #1a1d21;
   color: #fff;
 }
 
-.sidebar {
-  width: 260px;
+.main-header {
+  height: 60px;
   background-color: #1e2227;
-  transition: all 0.3s;
-  border-right: 1px solid rgba(255, 255, 255, 0.05);
-  display: flex;
-  flex-direction: column;
-  
-  &.collapsed {
-    width: 64px;
-    
-    .logo-text {
-      display: none;
-    }
-  }
-}
-
-.logo-container {
-  height: 60px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 12px 0 20px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-  
-  .logo-content {
-    display: flex;
-    align-items: center;
-    
-    .logo {
-      width: 32px;
-      height: 32px;
-    }
-    
-    .logo-text {
-      margin-left: 12px;
-      font-size: 18px;
-      font-weight: 600;
-      white-space: nowrap;
-    }
-  }
-  
-  .collapse-btn {
-    padding: 8px;
-    height: 32px;
-    background: transparent;
-    border: none;
-    color: #8b949e;
-    
-    &:hover {
-      color: #fff;
-    }
-  }
-}
-
-.main-content {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-.header {
-  height: 60px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
   padding: 0 20px;
-  background-color: #1e2227;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  justify-content: space-between;
   
   .header-left {
     display: flex;
     align-items: center;
+    gap: 40px;
+
+    .logo-container {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      
+      .logo {
+        width: 32px;
+        height: 32px;
+      }
+      
+      .logo-text {
+        font-size: 18px;
+        font-weight: 600;
+      }
+    }
     
     .module-selector {
       display: flex;
@@ -140,32 +132,110 @@ const toggleSidebar = () => {
       padding: 6px 12px;
       border-radius: 4px;
       cursor: pointer;
-      color: #fff;
+      background-color: rgba(255, 255, 255, 0.02);
       
       &:hover {
         background-color: rgba(255, 255, 255, 0.04);
       }
       
       .module-name {
-        font-weight: 500;
         margin: 0 4px;
-      }
-      
-      .el-icon {
-        font-size: 16px;
       }
     }
   }
+}
+
+.main-nav {
+  height: 48px;
+  background-color: #1e2227;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  gap: 8px;
   
-  .header-right {
+  .collapse-btn {
+    padding: 8px;
+    height: 36px;
+    width: 36px;
+    background: transparent;
+    border: none;
+    color: #8b949e;
+    margin-right: 8px;
+    border-radius: 6px;
     display: flex;
     align-items: center;
+    justify-content: center;
+    
+    .el-icon {
+      font-size: 18px;
+    }
+    
+    &:hover {
+      color: #7c4dff;
+      background-color: rgba(124, 77, 255, 0.1);
+    }
+  }
+  
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.3s;
+    color: #8b949e;
+    position: relative;
+    
+    &:hover {
+      background-color: rgba(124, 77, 255, 0.05);
+      color: #fff;
+    }
+    
+    &.active {
+      background-color: rgba(124, 77, 255, 0.1);
+      color: #7c4dff;
+      
+      &::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        bottom: -12px;
+        width: 100%;
+        height: 2px;
+        background-color: #7c4dff;
+      }
+    }
+    
+    .el-icon {
+      font-size: 16px;
+    }
   }
 }
 
-.content {
+.main-content {
   flex: 1;
-  padding: 20px;
+  display: flex;
+  overflow: hidden;
+}
+
+.sidebar {
+  width: 260px;
+  background-color: #1e2227;
+  border-right: 1px solid rgba(255, 255, 255, 0.05);
+  display: flex;
+  flex-direction: column;
+  transition: all 0.3s;
+  
+  &.collapsed {
+    width: 64px;
+  }
+}
+
+.page-content {
+  flex: 1;
   overflow-y: auto;
+  background-color: #1a1d21;
 }
 </style> 

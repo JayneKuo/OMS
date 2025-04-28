@@ -1,75 +1,82 @@
 <template>
-  <el-menu
-    :default-active="activeMenu"
-    class="nav-menu"
-    :collapse="isCollapsed"
-    background-color="#1e2227"
-    text-color="#8b949e"
-    active-text-color="#7c4dff"
-  >
-    <template v-for="menu in menus" :key="menu.path">
-      <template v-if="menu.children">
-        <el-sub-menu :index="menu.path">
-          <template #title>
-            <el-icon>
-              <component :is="menu.icon" />
-            </el-icon>
-            <span>{{ menu.title }}</span>
-          </template>
-          <el-menu-item
-            v-for="child in menu.children"
-            :key="child.path"
-            :index="child.path"
-            @click="handleMenuClick(child.path)"
-          >
-            <el-icon>
-              <component :is="child.icon" />
-            </el-icon>
-            <span>{{ child.title }}</span>
-          </el-menu-item>
-        </el-sub-menu>
-      </template>
-      <template v-else>
-        <el-menu-item 
-          :index="menu.path"
-          @click="handleMenuClick(menu.path)"
-        >
-          <el-icon>
-            <component :is="menu.icon" />
-          </el-icon>
-          <span>{{ menu.title }}</span>
-        </el-menu-item>
-      </template>
+  <nav class="nav-menu" :class="{ collapsed: isCollapsed }">
+    <template v-for="item in menuItems" :key="item.path">
+      <router-link 
+        :to="item.path"
+        class="menu-item"
+        :class="{ active: isActive(item.path) }"
+      >
+        <el-icon v-if="item.icon">
+          <component :is="item.icon" />
+        </el-icon>
+        <span class="menu-title" v-show="!isCollapsed">{{ item.title }}</span>
+      </router-link>
     </template>
-  </el-menu>
+  </nav>
 </template>
 
 <script lang="ts" setup>
-import { computed } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import { menuConfig } from '@/config/menu'
+import { useRoute } from 'vue-router'
+import type { MenuItem } from '@/types/menu'
 
 const props = defineProps<{
+  menuItems: MenuItem[]
   isCollapsed: boolean
 }>()
 
 const route = useRoute()
-const router = useRouter()
 
-const activeMenu = computed(() => route.path)
-const menus = menuConfig
-
-const handleMenuClick = (path: string) => {
-  router.push(path)
+const isActive = (path: string) => {
+  return route.path === path
 }
 </script>
 
 <style lang="scss" scoped>
 .nav-menu {
-  border-right: none;
+  flex: 1;
+  padding: 16px 12px;
+  overflow-y: auto;
   
-  :deep(.el-menu-item) {
-    &.is-active {
+  &.collapsed {
+    padding: 16px 0;
+    
+    .menu-item {
+      padding: 12px 0;
+      justify-content: center;
+      
+      .el-icon {
+        margin: 0;
+        font-size: 20px;
+      }
+
+      &:hover {
+        background-color: rgba(124, 77, 255, 0.1);
+      }
+      
+      &.active::before {
+        width: 3px;
+      }
+    }
+  }
+  
+  .menu-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+    border-radius: 6px;
+    color: #8b949e;
+    text-decoration: none;
+    transition: all 0.3s;
+    margin-bottom: 4px;
+    position: relative;
+    
+    &:hover {
+      background-color: rgba(124, 77, 255, 0.05);
+      color: #fff;
+    }
+    
+    &.active {
       background-color: rgba(124, 77, 255, 0.1);
       color: #7c4dff;
       
@@ -81,13 +88,18 @@ const handleMenuClick = (path: string) => {
         width: 4px;
         height: 100%;
         background-color: #7c4dff;
+        border-radius: 0 2px 2px 0;
       }
     }
-  }
-  
-  :deep(.el-sub-menu__title) {
-    &:hover {
-      background-color: rgba(255, 255, 255, 0.05);
+    
+    .el-icon {
+      font-size: 16px;
+      margin: 0 4px;
+    }
+    
+    .menu-title {
+      font-size: 14px;
+      white-space: nowrap;
     }
   }
 }

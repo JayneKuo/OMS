@@ -166,6 +166,28 @@ const routes: RouteRecordRaw[] = [
             component: () => import('@/views/foundation-data/StoreInventory.vue')
           }
         ]
+      },
+      {
+        path: '/knowledge-base',
+        name: 'KnowledgeBase',
+        component: () => import('@/layouts/RouterView.vue'),
+        children: [
+          {
+            path: 'knowledge-center',
+            name: 'KnowledgeCenter',
+            component: () => import('@/views/knowledge-base/KnowledgeCenter.vue')
+          },
+          {
+            path: 'knowledge-application',
+            name: 'KnowledgeApplication',
+            component: () => import('@/views/knowledge-base/KnowledgeApplication.vue')
+          },
+          {
+            path: 'enhanced-editor',
+            name: 'EnhancedKnowledgeEditor',
+            component: () => import('@/views/knowledge-base/EnhancedKnowledgeEditor.vue')
+          }
+        ]
       }
     ]
   }
@@ -174,6 +196,12 @@ const routes: RouteRecordRaw[] = [
 const router = createRouter({
   history: createWebHistory(),
   routes
+})
+
+// 添加路由调试信息
+router.beforeEach((to, from, next) => {
+  console.log('路由跳转:', from.path, '->', to.path)
+  next()
 })
 
 export default router 
