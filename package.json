@@ -21,6 +21,7 @@
     "element-plus": "^2.3.8",
     "lodash-es": "^4.17.21",
     "md-editor-v3": "^5.4.5",
+    "nanoid": "^5.1.5",
     "path": "^0.12.7",
     "sortablejs": "^1.15.0",
     "uuid": "^11.1.0",
