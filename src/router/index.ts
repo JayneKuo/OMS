@@ -164,6 +164,11 @@ const routes: RouteRecordRaw[] = [
             path: 'store-inventory',
             name: 'StoreInventory',
             component: () => import('@/views/foundation-data/StoreInventory.vue')
+          },
+          {
+            path: 'inventory-sync-rule',
+            name: 'InventorySyncRule',
+            component: () => import('@/views/foundation-data/InventorySyncRule.vue')
           }
         ]
       },

@@ -120,21 +120,26 @@ export const menuConfig: MenuItem[] = [
         title: 'Store Inventory',
         path: '/foundation-data/store-inventory',
         icon: ShoppingCart
+      },
+      {
+        title: 'Inventory Sync Rules',
+        path: '/foundation-data/inventory-sync-rule',
+        icon: TrendCharts
       }
     ]
   },
   {
-    title: 'AI知识库',
+    title: 'AI Knowledge Base',
     path: '/knowledge-base',
     icon: Files,
     children: [
       {
-        title: '知识中枢',
+        title: 'Knowledge Center',
         path: '/knowledge-base/knowledge-center',
         icon: TrendCharts
       },
       {
-        title: '知识应用',
+        title: 'Knowledge Application',
         path: '/knowledge-base/knowledge-application',
         icon: Document
       }
