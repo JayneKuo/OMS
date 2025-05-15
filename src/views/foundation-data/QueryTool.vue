@@ -1,27 +1,27 @@
 <template>
   <div class="page-container">
-    <!-- 页面标题 -->
+    <!-- Page Title -->
     <div class="page-header">
-      <h2>多平台查询工具</h2>
-      <p class="sub-title">查询跨平台的订单、商品和库存数据</p>
+      <h2>Multi-Platform Query Tool</h2>
+      <p class="sub-title">Query orders, products and inventory data across platforms</p>
     </div>
 
-    <!-- 查询表单 -->
+    <!-- Query Form -->
     <el-card class="filter-container">
       <template #header>
         <div class="card-header">
-          <span>查询条件</span>
+          <span>Query Conditions</span>
         </div>
       </template>
 
       <el-form :model="queryForm" label-width="100px">
-        <!-- 基础字段 -->
+        <!-- Basic Fields -->
         <el-row :gutter="20">
           <el-col :span="8">
-            <el-form-item label="客户：" required>
+            <el-form-item label="Customer:" required>
               <el-select 
                 v-model="queryForm.customer" 
-                placeholder="请选择客户" 
+                placeholder="Select Customer" 
                 @change="handleCustomerChange"
                 class="w-full"
               >
@@ -35,10 +35,10 @@
             </el-form-item>
           </el-col>
           <el-col :span="8">
-            <el-form-item label="渠道店铺：" required>
+            <el-form-item label="Channel:" required>
               <el-select 
                 v-model="queryForm.channel" 
-                placeholder="请选择渠道店铺"
+                placeholder="Select Channel"
                 class="w-full"
                 :disabled="!queryForm.customer"
               >
@@ -52,32 +52,32 @@
             </el-form-item>
           </el-col>
           <el-col :span="8">
-            <el-form-item label="查询类型：">
+            <el-form-item label="Query Type:">
               <el-radio-group v-model="queryForm.type">
-                <el-radio label="order">渠道订单</el-radio>
-                <el-radio label="product">渠道商品</el-radio>
+                <el-radio label="order">Channel Order</el-radio>
+                <el-radio label="product">Channel Product</el-radio>
               </el-radio-group>
             </el-form-item>
           </el-col>
         </el-row>
 
-        <!-- 订单查询字段 -->
+        <!-- Order Query Fields -->
         <div v-if="queryForm.type === 'order'">
-          <el-divider content-position="left">订单查询</el-divider>
+          <el-divider content-position="left">Order Query</el-divider>
           <el-row :gutter="20">
             <el-col :span="8">
-              <el-form-item label="平台订单号：">
-                <el-input v-model="queryForm.channelOrderId" placeholder="请输入平台订单号" />
+              <el-form-item label="Platform Order:">
+                <el-input v-model="queryForm.channelOrderId" placeholder="Enter Platform Order ID" />
               </el-form-item>
             </el-col>
             <el-col :span="8">
-              <el-form-item label="系统订单号：">
-                <el-input v-model="queryForm.systemOrderId" placeholder="请输入系统订单号" />
+              <el-form-item label="System Order:">
+                <el-input v-model="queryForm.systemOrderId" placeholder="Enter System Order ID" />
               </el-form-item>
             </el-col>
             <el-col :span="8">
-              <el-form-item label="系统状态：">
-                <el-select v-model="queryForm.orderStatus" placeholder="请选择系统状态" class="w-full">
+              <el-form-item label="System Status:">
+                <el-select v-model="queryForm.orderStatus" placeholder="Select System Status" class="w-full">
                   <el-option 
                     v-for="item in orderStatusOptions" 
                     :key="item.value" 
@@ -90,8 +90,8 @@
           </el-row>
           <el-row :gutter="20">
             <el-col :span="8">
-              <el-form-item label="渠道发货状态：">
-                <el-select v-model="queryForm.channelStatus" placeholder="请选择渠道发货状态" class="w-full">
+              <el-form-item label="Channel Status:">
+                <el-select v-model="queryForm.channelStatus" placeholder="Select Channel Status" class="w-full">
                   <el-option 
                     v-for="item in channelStatusOptions" 
                     :key="item.value" 
@@ -101,56 +101,58 @@
                 </el-select>
               </el-form-item>
             </el-col>
-            <el-col :span="12">
-              <el-form-item label="订单日期：">
-                <el-date-picker
-                  v-model="dateRange"
-                  type="daterange"
-                  range-separator="至"
-                  start-placeholder="开始日期"
-                  end-placeholder="结束日期"
-                  @change="handleDateRangeChange"
-                  style="width: 100%"
-                />
+            <el-col :span="16">
+              <el-form-item label="Order Date:">
+                <div class="date-range-container">
+                  <el-date-picker
+                    v-model="dateRange"
+                    type="daterange"
+                    range-separator="to"
+                    start-placeholder="Start Date"
+                    end-placeholder="End Date"
+                    @change="handleDateRangeChange"
+                    style="width: 100%; max-width: 400px;"
+                  />
+                </div>
               </el-form-item>
             </el-col>
           </el-row>
         </div>
 
-        <!-- 商品查询字段 -->
+        <!-- Product Query Fields -->
         <div v-if="queryForm.type === 'product'">
-          <el-divider content-position="left">商品查询</el-divider>
+          <el-divider content-position="left">Product Query</el-divider>
           <el-row :gutter="20">
             <el-col :span="8">
-              <el-form-item label="商品名称：">
-                <el-input v-model="queryForm.productName" placeholder="请输入商品名称" />
+              <el-form-item label="Product Name:">
+                <el-input v-model="queryForm.productName" placeholder="Enter Product Name" />
               </el-form-item>
             </el-col>
             <el-col :span="8">
-              <el-form-item label="SKU：">
-                <el-input v-model="queryForm.sku" placeholder="请输入SKU或渠道SKU" />
+              <el-form-item label="SKU:">
+                <el-input v-model="queryForm.sku" placeholder="Enter SKU or Channel SKU" />
               </el-form-item>
             </el-col>
           </el-row>
         </div>
 
-        <!-- 库存查询字段 -->
+        <!-- Inventory Query Fields -->
         <div v-if="queryForm.type === 'inventory'">
-          <el-divider content-position="left">库存查询</el-divider>
+          <el-divider content-position="left">Inventory Query</el-divider>
           <el-row :gutter="20">
             <el-col :span="8">
-              <el-form-item label="商品名称：">
-                <el-input v-model="queryForm.productName" placeholder="请输入商品名称" />
+              <el-form-item label="Product Name:">
+                <el-input v-model="queryForm.productName" placeholder="Enter Product Name" />
               </el-form-item>
             </el-col>
             <el-col :span="8">
-              <el-form-item label="SKU：">
-                <el-input v-model="queryForm.sku" placeholder="请输入SKU或渠道SKU" />
+              <el-form-item label="SKU:">
+                <el-input v-model="queryForm.sku" placeholder="Enter SKU or Channel SKU" />
               </el-form-item>
             </el-col>
             <el-col :span="8">
-              <el-form-item label="库存状态：">
-                <el-select v-model="queryForm.inventoryStatus" placeholder="请选择库存状态" class="w-full">
+              <el-form-item label="Inventory Status:">
+                <el-select v-model="queryForm.inventoryStatus" placeholder="Select Inventory Status" class="w-full">
                   <el-option 
                     v-for="item in inventoryStatusOptions" 
                     :key="item.value" 
@@ -163,8 +165,8 @@
           </el-row>
           <el-row :gutter="20">
             <el-col :span="8">
-              <el-form-item label="店铺：">
-                <el-select v-model="queryForm.store" placeholder="请选择店铺" class="w-full">
+              <el-form-item label="Store:">
+                <el-select v-model="queryForm.store" placeholder="Select Store" class="w-full">
                   <el-option 
                     v-for="item in storeOptions" 
                     :key="item.value" 
@@ -177,51 +179,51 @@
           </el-row>
         </div>
 
-        <!-- 操作按钮 -->
+        <!-- Operation Buttons -->
         <div class="button-container">
-          <el-button type="primary" :icon="Search" @click="handleSearch" :loading="loading">查询</el-button>
-          <el-button :icon="Refresh" @click="handleReset">重置</el-button>
-          <el-button type="success" :icon="Download" @click="handleExport" :loading="exportLoading">导出数据</el-button>
+          <el-button type="primary" :icon="Search" @click="handleSearch" :loading="loading">Search</el-button>
+          <el-button :icon="Refresh" @click="handleReset">Reset</el-button>
+          <el-button type="success" :icon="Download" @click="handleExport" :loading="exportLoading">Export Data</el-button>
         </div>
       </el-form>
     </el-card>
 
-    <!-- 查询结果 -->
+    <!-- Query Results -->
     <div v-if="showResults" class="results-container">
       <el-card>
         <template #header>
           <div class="card-header">
             <span>
-              <template v-if="queryForm.type === 'order'">渠道订单</template>
-              <template v-if="queryForm.type === 'product'">渠道商品</template>
-              查询结果
+              <template v-if="queryForm.type === 'order'">Channel Order</template>
+              <template v-if="queryForm.type === 'product'">Channel Product</template>
+              Query Results
             </span>
             <el-button :icon="RefreshRight" circle size="small" @click="handleRefresh" />
           </div>
         </template>
 
-        <!-- 订单结果 -->
+        <!-- Order Results -->
         <div v-if="queryForm.type === 'order'">
           <el-table v-loading="loading" :data="orderData" border style="width: 100%">
-            <el-table-column prop="customerName" label="客户名称" />
-            <el-table-column label="渠道">
+            <el-table-column prop="customerName" label="Customer Name" />
+            <el-table-column label="Channel">
               <template #default="scope">
                 {{ getChannelName(scope.row.channel) }}
               </template>
             </el-table-column>
-            <el-table-column prop="store" label="店铺名称" />
-            <el-table-column prop="channelOrderId" label="渠道订单编号" />
-            <el-table-column label="渠道发货状态">
+            <el-table-column prop="store" label="Store Name" />
+            <el-table-column prop="channelOrderId" label="Channel Order ID" />
+            <el-table-column label="Channel Status">
               <template #default="scope">
-                <el-tag type="info">{{ scope.row.channelStatus || '未知' }}</el-tag>
+                <el-tag type="info">{{ scope.row.channelStatus || 'Unknown' }}</el-tag>
               </template>
             </el-table-column>
-            <el-table-column label="渠道下单时间">
+            <el-table-column label="Channel Order Time">
               <template #default="scope">
                 {{ formatDate(scope.row.createTime) }}
               </template>
             </el-table-column>
-            <el-table-column label="系统订单编号">
+            <el-table-column label="System Order ID">
               <template #default="scope">
                 <el-link v-if="scope.row.systemOrderId" type="primary" @click="goToOrderDetail(scope.row.systemOrderId)">
                   {{ scope.row.systemOrderId }}
@@ -229,37 +231,37 @@
                 <span v-else>-</span>
               </template>
             </el-table-column>
-            <el-table-column label="系统订单状态">
+            <el-table-column label="System Status">
               <template #default="scope">
                 <el-tag v-if="scope.row.status" :type="getStatusTagType(scope.row.status)">{{ scope.row.status }}</el-tag>
                 <span v-else>-</span>
               </template>
             </el-table-column>
-            <el-table-column label="系统创建时间">
+            <el-table-column label="System Create Time">
               <template #default="scope">
                 <span v-if="scope.row.systemCreateTime">{{ formatDate(scope.row.systemCreateTime) }}</span>
                 <span v-else>-</span>
               </template>
             </el-table-column>
-            <el-table-column label="操作" width="120" fixed="right">
+            <el-table-column label="Actions" width="120" fixed="right">
               <template #default="scope">
-                <el-button size="small" type="primary" plain @click="openOrderDetailDialog(scope.row)">查看明细</el-button>
+                <el-button size="small" type="primary" plain @click="openOrderDetailDialog(scope.row)">View Details</el-button>
               </template>
             </el-table-column>
           </el-table>
         </div>
 
-        <!-- 商品结果 -->
+        <!-- Product Results -->
         <div v-if="queryForm.type === 'product'">
           <el-table v-loading="loading" :data="productData" border style="width: 100%">
-            <el-table-column prop="customerName" label="客户名称" />
-            <el-table-column label="渠道">
+            <el-table-column prop="customerName" label="Customer Name" />
+            <el-table-column label="Channel">
               <template #default="scope">
                 {{ getChannelName(scope.row.channel) }}
               </template>
             </el-table-column>
-            <el-table-column prop="store" label="店铺名称" />
-            <el-table-column prop="productName" label="商品名称" show-overflow-tooltip />
+            <el-table-column prop="store" label="Store Name" />
+            <el-table-column prop="productName" label="Product Name" show-overflow-tooltip />
             <el-table-column label="SKU">
               <template #default="scope">
                 <div>{{ scope.row.sku }}</div>
@@ -272,44 +274,44 @@
                 <span v-else>-</span>
               </template>
             </el-table-column>
-            <el-table-column prop="masterProductName" label="Master商品名称" show-overflow-tooltip>
+            <el-table-column prop="masterProductName" label="Master Product Name" show-overflow-tooltip>
               <template #default="scope">
                 {{ scope.row.masterProductName || '-' }}
               </template>
             </el-table-column>
-            <el-table-column label="渠道库存" align="right">
+            <el-table-column label="Channel Stock" align="right">
               <template #default="scope">
                 {{ scope.row.stock || '0' }}
               </template>
             </el-table-column>
-            <el-table-column label="WMS库存" align="right">
+            <el-table-column label="WMS Stock" align="right">
               <template #default="scope">
                 <el-popover
                   placement="top-start"
-                  title="各仓库库存明细"
+                  title="Warehouse Stock Details"
                   :width="280"
                   trigger="hover"
                 >
                   <template #default>
                     <div class="warehouse-stock-detail">
                       <div class="warehouse-item" v-if="scope.row.warehouseStock?.US">
-                        <span class="warehouse-name">美国仓库:</span>
+                        <span class="warehouse-name">US Warehouse:</span>
                         <span class="warehouse-count">{{ scope.row.warehouseStock.US || 0 }}</span>
                       </div>
                       <div class="warehouse-item" v-if="scope.row.warehouseStock?.EU">
-                        <span class="warehouse-name">欧洲仓库:</span>
+                        <span class="warehouse-name">EU Warehouse:</span>
                         <span class="warehouse-count">{{ scope.row.warehouseStock.EU || 0 }}</span>
                       </div>
                       <div class="warehouse-item" v-if="scope.row.warehouseStock?.CN">
-                        <span class="warehouse-name">中国仓库:</span>
+                        <span class="warehouse-name">China Warehouse:</span>
                         <span class="warehouse-count">{{ scope.row.warehouseStock.CN || 0 }}</span>
                       </div>
                       <div class="warehouse-item" v-if="scope.row.warehouseStock?.UK">
-                        <span class="warehouse-name">英国仓库:</span>
+                        <span class="warehouse-name">UK Warehouse:</span>
                         <span class="warehouse-count">{{ scope.row.warehouseStock.UK || 0 }}</span>
                       </div>
                       <div class="warehouse-item" v-if="!scope.row.warehouseStock">
-                        <span>暂无仓库库存明细</span>
+                        <span>No warehouse stock details available</span>
                       </div>
                     </div>
                   </template>
@@ -319,28 +321,28 @@
                 </el-popover>
               </template>
             </el-table-column>
-            <el-table-column label="最近同步库存数" align="right">
+            <el-table-column label="Last Synced Stock" align="right">
               <template #default="scope">
                 <el-popover
                   placement="top-start"
-                  title="库存同步规则"
+                  title="Stock Sync Rules"
                   :width="300"
                   trigger="hover"
                 >
                   <template #default>
                     <div class="sync-rules-detail">
                       <div class="rule-item">
-                        <div class="rule-title">同步模式:</div>
+                        <div class="rule-title">Sync Mode:</div>
                         <div class="rule-content">
-                          <el-tag size="small" type="primary" v-if="scope.row.syncRule?.type === 'percent'">按比例同步</el-tag>
-                          <el-tag size="small" type="success" v-else-if="scope.row.syncRule?.type === 'fixed'">固定数量</el-tag>
-                          <el-tag size="small" type="warning" v-else-if="scope.row.syncRule?.type === 'reduce'">扣减同步</el-tag>
-                          <el-tag size="small" type="info" v-else>未设置</el-tag>
+                          <el-tag size="small" type="primary" v-if="scope.row.syncRule?.type === 'percent'">Percentage Sync</el-tag>
+                          <el-tag size="small" type="success" v-else-if="scope.row.syncRule?.type === 'fixed'">Fixed Quantity</el-tag>
+                          <el-tag size="small" type="warning" v-else-if="scope.row.syncRule?.type === 'reduce'">Reduction Sync</el-tag>
+                          <el-tag size="small" type="info" v-else>Not Set</el-tag>
                         </div>
                       </div>
                       
                       <div class="rule-item" v-if="scope.row.syncRule?.type === 'percent'">
-                        <div class="rule-title">同步比例:</div>
+                        <div class="rule-title">Sync Percentage:</div>
                         <div class="rule-content">
                           <span class="rule-value">{{ scope.row.syncRule.value }}%</span> 
                           <span class="rule-desc">of inventory</span>
@@ -348,7 +350,7 @@
                       </div>
                       
                       <div class="rule-item" v-if="scope.row.syncRule?.type === 'fixed'">
-                        <div class="rule-title">固定数量:</div>
+                        <div class="rule-title">Fixed Quantity:</div>
                         <div class="rule-content">
                           <span class="rule-value">{{ scope.row.syncRule.value }} units</span>
                           <span class="rule-desc">of inventory</span>
@@ -356,7 +358,7 @@
                       </div>
                       
                       <div class="rule-item" v-if="scope.row.syncRule?.type === 'reduce'">
-                        <div class="rule-title">扣减数量:</div>
+                        <div class="rule-title">Reduction Amount:</div>
                         <div class="rule-content">
                           <span class="rule-value">{{ scope.row.syncRule.method === 'percent' ? scope.row.syncRule.value + '%' : scope.row.syncRule.value + ' units' }}</span>
                           <span class="rule-desc">after reducing inventory by this {{ scope.row.syncRule.method === 'percent' ? 'percentage' : 'amount' }}</span>
@@ -364,7 +366,7 @@
                       </div>
                       
                       <div class="rule-item">
-                        <div class="rule-title">上次同步:</div>
+                        <div class="rule-title">Last Synced:</div>
                         <div class="rule-content">{{ formatDate(scope.row.lastSyncTime || scope.row.updateTime) }}</div>
                       </div>
                     </div>
@@ -375,7 +377,7 @@
                 </el-popover>
               </template>
             </el-table-column>
-            <el-table-column label="最近同步时间">
+            <el-table-column label="Last Sync Time">
               <template #default="scope">
                 {{ formatDate(scope.row.updateTime) }}
               </template>
@@ -383,10 +385,10 @@
           </el-table>
         </div>
 
-        <!-- 空状态 -->
-        <el-empty v-if="isEmptyResult" description="暂无数据" />
+        <!-- Empty State -->
+        <el-empty v-if="isEmptyResult" description="No Data" />
 
-        <!-- 分页 -->
+        <!-- Pagination -->
         <div class="pagination-container" v-if="!isEmptyResult" style="text-align: right; margin-top: 20px;">
           <el-pagination
             v-model:current-page="currentPage"
@@ -404,45 +406,45 @@
       </el-card>
     </div>
 
-    <!-- 订单明细对话框 -->
+    <!-- Order Detail Dialog -->
     <el-dialog
       v-model="detailDialogVisible"
-      title="渠道订单商品明细"
+      title="Channel Order Details"
       width="70%"
       :destroy-on-close="true"
       class="detail-dialog"
     >
       <div class="order-header">
         <div class="order-basic">
-          <span class="order-title">订单号: {{ currentOrder?.channelOrderId }}</span>
-          <el-tag size="small" type="info">{{ currentOrder?.channelStatus || '未知' }}</el-tag>
+          <span class="order-title">Order ID: {{ currentOrder?.channelOrderId }}</span>
+          <el-tag size="small" type="info">{{ currentOrder?.channelStatus || 'Unknown' }}</el-tag>
         </div>
         <div class="order-info">
-          <span>客户: {{ currentOrder?.customerName }}</span>
+          <span>Customer: {{ currentOrder?.customerName }}</span>
           <span class="divider">|</span>
-          <span>渠道: {{ getChannelName(currentOrder?.channel || '') }}</span>
+          <span>Channel: {{ getChannelName(currentOrder?.channel || '') }}</span>
           <span class="divider">|</span>
-          <span>店铺: {{ currentOrder?.store || '默认店铺' }}</span>
+          <span>Store: {{ currentOrder?.store || 'Default Store' }}</span>
           <span class="divider">|</span>
-          <span>下单时间: {{ formatDate(currentOrder?.createTime || '') }}</span>
+          <span>Order Time: {{ formatDate(currentOrder?.createTime || '') }}</span>
         </div>
       </div>
       
       <el-table :data="currentOrder?.items || []" border style="width: 100%; margin-top: 8px;">
-        <el-table-column prop="productName" label="商品" min-width="200" show-overflow-tooltip />
+        <el-table-column prop="productName" label="Product" min-width="200" show-overflow-tooltip />
         <el-table-column prop="sku" label="SKU" width="130" />
-        <el-table-column label="单价" width="100" align="right">
+        <el-table-column label="Unit Price" width="100" align="right">
           <template #default="props">
             ¥{{ props.row.price?.toFixed(2) }}
           </template>
         </el-table-column>
-        <el-table-column prop="quantity" label="数量" width="80" align="center" />
-        <el-table-column label="小计" width="100" align="right">
+        <el-table-column prop="quantity" label="Quantity" width="80" align="center" />
+        <el-table-column label="Subtotal" width="100" align="right">
           <template #default="props">
             ¥{{ props.row.total?.toFixed(2) }}
           </template>
         </el-table-column>
-        <el-table-column label="履约状态" width="100" align="center">
+        <el-table-column label="Fulfillment Status" width="100" align="center">
           <template #default="props">
             <el-tag :type="getFulfillmentStatusType(props.row.fulfillmentStatus || getRandomShopifyFulfillmentStatus())">
               {{ props.row.fulfillmentStatus || getRandomShopifyFulfillmentStatus() }}
@@ -453,7 +455,7 @@
       
       <div class="dialog-footer">
         <div class="total-amount">
-          <span>订单总额: <strong>¥{{ currentOrder?.amount.toFixed(2) }}</strong></span>
+          <span>Order Total: <strong>¥{{ currentOrder?.amount.toFixed(2) }}</strong></span>
         </div>
       </div>
     </el-dialog>
@@ -500,39 +502,39 @@ const router = useRouter()
 
 // 硬编码下拉选项
 const orderStatusOptions = ref([
-  { label: '全部', value: '' },
-  { label: '已完成', value: '已完成' },
-  { label: '处理中', value: '处理中' },
-  { label: '待处理', value: '待处理' },
-  { label: '异常', value: '异常' }
+  { label: 'All', value: '' },
+  { label: 'Completed', value: 'Completed' },
+  { label: 'Processing', value: 'Processing' },
+  { label: 'Pending', value: 'Pending' },
+  { label: 'Error', value: 'Error' }
 ])
 
 const channelStatusOptions = ref([
-  { label: '全部', value: '' },
-  { label: '已发货', value: 'Shipped' },
-  { label: '处理中', value: 'Processing' },
-  { label: '待发货', value: 'Pending' },
-  { label: '未发货', value: 'Unshipped' },
-  { label: '已送达', value: 'Delivered' },
-  { label: '异常', value: 'Error' }
+  { label: 'All', value: '' },
+  { label: 'Shipped', value: 'Shipped' },
+  { label: 'Processing', value: 'Processing' },
+  { label: 'Pending', value: 'Pending' },
+  { label: 'Unshipped', value: 'Unshipped' },
+  { label: 'Delivered', value: 'Delivered' },
+  { label: 'Error', value: 'Error' }
 ])
 
 const productStatusOptions = ref([
-  { label: '全部', value: '' },
-  { label: '在售', value: '在售' },
-  { label: '下架', value: '下架' },
-  { label: '缺货', value: '缺货' }
+  { label: 'All', value: '' },
+  { label: 'On Sale', value: 'On Sale' },
+  { label: 'Unavailable', value: 'Unavailable' },
+  { label: 'Out of Stock', value: 'Out of Stock' }
 ])
 
 const inventoryStatusOptions = ref([
-  { label: '全部', value: '' },
-  { label: '有库存', value: '有库存' },
-  { label: '低库存', value: '低库存' },
-  { label: '无库存', value: '无库存' }
+  { label: 'All', value: '' },
+  { label: 'In Stock', value: 'In Stock' },
+  { label: 'Low Stock', value: 'Low Stock' },
+  { label: 'Out of Stock', value: 'Out of Stock' }
 ])
 
 const storeOptions = ref([
-  { label: '全部', value: '' },
+  { label: 'All', value: '' },
   { label: 'US Store', value: 'US Store' },
   { label: 'EU Store', value: 'EU Store' },
   { label: 'Main Store', value: 'Main Store' },
@@ -629,20 +631,20 @@ const getChannelName = (channelId: string): string => {
 
 // 随机生成Shopify风格的履约状态
 const getRandomShopifyFulfillmentStatus = () => {
-  const statuses = ['已发货', '待发货', '部分发货', '缺货', '已退款', '配送中'];
+  const statuses = ['Shipped', 'Pending', 'Partially Shipped', 'Out of Stock', 'Refunded', 'In Transit'];
   return statuses[Math.floor(Math.random() * statuses.length)];
 }
 
 // 获取履约状态标签类型
 const getFulfillmentStatusType = (status: string) => {
   const statusMap: Record<string, string> = {
-    '已发货': 'success',
-    '待发货': 'info',
-    '已退款': 'danger',
-    '缺货': 'warning',
-    '部分发货': 'primary',
-    '配送中': 'success',
-    '已换货': 'warning'
+    'Shipped': 'success',
+    'Pending': 'info',
+    'Refunded': 'danger',
+    'Out of Stock': 'warning',
+    'Partially Shipped': 'primary',
+    'In Transit': 'success',
+    'Exchanged': 'warning'
   }
   return statusMap[status] || 'info';
 }
@@ -737,7 +739,7 @@ const handleSearch = () => {
       
       // 确保始终有数据
       if (results.length === 0) {
-        console.log('没有匹配的订单数据，显示所有订单');
+        console.log('No matching order data, showing all orders');
         results = [...orderList];
       }
       
@@ -785,7 +787,7 @@ const handleSearch = () => {
       
       // 确保始终有数据
       if (results.length === 0) {
-        console.log('没有匹配的商品数据，显示所有商品');
+        console.log('No matching product data, showing all products');
         results = [...productList];
       }
       
@@ -796,8 +798,8 @@ const handleSearch = () => {
     }
     
   } catch (error) {
-    console.error('查询失败:', error)
-    ElMessage.error('查询失败，请稍后重试')
+    console.error('Query failed:', error)
+    ElMessage.error('Query failed, please try again later')
   } finally {
     loading.value = false
   }
@@ -806,12 +808,12 @@ const handleSearch = () => {
 // 表单验证
 const validateForm = () => {
   if (!queryForm.customer) {
-    ElMessage.warning('请选择客户')
+    ElMessage.warning('Please select a customer')
     return false
   }
   
   if (!queryForm.channel) {
-    ElMessage.warning('请选择渠道')
+    ElMessage.warning('Please select a channel')
     return false
   }
   
@@ -862,7 +864,7 @@ const handleExport = () => {
   
   exportLoading.value = true
   setTimeout(() => {
-    ElMessage.success('导出成功')
+    ElMessage.success('Export successful')
     exportLoading.value = false
   }, 1000)
 }
@@ -883,10 +885,10 @@ const handleCurrentChange = (page: number) => {
 // 获取状态标签类型
 const getStatusTagType = (status: string) => {
   const statusMap: Record<string, string> = {
-    '已完成': 'success',
-    '处理中': 'primary',
-    '待处理': 'info',
-    '异常': 'danger'
+    'Completed': 'success',
+    'Processing': 'primary',
+    'Pending': 'info',
+    'Error': 'danger'
   }
   return statusMap[status] || 'info'
 }
@@ -894,9 +896,9 @@ const getStatusTagType = (status: string) => {
 // 获取商品状态标签类型
 const getProductStatusTagType = (status: string) => {
   const statusMap: Record<string, string> = {
-    '在售': 'success',
-    '下架': 'info',
-    '缺货': 'danger'
+    'On Sale': 'success',
+    'Unavailable': 'info',
+    'Out of Stock': 'danger'
   }
   return statusMap[status] || 'info'
 }
@@ -1122,5 +1124,10 @@ const openOrderDetailDialog = (order: OrderData) => {
 .sync-stock-hover {
   cursor: pointer;
   color: #409eff;
+}
+
+.date-range-container {
+  display: flex;
+  align-items: center;
 }
 </style> 
