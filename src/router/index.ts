@@ -125,6 +125,16 @@ const routes: RouteRecordRaw[] = [
             path: 'automation',
             name: 'Automation',
             component: () => import('@/views/settings/Automation.vue')
+          },
+          {
+            path: 'email-config',
+            name: 'EmailConfig',
+            component: () => import('@/views/settings/EmailConfig.vue')
+          },
+          {
+            path: 'email-logs',
+            name: 'ExceptionLogs',
+            component: () => import('@/views/settings/EmailLogs.vue')
           }
         ]
       },
@@ -169,6 +179,11 @@ const routes: RouteRecordRaw[] = [
             path: 'inventory-sync-rule',
             name: 'InventorySyncRule',
             component: () => import('@/views/foundation-data/InventorySyncRule.vue')
+          },
+          {
+            path: 'query-tool',
+            name: 'QueryTool',
+            component: () => import('@/views/foundation-data/QueryTool.vue')
           }
         ]
       },

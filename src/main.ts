@@ -10,6 +10,9 @@ import './styles/element-dark.scss'  // 引入自定义的暗色主题样式
 import { vClickOutside } from './directives'
 import zhCn from 'element-plus/es/locale/lang/zh-cn'
 
+// 引入模拟数据
+import './mock'
+
 const app = createApp(App)
 
 // 注册所有图标

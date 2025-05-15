@@ -10,7 +10,10 @@ import {
   Grid,
   Share,
   Goods,
-  TrendCharts
+  TrendCharts,
+  Message,
+  List,
+  Search
 } from '@element-plus/icons-vue'
 
 export interface MenuItem {
@@ -81,6 +84,16 @@ export const menuConfig: MenuItem[] = [
         title: 'Automation',
         path: '/settings/automation',
         icon: Operation
+      },
+      {
+        title: 'Email Configuration',
+        path: '/settings/email-config',
+        icon: Message
+      },
+      {
+        title: 'Exception Logs',
+        path: '/settings/email-logs',
+        icon: List
       }
     ]
   },
@@ -125,6 +138,11 @@ export const menuConfig: MenuItem[] = [
         title: 'Inventory Sync Rules',
         path: '/foundation-data/inventory-sync-rule',
         icon: TrendCharts
+      },
+      {
+        title: '多平台查询工具',
+        path: '/foundation-data/query-tool',
+        icon: Search
       }
     ]
   },
