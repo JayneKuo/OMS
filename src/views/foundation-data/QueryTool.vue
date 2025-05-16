@@ -243,9 +243,23 @@
                 <span v-else>-</span>
               </template>
             </el-table-column>
-            <el-table-column label="Actions" width="120" fixed="right">
+            <el-table-column label="Actions" width="240" fixed="right">
               <template #default="scope">
-                <el-button size="small" type="primary" plain @click="openOrderDetailDialog(scope.row)">View Details</el-button>
+                <div class="action-buttons">
+                  <el-dropdown>
+                    <el-button size="small" type="primary" plain>
+                      Actions<el-icon class="el-icon--right"><arrow-down /></el-icon>
+                    </el-button>
+                    <template #dropdown>
+                      <el-dropdown-menu>
+                        <el-dropdown-item @click="openOrderDetailDialog(scope.row)">View Details</el-dropdown-item>
+                        <el-dropdown-item @click="viewChannelRawData(scope.row)">Channel Raw Data</el-dropdown-item>
+                        <el-dropdown-item @click="viewDNRawData(scope.row)">DN Raw Data</el-dropdown-item>
+                        <el-dropdown-item @click="viewDCRawData(scope.row)">DC Raw Data</el-dropdown-item>
+                      </el-dropdown-menu>
+                    </template>
+                  </el-dropdown>
+                </div>
               </template>
             </el-table-column>
           </el-table>
@@ -459,6 +473,72 @@
         </div>
       </div>
     </el-dialog>
+
+    <!-- Channel Raw Data Dialog -->
+    <el-dialog
+      v-model="channelRawDataVisible"
+      title="Channel原始数据"
+      width="70%"
+      :destroy-on-close="true"
+      class="raw-data-dialog"
+    >
+      <div class="raw-data-header">
+        <span>订单ID: {{ currentOrder?.channelOrderId }}</span>
+        <span>平台: {{ getChannelName(currentOrder?.channel || '') }}</span>
+        <span>获取时间: {{ formatDate(new Date()) }}</span>
+      </div>
+      <el-tabs type="border-card">
+        <el-tab-pane label="订单信息">
+          <div class="raw-data-content">
+            <pre>{{ formatJson(currentChannelRawData) }}</pre>
+          </div>
+        </el-tab-pane>
+        <el-tab-pane label="物流信息">
+          <div class="raw-data-content" v-if="currentChannelShippingData">
+            <pre>{{ formatJson(currentChannelShippingData) }}</pre>
+          </div>
+          <el-empty v-else description="无物流数据" />
+        </el-tab-pane>
+      </el-tabs>
+    </el-dialog>
+
+    <!-- DN Raw Data Dialog -->
+    <el-dialog
+      v-model="dnRawDataVisible"
+      title="DN原始数据"
+      width="70%"
+      :destroy-on-close="true"
+      class="raw-data-dialog"
+    >
+      <div class="raw-data-header">
+        <span>订单ID: {{ currentOrder?.channelOrderId }}</span>
+        <span>DN单号: {{ currentDNInfo?.dnNumber || '无DN单号' }}</span>
+        <span>创建时间: {{ formatDate(currentDNInfo?.createTime || '') }}</span>
+      </div>
+      <div class="raw-data-content">
+        <pre v-if="currentDNRawData">{{ formatJson(currentDNRawData) }}</pre>
+        <el-empty v-else description="无DN数据" />
+      </div>
+    </el-dialog>
+
+    <!-- DC Raw Data Dialog -->
+    <el-dialog
+      v-model="dcRawDataVisible"
+      title="DC原始数据"
+      width="70%"
+      :destroy-on-close="true"
+      class="raw-data-dialog"
+    >
+      <div class="raw-data-header">
+        <span>订单ID: {{ currentOrder?.channelOrderId }}</span>
+        <span>DC单号: {{ currentDCInfo?.dcNumber || '无DC单号' }}</span>
+        <span>创建时间: {{ formatDate(currentDCInfo?.createTime || '') }}</span>
+      </div>
+      <div class="raw-data-content">
+        <pre v-if="currentDCRawData">{{ formatJson(currentDCRawData) }}</pre>
+        <el-empty v-else description="无DC数据" />
+      </div>
+    </el-dialog>
   </div>
 </template>
 
@@ -470,7 +550,8 @@ import {
   Search, 
   Refresh, 
   Download, 
-  RefreshRight
+  RefreshRight,
+  ArrowDown
 } from '@element-plus/icons-vue'
 import type { 
   OrderData, 
@@ -499,6 +580,19 @@ const total = ref(0)
 
 // 初始化路由
 const router = useRouter()
+
+// Raw Data 对话框状态
+const channelRawDataVisible = ref(false)
+const dnRawDataVisible = ref(false)
+const dcRawDataVisible = ref(false)
+
+// Raw Data 内容
+const currentChannelRawData = ref<any>(null)
+const currentChannelShippingData = ref<any>(null)
+const currentDNRawData = ref<any>(null)
+const currentDCRawData = ref<any>(null)
+const currentDNInfo = ref<any>(null)
+const currentDCInfo = ref<any>(null)
 
 // 硬编码下拉选项
 const orderStatusOptions = ref([
@@ -931,6 +1025,480 @@ const openOrderDetailDialog = (order: OrderData) => {
   currentOrder.value = order
   detailDialogVisible.value = true
 }
+
+// 查看三方平台原始数据
+const viewChannelRawData = (order: OrderData) => {
+  loading.value = true
+  currentOrder.value = order
+  
+  // 模拟获取数据的延迟
+  setTimeout(() => {
+    // 模拟从API获取的Channel平台原始数据
+    currentChannelRawData.value = generateMockChannelData(order)
+    currentChannelShippingData.value = generateMockShippingData(order)
+    
+    channelRawDataVisible.value = true
+    loading.value = false
+  }, 500)
+}
+
+// 查看DN原始数据
+const viewDNRawData = (order: OrderData) => {
+  loading.value = true
+  currentOrder.value = order
+  
+  // 模拟获取数据的延迟
+  setTimeout(() => {
+    // 模拟从API获取的DN原始数据
+    const hasData = Math.random() > 0.3 // 70%的概率有数据
+    
+    if (hasData) {
+      currentDNInfo.value = {
+        dnNumber: `DN${Math.floor(Math.random() * 10000000)}`,
+        createTime: Date.now() - Math.floor(Math.random() * 10 * 24 * 60 * 60 * 1000), // 随机1-10天前
+        status: ['已创建', '已发货', '已完成'][Math.floor(Math.random() * 3)]
+      }
+      currentDNRawData.value = generateMockDNData(order)
+    } else {
+      currentDNInfo.value = null
+      currentDNRawData.value = null
+    }
+    
+    dnRawDataVisible.value = true
+    loading.value = false
+  }, 500)
+}
+
+// 查看DC原始数据
+const viewDCRawData = (order: OrderData) => {
+  loading.value = true
+  currentOrder.value = order
+  
+  // 模拟获取数据的延迟
+  setTimeout(() => {
+    // 模拟从API获取的DC原始数据
+    const hasData = Math.random() > 0.4 // 60%的概率有数据
+    
+    if (hasData) {
+      currentDCInfo.value = {
+        dcNumber: `DC${Math.floor(Math.random() * 10000000)}`,
+        createTime: Date.now() - Math.floor(Math.random() * 8 * 24 * 60 * 60 * 1000), // 随机1-8天前
+        status: ['已创建', '处理中', '已完成', '已取消'][Math.floor(Math.random() * 4)]
+      }
+      currentDCRawData.value = generateMockDCData(order)
+    } else {
+      currentDCInfo.value = null
+      currentDCRawData.value = null
+    }
+    
+    dcRawDataVisible.value = true
+    loading.value = false
+  }, 500)
+}
+
+// 生成模拟的Channel平台原始数据
+const generateMockChannelData = (order: OrderData) => {
+  const channel = getChannelName(order.channel)
+  
+  // 根据不同渠道生成不同格式的数据
+  if (channel.includes('Shopify')) {
+    return {
+      id: order.channelOrderId,
+      created_at: new Date(order.createTime).toISOString(),
+      updated_at: new Date(order.createTime + 3600000).toISOString(),
+      number: Math.floor(Math.random() * 1000) + 1,
+      note: '',
+      total_price: order.amount.toString(),
+      subtotal_price: (order.amount * 0.9).toFixed(2),
+      total_tax: (order.amount * 0.1).toFixed(2),
+      currency: "CNY",
+      financial_status: order.channelStatus?.toLowerCase() || "paid",
+      confirmed: true,
+      total_discounts: "0.00",
+      total_line_items_price: order.amount.toString(),
+      cart_token: null,
+      buyer_accepts_marketing: false,
+      name: `#${order.channelOrderId}`,
+      referring_site: "",
+      landing_site: "/",
+      cancelled_at: null,
+      cancel_reason: null,
+      total_price_usd: (order.amount / 7).toFixed(2),
+      checkout_token: null,
+      reference: null,
+      user_id: null,
+      location_id: null,
+      source_identifier: null,
+      source_url: null,
+      processed_at: new Date(order.createTime).toISOString(),
+      device_id: null,
+      phone: null,
+      customer_locale: "en",
+      line_items: order.items?.map(item => ({
+        id: Math.floor(Math.random() * 10000000),
+        variant_id: Math.floor(Math.random() * 10000000),
+        title: item.productName,
+        quantity: item.quantity,
+        sku: item.sku,
+        variant_title: "",
+        vendor: "Example Store",
+        fulfillment_service: "manual",
+        product_id: Math.floor(Math.random() * 10000000),
+        requires_shipping: true,
+        taxable: true,
+        gift_card: false,
+        price: item.price?.toString() || "0.00",
+        total_discount: "0.00",
+        fulfillment_status: item.fulfillmentStatus?.toLowerCase() || null
+      })),
+      shipping_lines: [
+        {
+          id: Math.floor(Math.random() * 10000000),
+          title: "Standard Shipping",
+          price: "5.00",
+          code: "Standard",
+          source: "shopify",
+          carrier_identifier: null,
+          requested_fulfillment_service_id: null
+        }
+      ],
+      billing_address: {
+        first_name: "测试",
+        address1: "Test Address",
+        phone: "13800138000",
+        city: "Beijing",
+        zip: "100000",
+        province: "Beijing",
+        country: "China",
+        last_name: "用户",
+        address2: "",
+        company: null,
+        name: "测试 用户",
+        country_code: "CN",
+        province_code: "BJ"
+      },
+      shipping_address: {
+        first_name: "测试",
+        address1: "Test Address",
+        phone: "13800138000",
+        city: "Beijing",
+        zip: "100000",
+        province: "Beijing",
+        country: "China",
+        last_name: "用户",
+        address2: "",
+        company: null,
+        name: "测试 用户",
+        country_code: "CN",
+        province_code: "BJ"
+      },
+      fulfillments: []
+    }
+  } else if (channel.includes('Amazon')) {
+    return {
+      AmazonOrderId: order.channelOrderId,
+      PurchaseDate: new Date(order.createTime).toISOString(),
+      LastUpdateDate: new Date(order.createTime + 7200000).toISOString(),
+      OrderStatus: order.channelStatus,
+      FulfillmentChannel: "MFN",
+      SalesChannel: "Amazon.com",
+      OrderTotal: {
+        CurrencyCode: "CNY",
+        Amount: order.amount.toString()
+      },
+      NumberOfItemsShipped: order.items?.reduce((sum, item) => sum + item.quantity, 0) || 0,
+      NumberOfItemsUnshipped: 0,
+      PaymentMethod: "COD",
+      BuyerEmail: "buyer@example.com",
+      BuyerName: "Test Buyer",
+      ShipmentServiceLevelCategory: "Standard",
+      ShippedByAmazonTFM: false,
+      OrderType: "StandardOrder",
+      EarliestShipDate: new Date(order.createTime + 86400000).toISOString(),
+      LatestShipDate: new Date(order.createTime + 3 * 86400000).toISOString(),
+      EarliestDeliveryDate: new Date(order.createTime + 5 * 86400000).toISOString(),
+      LatestDeliveryDate: new Date(order.createTime + 10 * 86400000).toISOString(),
+      IsBusinessOrder: false,
+      IsPrime: false,
+      IsGlobalExpressEnabled: false,
+      IsSoldByAB: false,
+      IsIBA: false,
+      DefaultShipFromLocationAddress: {
+        City: "Beijing",
+        CountryCode: "CN",
+        PostalCode: "100000",
+        StateOrRegion: "Beijing",
+        AddressLine1: "Test Address",
+        AddressLine2: ""
+      },
+      FulfillmentInstruction: {
+        FulfillmentSupplySourceId: "CHINA_CENTRAL_WAREHOUSE"
+      },
+      IsISPU: false,
+      MarketplaceId: "ATVPDKIKX0DER",
+      SellerOrderId: order.systemOrderId || undefined,
+      OrderItems: order.items?.map(item => ({
+        ASIN: Math.random().toString(36).substring(2, 10).toUpperCase(),
+        SellerSKU: item.sku,
+        OrderItemId: Math.floor(Math.random() * 10000000).toString(),
+        Title: item.productName,
+        QuantityOrdered: item.quantity,
+        QuantityShipped: item.fulfillmentStatus === "Shipped" ? item.quantity : 0,
+        ItemPrice: {
+          CurrencyCode: "CNY",
+          Amount: item.price?.toString() || "0.00"
+        },
+        ShippingPrice: {
+          CurrencyCode: "CNY",
+          Amount: "5.00"
+        },
+        ItemTax: {
+          CurrencyCode: "CNY",
+          Amount: (item.price * 0.1).toFixed(2) || "0.00"
+        },
+        ShippingTax: {
+          CurrencyCode: "CNY",
+          Amount: "0.00"
+        },
+        ShippingDiscount: {
+          CurrencyCode: "CNY",
+          Amount: "0.00"
+        },
+        PromotionDiscount: {
+          CurrencyCode: "CNY",
+          Amount: "0.00"
+        }
+      }))
+    }
+  } else {
+    // 通用格式
+    return {
+      orderId: order.channelOrderId,
+      channelId: order.channel,
+      channelName: getChannelName(order.channel),
+      orderStatus: order.channelStatus,
+      createTime: new Date(order.createTime).toISOString(),
+      updateTime: new Date(order.createTime + 3600000).toISOString(),
+      totalAmount: order.amount,
+      currencyCode: "CNY",
+      customerInfo: {
+        name: "测试用户",
+        phone: "13800138000",
+        email: "test@example.com"
+      },
+      addressInfo: {
+        recipient: "测试用户",
+        phone: "13800138000",
+        province: "Beijing",
+        city: "Beijing",
+        district: "Chaoyang District",
+        address: "Test Address",
+        postalCode: "100000"
+      },
+      products: order.items?.map(item => ({
+        productId: Math.floor(Math.random() * 10000000).toString(),
+        productName: item.productName,
+        sku: item.sku,
+        price: item.price,
+        quantity: item.quantity,
+        totalPrice: item.total,
+        attributes: []
+      })),
+      paymentInfo: {
+        paymentMethod: "Online",
+        paymentTime: new Date(order.createTime + 1800000).toISOString(),
+        paymentStatus: "已支付"
+      },
+      fulfillmentInfo: {
+        fulfillmentStatus: order.items?.every(item => (item.fulfillmentStatus || "Pending") === "Shipped") ? "已发货" : "部分发货",
+        fulfillmentTime: order.items?.some(item => (item.fulfillmentStatus || "Pending") === "Shipped") ? new Date(order.createTime + 86400000).toISOString() : null,
+        trackingNumber: order.items?.some(item => (item.fulfillmentStatus || "Pending") === "Shipped") ? `TN${Math.floor(Math.random() * 10000000)}` : null,
+        logisticsCompany: "顺丰快递"
+      }
+    }
+  }
+}
+
+// 生成模拟的物流数据
+const generateMockShippingData = (order: OrderData) => {
+  // 检查是否有已发货的商品
+  const hasShippedItems = order.items?.some(item => 
+    (item.fulfillmentStatus || getRandomShopifyFulfillmentStatus()) === "Shipped" || 
+    (item.fulfillmentStatus || getRandomShopifyFulfillmentStatus()) === "Partially Shipped"
+  )
+  
+  if (!hasShippedItems) {
+    return null
+  }
+  
+  const trackingNumber = `TN${Math.floor(Math.random() * 10000000)}`
+  const shippingCompany = ["SF Express", "YTO Express", "ZTO Express", "UPS", "FedEx", "DHL"][Math.floor(Math.random() * 6)]
+  const createTime = order.createTime + 86400000 // 下单一天后发货
+  
+  const events = []
+  let currentTime = createTime
+  
+  // 生成物流事件
+  events.push({
+    time: new Date(currentTime).toISOString(),
+    context: "包裹已由寄件人发出，等待揽收",
+    location: "发件人地址"
+  })
+  
+  currentTime += Math.floor(Math.random() * 8 + 4) * 3600000 // 4-12小时后
+  events.push({
+    time: new Date(currentTime).toISOString(),
+    context: `包裹已由${shippingCompany}揽收`,
+    location: "发件人地址附近集散中心"
+  })
+  
+  currentTime += Math.floor(Math.random() * 24 + 12) * 3600000 // 12-36小时后
+  events.push({
+    time: new Date(currentTime).toISOString(),
+    context: "包裹已到达区域转运中心",
+    location: "区域转运中心"
+  })
+  
+  currentTime += Math.floor(Math.random() * 36 + 24) * 3600000 // 24-60小时后
+  events.push({
+    time: new Date(currentTime).toISOString(),
+    context: "包裹已到达目的地城市",
+    location: "目的地城市转运中心"
+  })
+  
+  currentTime += Math.floor(Math.random() * 12 + 8) * 3600000 // 8-20小时后
+  events.push({
+    time: new Date(currentTime).toISOString(),
+    context: "包裹已派送至目的地快递点",
+    location: "目的地快递点"
+  })
+  
+  // 50%的概率包裹已送达
+  if (Math.random() > 0.5) {
+    currentTime += Math.floor(Math.random() * 8 + 4) * 3600000 // 4-12小时后
+    events.push({
+      time: new Date(currentTime).toISOString(),
+      context: "包裹已送达，签收人: 收件人",
+      location: "收件人地址"
+    })
+  }
+  
+  return {
+    trackingNumber: trackingNumber,
+    shippingCompany: shippingCompany,
+    createTime: new Date(createTime).toISOString(),
+    status: events[events.length - 1].context.includes("已送达") ? "已送达" : "运输中",
+    receiverAddress: {
+      recipient: "测试用户",
+      phone: "13800138000",
+      province: "Beijing",
+      city: "Beijing",
+      district: "Chaoyang District",
+      address: "Test Address",
+      postalCode: "100000"
+    },
+    events: events
+  }
+}
+
+// 生成模拟的DN数据
+const generateMockDNData = (order: OrderData) => {
+  const dnItems = order.items?.map(item => ({
+    sku: item.sku,
+    productName: item.productName,
+    quantity: item.quantity,
+    sourceLocation: ["CN Warehouse", "US Warehouse", "EU Warehouse"][Math.floor(Math.random() * 3)],
+    lotNumber: `LOT${Math.floor(Math.random() * 1000)}`,
+    serialNumber: Math.random() > 0.3 ? `SN${Math.floor(Math.random() * 10000000)}` : null,
+    status: ["待处理", "已分配", "已拣货", "已发运"][Math.floor(Math.random() * 4)]
+  }))
+  
+  return {
+    dnNumber: currentDNInfo.value.dnNumber,
+    orderNumber: order.systemOrderId || "未关联订单",
+    channelOrderNumber: order.channelOrderId,
+    createTime: new Date(currentDNInfo.value.createTime).toISOString(),
+    status: currentDNInfo.value.status,
+    warehouseCode: ["WH_CN", "WH_US", "WH_EU"][Math.floor(Math.random() * 3)],
+    fulfillmentType: ["自发货", "三方物流", "平台物流"][Math.floor(Math.random() * 3)],
+    items: dnItems,
+    shippingMethod: ["空运", "海运", "陆运", "快递"][Math.floor(Math.random() * 4)],
+    trackingNumber: Math.random() > 0.3 ? `TN${Math.floor(Math.random() * 10000000)}` : null,
+    carrier: ["UPS", "FedEx", "DHL", "顺丰", "圆通", "中通"][Math.floor(Math.random() * 6)],
+    operationRecords: [
+      {
+        operationTime: new Date(currentDNInfo.value.createTime).toISOString(),
+        operationType: "创建DN",
+        operator: "系统",
+        remark: "系统自动创建DN"
+      },
+      {
+        operationTime: new Date(currentDNInfo.value.createTime + 3600000).toISOString(),
+        operationType: "分配库存",
+        operator: "system_user",
+        remark: ""
+      },
+      {
+        operationTime: new Date(currentDNInfo.value.createTime + 7200000).toISOString(),
+        operationType: "生成拣货单",
+        operator: "warehouse_user",
+        remark: ""
+      }
+    ]
+  }
+}
+
+// 生成模拟的DC数据
+const generateMockDCData = (order: OrderData) => {
+  const dcItems = order.items?.map(item => ({
+    sku: item.sku,
+    productName: item.productName,
+    quantity: item.quantity,
+    returnReason: ["质量问题", "尺寸不合适", "不喜欢", "损坏", "其他"][Math.floor(Math.random() * 5)],
+    returnCondition: ["全新", "轻微使用", "明显使用", "损坏"][Math.floor(Math.random() * 4)],
+    processingMethod: ["退回库存", "报废", "返厂", "待定"][Math.floor(Math.random() * 4)],
+    status: ["待处理", "已检查", "已入库", "已报废"][Math.floor(Math.random() * 4)]
+  }))
+  
+  return {
+    dcNumber: currentDCInfo.value.dcNumber,
+    orderNumber: order.systemOrderId || "未关联订单",
+    channelOrderNumber: order.channelOrderId,
+    createTime: new Date(currentDCInfo.value.createTime).toISOString(),
+    status: currentDCInfo.value.status,
+    warehouseCode: ["WH_CN", "WH_US", "WH_EU"][Math.floor(Math.random() * 3)],
+    returnType: ["客户退货", "仓库退货", "拒收", "其他"][Math.floor(Math.random() * 4)],
+    items: dcItems,
+    returnTrackingNumber: Math.random() > 0.3 ? `RTN${Math.floor(Math.random() * 10000000)}` : null,
+    returnCarrier: ["UPS", "FedEx", "DHL", "顺丰", "圆通", "中通"][Math.floor(Math.random() * 6)],
+    operationRecords: [
+      {
+        operationTime: new Date(currentDCInfo.value.createTime).toISOString(),
+        operationType: "创建DC",
+        operator: "系统",
+        remark: "系统自动创建DC"
+      },
+      {
+        operationTime: new Date(currentDCInfo.value.createTime + 3600000).toISOString(),
+        operationType: "确认退货信息",
+        operator: "service_user",
+        remark: ""
+      },
+      {
+        operationTime: new Date(currentDCInfo.value.createTime + 7200000).toISOString(),
+        operationType: "生成入库单",
+        operator: "warehouse_user",
+        remark: ""
+      }
+    ]
+  }
+}
+
+// 格式化JSON数据显示
+const formatJson = (json: any) => {
+  if (!json) return ''
+  return JSON.stringify(json, null, 2)
+}
 </script>
 
 <style scoped>
@@ -1129,5 +1697,50 @@ const openOrderDetailDialog = (order: OrderData) => {
 .date-range-container {
   display: flex;
   align-items: center;
+}
+
+/* 新增的样式 */
+.action-buttons {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.raw-data-dialog :deep(.el-dialog__header) {
+  padding: 15px 20px;
+  border-bottom: 1px solid #ebeef5;
+  background-color: #fff;
+}
+
+.raw-data-dialog :deep(.el-dialog__body) {
+  padding: 15px 20px;
+}
+
+.raw-data-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 15px;
+  padding-bottom: 10px;
+  border-bottom: 1px dashed #ebeef5;
+  color: #606266;
+  font-size: 14px;
+}
+
+.raw-data-content {
+  background-color: #f5f7fa;
+  padding: 15px;
+  border-radius: 4px;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.raw-data-content pre {
+  margin: 0;
+  white-space: pre-wrap;
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #333;
 }
 </style> 
