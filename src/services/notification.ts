@@ -276,4 +276,157 @@ export const testEmailConfig = async (config: { email: string, name: string } | 
     console.error('测试邮箱失败:', error)
     throw error
   }
+}
+
+/**
+ * 获取联系人列表
+ */
+export const getEmailContacts = async () => {
+  try {
+    // 模拟API请求
+    await new Promise(resolve => setTimeout(resolve, 500))
+    
+    // 返回模拟数据
+    return [
+      {
+        id: 'contact-001',
+        email: 'admin@example.com',
+        name: '系统管理员',
+        status: true
+      },
+      {
+        id: 'contact-002',
+        email: 'inventory@example.com',
+        name: '库存管理员',
+        status: true
+      },
+      {
+        id: 'contact-003',
+        email: 'logistics@example.com',
+        name: '物流主管',
+        status: true
+      },
+      {
+        id: 'contact-004',
+        email: 'warehouse@example.com',
+        name: '仓库管理员',
+        status: false
+      }
+    ]
+    
+    /* 实际实现应该是:
+    const response = await axios.get('/api/settings/email-contacts')
+    return response.data
+    */
+  } catch (error) {
+    console.error('获取联系人列表失败:', error)
+    throw error
+  }
+}
+
+/**
+ * 添加邮件联系人
+ */
+export const addEmailContact = async (contact: { email: string, name: string, status: boolean }) => {
+  try {
+    // 模拟API请求
+    await new Promise(resolve => setTimeout(resolve, 500))
+    
+    // 创建新联系人（添加id）
+    const newContact = {
+      ...contact,
+      id: `contact-${Date.now()}`
+    }
+    
+    return newContact
+    
+    /* 实际实现应该是:
+    const response = await axios.post('/api/settings/email-contacts', contact)
+    return response.data
+    */
+  } catch (error) {
+    console.error('添加联系人失败:', error)
+    throw error
+  }
+}
+
+/**
+ * 更新邮件联系人
+ */
+export const updateEmailContact = async (contact: { id: string, email: string, name: string, status: boolean }) => {
+  try {
+    // 模拟API请求
+    await new Promise(resolve => setTimeout(resolve, 500))
+    
+    return contact
+    
+    /* 实际实现应该是:
+    const response = await axios.put(`/api/settings/email-contacts/${contact.id}`, contact)
+    return response.data
+    */
+  } catch (error) {
+    console.error('更新联系人失败:', error)
+    throw error
+  }
+}
+
+/**
+ * 删除邮件联系人
+ */
+export const deleteEmailContact = async (id: string) => {
+  try {
+    // 模拟API请求
+    await new Promise(resolve => setTimeout(resolve, 300))
+    
+    return true
+    
+    /* 实际实现应该是:
+    await axios.delete(`/api/settings/email-contacts/${id}`)
+    return true
+    */
+  } catch (error) {
+    console.error('删除联系人失败:', error)
+    throw error
+  }
+}
+
+/**
+ * 更新联系人状态
+ */
+export const updateContactStatus = async (id: string, status: boolean) => {
+  try {
+    // 模拟API请求
+    await new Promise(resolve => setTimeout(resolve, 300))
+    
+    return { id, status }
+    
+    /* 实际实现应该是:
+    await axios.patch(`/api/settings/email-contacts/${id}/status`, { status })
+    return { id, status }
+    */
+  } catch (error) {
+    console.error('更新联系人状态失败:', error)
+    throw error
+  }
+}
+
+/**
+ * 测试联系人邮箱
+ */
+export const testContact = async (data: { email: string, name: string }) => {
+  try {
+    // 模拟API请求
+    await new Promise(resolve => setTimeout(resolve, 800))
+    
+    // 模拟测试成功
+    return true
+    
+    /* 实际实现应该是:
+    await axios.post('/api/settings/email-contacts/test', data)
+    return true
+    */
+  } catch (error) {
+    console.error('测试联系人邮箱失败:', error)
+    throw error
+  }
 } 

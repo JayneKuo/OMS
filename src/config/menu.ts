@@ -140,7 +140,7 @@ export const menuConfig: MenuItem[] = [
         icon: TrendCharts
       },
       {
-        title: '多平台查询工具',
+        title: 'Query Tool',
         path: '/foundation-data/query-tool',
         icon: Search
       }

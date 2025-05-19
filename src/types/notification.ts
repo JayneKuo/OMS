@@ -28,6 +28,14 @@ export interface EmailContact {
   name: string
 }
 
+// 联系人数据接口
+export interface ContactData {
+  id: string
+  email: string
+  name: string
+  status: boolean
+}
+
 // 重发配置接口
 export interface ResendConfig {
   enabled: boolean                  // 是否启用重发

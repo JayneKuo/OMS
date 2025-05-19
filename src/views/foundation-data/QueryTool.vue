@@ -2,7 +2,7 @@
   <div class="page-container">
     <!-- Page Title -->
     <div class="page-header">
-      <h2>Multi-Platform Query Tool</h2>
+      <h2>Query Tool</h2>
       <p class="sub-title">Query orders, products and inventory data across platforms</p>
     </div>
 
@@ -14,7 +14,7 @@
         </div>
       </template>
 
-      <el-form :model="queryForm" label-width="100px">
+      <el-form :model="queryForm" label-width="130px">
         <!-- Basic Fields -->
         <el-row :gutter="20">
           <el-col :span="8">
@@ -61,17 +61,32 @@
           </el-col>
         </el-row>
 
+        <el-row :gutter="20">
+          <el-col :span="8">
+            <el-form-item label="System Version:">
+              <el-select 
+                v-model="queryForm.systemVersion" 
+                placeholder="Select System Version"
+                class="w-full"
+              >
+                <el-option label="v2" value="v2" />
+                <el-option label="v3" value="v3" />
+              </el-select>
+            </el-form-item>
+          </el-col>
+        </el-row>
+
         <!-- Order Query Fields -->
         <div v-if="queryForm.type === 'order'">
           <el-divider content-position="left">Order Query</el-divider>
           <el-row :gutter="20">
             <el-col :span="8">
-              <el-form-item label="Platform Order:">
+              <el-form-item label="Platform ID:">
                 <el-input v-model="queryForm.channelOrderId" placeholder="Enter Platform Order ID" />
               </el-form-item>
             </el-col>
             <el-col :span="8">
-              <el-form-item label="System Order:">
+              <el-form-item label="System ID:">
                 <el-input v-model="queryForm.systemOrderId" placeholder="Enter System Order ID" />
               </el-form-item>
             </el-col>
@@ -197,6 +212,7 @@
               <template v-if="queryForm.type === 'order'">Channel Order</template>
               <template v-if="queryForm.type === 'product'">Channel Product</template>
               Query Results
+              <el-tag size="small" type="info" class="ml-2">System Version: {{ queryForm.systemVersion }}</el-tag>
             </span>
             <el-button :icon="RefreshRight" circle size="small" @click="handleRefresh" />
           </div>
@@ -695,6 +711,9 @@ const queryForm = reactive<QueryParams>({
   productStatus: '',
   minPrice: undefined,
   maxPrice: undefined,
+  
+  // 系统版本
+  systemVersion: 'v2',
 })
 
 // 数据结果
@@ -816,6 +835,14 @@ const handleSearch = () => {
     // 重置分页
     queryForm.page = currentPage.value
     queryForm.pageSize = pageSize.value
+    
+    // 打印系统版本信息
+    console.log(`Querying with system version: ${queryForm.systemVersion || 'v2'}`);
+    
+    // 根据不同系统版本展示不同的提示
+    if (queryForm.systemVersion === 'v3') {
+      ElMessage.info('Querying data using V3 system...');
+    }
     
     // 直接过滤数据进行查询
     if (queryForm.type === 'order') {
@@ -945,6 +972,9 @@ const validateForm = () => {
 
 // 重置表单
 const handleReset = () => {
+  // 保存当前的系统版本
+  const currentSystemVersion = queryForm.systemVersion;
+  
   // 重置基本字段
   queryForm.channelOrderId = ''
   queryForm.systemOrderId = ''
@@ -966,6 +996,9 @@ const handleReset = () => {
   // 重置搜索字段 - 库存
   queryForm.inventoryStatus = ''
   queryForm.store = ''
+  
+  // 保留系统版本设置
+  queryForm.systemVersion = currentSystemVersion;
   
   showResults.value = false
   currentPage.value = 1
@@ -1597,17 +1630,29 @@ const getMainLocation = (product: any) => {
   font-size: 0.75rem;
 }
 
-.product-detail {
-  padding: 0 10px;
+/* 确保表单标签不会换行 */
+:deep(.el-form-item__label) {
+  white-space: nowrap !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
+  font-size: 14px;
 }
 
-.product-detail h4 {
-  margin-top: 0;
-  margin-bottom: 15px;
-  font-size: 16px;
-  text-align: center;
-  font-weight: bold;
-  color: var(--el-color-primary);
+/* 调整表单项的间距和对齐 */
+:deep(.el-form-item) {
+  margin-bottom: 18px;
+  display: flex;
+  align-items: center;
+}
+
+:deep(.el-form-item__content) {
+  flex: 1;
+  overflow: hidden;
+}
+
+/* 确保表单行不会过度拥挤 */
+.el-row {
+  margin-bottom: 5px;
 }
 
 /* 订单详情对话框样式 */
@@ -1771,6 +1816,10 @@ const getMainLocation = (product: any) => {
   color: #409eff;
 }
 
+.ml-2 {
+  margin-left: 8px;
+}
+
 .date-range-container {
   display: flex;
   align-items: center;
@@ -1819,5 +1868,18 @@ const getMainLocation = (product: any) => {
   font-size: 12px;
   line-height: 1.5;
   color: #333;
+}
+
+.product-detail {
+  padding: 0 10px;
+}
+
+.product-detail h4 {
+  margin-top: 0;
+  margin-bottom: 15px;
+  font-size: 16px;
+  text-align: center;
+  font-weight: bold;
+  color: var(--el-color-primary);
 }
 </style> 

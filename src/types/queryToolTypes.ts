@@ -125,6 +125,9 @@ export interface QueryParams {
   // 库存查询字段
   inventoryStatus?: string;
   store?: string;
+  
+  // 系统版本
+  systemVersion?: string;
 }
 
 // 分页响应

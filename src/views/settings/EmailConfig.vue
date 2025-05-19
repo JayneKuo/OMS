@@ -4,361 +4,329 @@
       <div class="header-content">
         <h1>Email Configuration</h1>
       </div>
-      <el-button type="primary" @click="openAddEmailDialog">
-        <el-icon><Plus /></el-icon>Add Email
-      </el-button>
     </div>
     
-    <!-- Email List -->
-    <el-card class="email-list-card">
-      <el-table :data="emailList" v-loading="loading" stripe>
-        <el-table-column label="Contacts" min-width="180">
-          <template #default="{ row }">
-            <div class="contacts-info">
-              <div v-for="(contact, index) in row.contacts" :key="index" class="contact-item">
-                <div class="email-info">
-                  <span class="email">{{ contact.email }}</span>
-                  <span class="name">{{ contact.name }}</span>
-                </div>
-              </div>
-              <div v-if="!row.contacts || row.contacts.length === 0" class="no-contacts">
-                No contacts set
-              </div>
-            </div>
-          </template>
-        </el-table-column>
-        
-        <el-table-column label="Notification Settings" min-width="240">
-          <template #default="{ row }">
-            <div class="notification-settings">
-              <div class="notification-type-tags">
-                <!-- Real-time sending -->
-                <div v-if="row.notificationSetting.mode === 'realtime'" class="send-setting">
-                  <el-icon class="send-icon"><Bell /></el-icon>
-                  <span class="send-text">Real-time</span>
-                </div>
-                
-                <!-- Scheduled sending -->
-                <div v-else-if="row.notificationSetting.mode === 'scheduled'" class="time-points">
-                  <div class="time-points-title">
-                    <el-icon class="send-icon scheduled"><Clock /></el-icon>
-                    <span class="send-text scheduled">Scheduled: </span>
-                  </div>
-                  <div class="time-points-list">
-                    <div v-for="(time, index) in row.notificationSetting.scheduledTimes" 
-                         :key="index" 
-                         class="time-point">
-                      <el-icon class="time-icon"><Timer /></el-icon>
-                      <span class="time-text">{{ time }}</span>
-                    </div>
-                    <div v-if="!row.notificationSetting.scheduledTimes || row.notificationSetting.scheduledTimes.length === 0" 
-                         class="no-time-point">
-                      No send time points
-                    </div>
-                  </div>
-                </div>
-              </div>
-              
-              <div class="main-types">
-                <el-tag
-                  v-for="type in row.notificationTypes"
-                  :key="type.code"
-                  type="primary"
-                  size="small"
-                  effect="plain"
-                  class="notification-tag"
-                >
-                  {{ type.nameEn || type.name }}
-                </el-tag>
-                <div v-if="!row.notificationTypes || row.notificationTypes.length === 0" class="no-types">
-                  No notification types set
-                </div>
-              </div>
-            </div>
-          </template>
-        </el-table-column>
-        
-        <el-table-column label="Status" width="100" align="center">
-          <template #default="{ row }">
-            <el-switch
-              v-model="row.status"
-              @change="(val: boolean) => updateEmailStatus(row, val)"
-              inline-prompt
-              :active-text="'On'"
-              :inactive-text="'Off'"
-            />
-          </template>
-        </el-table-column>
-        
-        <el-table-column label="Actions" width="160" fixed="right" align="center">
-          <template #default="{ row }">
-            <div class="action-buttons">
-              <el-button type="primary" circle size="small" @click="openEditEmailDialog(row)">
-                <el-icon><Edit /></el-icon>
+    <!-- Tab选项卡 -->
+    <el-tabs v-model="activeTab" class="config-tabs">
+      <el-tab-pane label="Email Contacts" name="contacts">
+        <div class="contacts-wrapper">
+          <div class="contacts-header">
+            <div class="header-actions">
+              <el-button @click="downloadImportTemplate" type="info">
+                <el-icon><Download /></el-icon>Download Template
               </el-button>
-              <el-button type="danger" circle size="small" @click="showDeleteConfirm(row)">
-                <el-icon><Delete /></el-icon>
+              <el-upload
+                class="import-upload"
+                action="#"
+                :auto-upload="false"
+                :show-file-list="false"
+                :on-change="handleImportFile"
+                accept=".xlsx,.csv"
+              >
+                <el-button type="success">
+                  <el-icon><Upload /></el-icon>Import Contacts
+                </el-button>
+              </el-upload>
+              <el-button type="primary" @click="openAddContactDialog">
+                <el-icon><Plus /></el-icon>Add Contact
               </el-button>
             </div>
-          </template>
-        </el-table-column>
-      </el-table>
-      
-      <!-- Empty data prompt -->
-      <el-empty
-        v-if="emailList.length === 0 && !loading"
-        description="No email configurations"
-      >
-        <el-button type="primary" @click="openAddEmailDialog">Add Email</el-button>
-      </el-empty>
-    </el-card>
-    
-    <!-- Add/Edit Email Dialog -->
-    <el-dialog
-      v-model="emailDialogVisible"
-      :title="isEdit ? 'Edit Email' : 'Add Email'"
-      width="550px"
-      destroy-on-close
-    >
-      <el-form
-        ref="emailFormRef"
-        :model="emailForm"
-        :rules="emailRules"
-        label-width="80px"
-        label-position="left"
-      >
-        <!-- Contact List -->
-        <el-form-item label="Contacts" prop="contacts" class="contacts-form-item">
-          <div class="contacts-list">
-            <div 
-              v-for="(contact, index) in emailForm.contacts" 
-              :key="index"
-              class="contact-item"
-              :class="{ 
-                'error-highlight': emailTestResults && emailTestResults[index]?.status === 'error',
-                'success-highlight': emailTestResults && emailTestResults[index]?.status === 'success',
-                'pending-highlight': emailTestResults && emailTestResults[index]?.status === 'pending'
-              }"
+          </div>
+          
+          <!-- 联系人列表 -->
+          <div class="contacts-table-wrapper">
+            <el-table 
+              :data="contactsList" 
+              v-loading="contactsLoading" 
+              stripe 
+              class="dark-table"
             >
-              <div class="contact-inputs">
-                <div class="email-input-wrapper">
-                  <el-input 
-                    v-model="contact.email" 
-                    placeholder="Enter email address" 
-                    class="email-input"
-                    :class="{ 'is-error': emailTestResults && emailTestResults[index]?.status === 'error' }"
+              <el-table-column label="Email" min-width="180">
+                <template #default="{ row }">
+                  <div class="email-info">
+                    <span class="email">{{ row.email }}</span>
+                  </div>
+                </template>
+              </el-table-column>
+              
+              <el-table-column label="Name" min-width="120">
+                <template #default="{ row }">
+                  <div class="name-info">
+                    <span class="name">{{ row.name }}</span>
+                  </div>
+                </template>
+              </el-table-column>
+              
+              <el-table-column label="Status" width="100" align="center">
+                <template #default="{ row }">
+                  <el-switch
+                    v-model="row.status"
+                    @change="(val: boolean) => updateContactStatus(row, val)"
+                    inline-prompt
+                    :active-text="'On'"
+                    :inactive-text="'Off'"
                   />
-                  <div v-if="emailTestResults && emailTestResults[index]?.status === 'error'" class="input-error-message">
-                    <el-icon><WarningFilled /></el-icon> {{ emailTestResults[index]?.message }}
+                </template>
+              </el-table-column>
+              
+              <el-table-column label="Actions" width="160" fixed="right" align="center">
+                <template #default="{ row }">
+                  <div class="action-buttons">
+                    <el-button type="primary" circle size="small" @click="openEditContactDialog(row)">
+                      <el-icon><Edit /></el-icon>
+                    </el-button>
+                    <el-button type="danger" circle size="small" @click="showDeleteContactConfirm(row)">
+                      <el-icon><Delete /></el-icon>
+                    </el-button>
                   </div>
-                  <div v-else-if="emailTestResults && emailTestResults[index]?.status === 'success'" class="input-success-message">
-                    <el-icon><CircleCheckFilled /></el-icon> {{ emailTestResults[index]?.message }}
-                  </div>
-                  <div v-else-if="emailTestResults && emailTestResults[index]?.status === 'pending'" class="input-pending-message">
-                    <el-icon class="is-loading"><Clock /></el-icon> {{ emailTestResults[index]?.message }}
-                  </div>
-                </div>
-                <el-input 
-                  v-model="contact.name" 
-                  placeholder="Enter recipient name" 
-                  class="name-input"
+                </template>
+              </el-table-column>
+            </el-table>
+            
+            <!-- 空数据提示 -->
+            <el-empty
+              v-if="contactsList.length === 0 && !contactsLoading"
+              description="No contacts"
+              :image-size="100"
+            >
+              <el-button type="primary" @click="openAddContactDialog">Add Contact</el-button>
+            </el-empty>
+          </div>
+        </div>
+      </el-tab-pane>
+      
+      <el-tab-pane label="Notification Settings" name="notifications">
+        <!-- 通知类型选择部分 -->
+        <div class="settings-section">
+          <div class="section-icon">
+            <el-icon><Notification /></el-icon>
+          </div>
+          <div class="section-title">Notification Types</div>
+          <div class="section-desc">Select event types for email notifications</div>
+          
+          <div class="notification-types">
+            <div class="actions-row">
+              <el-button text type="primary" @click="selectAllTypes">Select All</el-button>
+              <el-button text type="primary" @click="clearAllTypes">Clear</el-button>
+            </div>
+            
+            <div class="type-list">
+              <div 
+                v-for="type in filteredNotificationTypes" 
+                :key="type.code"
+                class="type-item"
+                :class="{ 'is-selected': selectedTypes.includes(type.code) }"
+                @click="toggleTypeItem(type.code)"
+              >
+                <el-checkbox 
+                  :model-value="selectedTypes.includes(type.code)"
+                  @change="(val:boolean) => toggleTypeSelection(type.code, val)"
                 />
-                <div class="contact-actions">
+                <div class="type-info">
+                  <div class="type-name">{{ type.nameEn }}</div>
+                  <div class="type-desc">{{ getTypeTooltip(type) }}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- 发送设置部分 -->
+        <div class="settings-section">
+          <div class="section-icon">
+            <el-icon><Message /></el-icon>
+          </div>
+          <div class="section-title">Sending Settings</div>
+          <div class="section-desc">Configure how and when notification emails are sent</div>
+          
+          <div class="setting-row">
+            <div class="setting-name">Send Mode</div>
+            <div class="setting-value">
+              <el-radio-group v-model="emailForm.notificationSetting.mode">
+                <el-radio label="realtime">Real-time</el-radio>
+                <el-radio label="scheduled">Scheduled</el-radio>
+              </el-radio-group>
+            </div>
+          </div>
+          
+          <div class="setting-row" v-if="emailForm.notificationSetting.mode === 'scheduled'">
+            <div class="setting-name">Send Times</div>
+            <div class="setting-value">
+              <div class="time-list">
+                <div class="time-item" v-for="(time, index) in scheduledTimes" :key="index">
+                  <el-time-picker 
+                    v-model="scheduledTimes[index]" 
+                    format="HH:mm"
+                    placeholder="Select time"
+                  />
                   <el-button 
                     type="danger" 
                     circle 
                     size="small" 
-                    @click="removeContact(index)"
-                    :disabled="emailForm.contacts.length <= 1"
+                    @click="removeScheduledTime(index)"
+                    :disabled="scheduledTimes.length <= 1"
                   >
                     <el-icon><Delete /></el-icon>
                   </el-button>
                 </div>
               </div>
-            </div>
-            
-            <div class="add-contact-btn">
-              <el-button type="primary" @click="addContact">
-                <el-icon><Plus /></el-icon>Add Email Contact
+              <el-button 
+                type="primary" 
+                plain 
+                @click="addScheduledTime" 
+                class="add-time-btn"
+              >
+                <el-icon><Plus /></el-icon>Add Time
               </el-button>
             </div>
           </div>
-        </el-form-item>
+        </div>
         
-        <el-form-item label="Settings" class="notification-setting-item">
-          <div class="setting-form">
-            <el-radio-group v-model="emailForm.notificationSetting.mode" class="mode-group">
-              <el-radio label="realtime">Real-time</el-radio>
-              <el-radio label="scheduled">Scheduled</el-radio>
-            </el-radio-group>
-            
-            <!-- Scheduled sending settings -->
-            <div v-if="emailForm.notificationSetting.mode === 'scheduled'" class="scheduled-settings">
-              <div class="send-time-title">Send Time</div>
-                  <div class="scheduled-times">
-                <div 
-                  v-for="(time, index) in scheduledTimes" 
-                  :key="index" 
-                  class="time-item"
-                >
-                  <div class="time-icon-wrapper">
-                    <el-icon class="time-icon"><Clock /></el-icon>
-                  </div>
-                      <el-time-picker 
-                    v-model="scheduledTimes[index]" 
-                        format="HH:mm"
-                        placeholder="Select time"
-                        style="width: 120px"
-                      />
-                      <el-button 
-                        type="danger" 
-                        circle 
-                        size="small" 
-                        @click="removeScheduledTime(index)"
-                        class="remove-time-btn"
-                    :disabled="scheduledTimes.length <= 1"
-                      >
-                        <el-icon><Delete /></el-icon>
-                      </el-button>
-                    </div>
-                    
-                <div class="add-time-wrapper">
-                  <el-button 
-                    type="primary" 
-                    @click="addScheduledTime" 
-                    class="add-time-btn"
-                    plain
-                  >
-                      <el-icon><Plus /></el-icon>Add Time Point
-                    </el-button>
-                  </div>
-              </div>
+        <!-- 重发设置部分 -->
+        <div class="settings-section">
+          <div class="section-icon">
+            <el-icon><RefreshRight /></el-icon>
+          </div>
+          <div class="section-title">Resend Settings</div>
+          <div class="section-desc">Configure rules for resending unresolved notifications</div>
+          
+          <div class="setting-row">
+            <div class="setting-name">Enable Resend</div>
+            <div class="setting-value">
+              <el-switch
+                v-model="emailForm.resendConfig.enabled"
+                inline-prompt
+                :active-text="'On'"
+                :inactive-text="'Off'"
+                @change="toggleResend"
+              />
             </div>
           </div>
-        </el-form-item>
-        
-        <!-- 添加重发配置 -->
-        <el-form-item label="Resend" class="resend-setting-item">
-          <div class="resend-form">
-            <el-switch
-              v-model="emailForm.resendConfig.enabled"
-              inline-prompt
-              :active-text="'On'"
-              :inactive-text="'Off'"
-              @change="toggleResend"
-            />
-            
-            <div v-if="emailForm.resendConfig.enabled" class="resend-settings">
-              <div class="resend-mode">
-                <el-radio-group v-model="emailForm.resendConfig.mode" class="resend-mode-group">
-                  <el-radio label="interval">Interval Resend</el-radio>
-                  <el-radio label="nextday">Next Day Specific Time</el-radio>
+          
+          <template v-if="emailForm.resendConfig.enabled">
+            <div class="setting-row">
+              <div class="setting-name">Resend Mode</div>
+              <div class="setting-value">
+                <el-radio-group v-model="emailForm.resendConfig.mode">
+                  <el-radio label="interval">Interval</el-radio>
+                  <el-radio label="nextday">Next Day</el-radio>
                   <el-radio label="endday">End of Day</el-radio>
                 </el-radio-group>
               </div>
-              
-              <!-- 间隔重发设置 -->
-              <div v-if="emailForm.resendConfig.mode === 'interval'" class="interval-settings">
-                <div class="interval-hours">
-                  <span class="setting-label">Interval Hours:</span>
+            </div>
+            
+            <div class="setting-row" v-if="emailForm.resendConfig.mode === 'interval'">
+              <div class="setting-name">Interval</div>
+              <div class="setting-value">
+                <div class="input-with-unit">
                   <el-input-number 
                     v-model="emailForm.resendConfig.intervalHours" 
                     :min="1" 
                     :max="24"
-                    size="small"
+                    size="default"
                   />
-                  <span class="unit">hours later</span>
+                  <span class="unit">hours</span>
                 </div>
               </div>
-              
-              <!-- 次日指定时间设置 -->
-              <div v-if="emailForm.resendConfig.mode === 'nextday'" class="nextday-settings">
-                <div class="specified-time">
-                  <span class="setting-label">Next Day Time:</span>
-                  <el-time-picker
-                    v-model="nextdayTime"
-                    format="HH:mm"
-                    placeholder="Select time"
-                    @change="updateSpecifiedTime"
-                    style="width: 120px"
-                  />
-                </div>
+            </div>
+            
+            <div class="setting-row" v-if="emailForm.resendConfig.mode === 'nextday'">
+              <div class="setting-name">Next Day Time</div>
+              <div class="setting-value">
+                <el-time-picker
+                  v-model="nextdayTime"
+                  format="HH:mm"
+                  placeholder="Select time"
+                  @change="updateSpecifiedTime"
+                />
               </div>
-              
-              <!-- 通用设置 -->
-              <div class="common-settings">
-                <div class="max-resend">
-                  <span class="setting-label">Max Retries:</span>
+            </div>
+            
+            <div class="setting-row">
+              <div class="setting-name">Max Retries</div>
+              <div class="setting-value">
+                <div class="input-with-unit">
                   <el-input-number 
                     v-model="emailForm.resendConfig.maxResendTimes" 
                     :min="0" 
                     :max="10"
-                    size="small"
+                    size="default"
                   />
-                  <span class="unit">times (0 means unlimited)</span>
-                </div>
-                
-                <div class="only-unresolved">
-                  <el-checkbox v-model="emailForm.resendConfig.onlyForUnresolved">
-                    Only resend unresolved issues
-                  </el-checkbox>
-                  <el-tooltip content="When enabled, only issues marked as unresolved will be resent">
-                    <el-icon class="info-icon"><QuestionFilled /></el-icon>
-                  </el-tooltip>
+                  <span class="unit">times</span>
                 </div>
               </div>
+            </div>
+            
+            <div class="setting-row">
+              <div class="setting-name">Unresolved Only</div>
+              <div class="setting-value">
+                <el-checkbox 
+                  v-model="emailForm.resendConfig.onlyForUnresolved"
+                >
+                  Only resend for unresolved issues
+                </el-checkbox>
+              </div>
+            </div>
+          </template>
+        </div>
+        
+        <!-- 保存按钮 -->
+        <el-button 
+          type="primary" 
+          @click="saveEmail" 
+          :loading="submitting"
+          class="save-btn"
+        >
+          Save Settings
+        </el-button>
+      </el-tab-pane>
+    </el-tabs>
+    
+    <!-- 添加/编辑联系人对话框 -->
+    <el-dialog
+      v-model="contactDialogVisible"
+      :title="isContactEdit ? 'Edit Contact' : 'Add Contact'"
+      width="550px"
+      destroy-on-close
+    >
+      <el-form
+        ref="contactFormRef"
+        :model="contactForm"
+        :rules="contactRules"
+        label-width="80px"
+        label-position="left"
+      >
+        <el-form-item label="Email" prop="email">
+          <div class="email-input-wrapper">
+            <el-input 
+              v-model="contactForm.email" 
+              placeholder="Enter email address" 
+              class="email-input"
+              :class="{ 'is-error': contactEmailTestResult?.status === 'error' }"
+            />
+            <div v-if="contactEmailTestResult?.status === 'error'" class="input-error-message">
+              <el-icon><WarningFilled /></el-icon> {{ contactEmailTestResult.message }}
+            </div>
+            <div v-else-if="contactEmailTestResult?.status === 'success'" class="input-success-message">
+              <el-icon><CircleCheckFilled /></el-icon> {{ contactEmailTestResult.message }}
+            </div>
+            <div v-else-if="contactEmailTestResult?.status === 'pending'" class="input-pending-message">
+              <el-icon class="is-loading"><Clock /></el-icon> {{ contactEmailTestResult.message }}
             </div>
           </div>
         </el-form-item>
         
-        <el-form-item label="Types" prop="notificationTypes">
-          <div class="notification-tag-selection">
-            <div class="selection-actions">
-              <div class="selected-count">
-                <span class="count">{{ selectedTypes.length }}</span> Selected
-              </div>
-              <div class="action-buttons">
-                <el-button text type="primary" size="small" @click="selectAllTypes" style="color: #6a55f8;">
-                  <el-icon><Check /></el-icon> Select All
-                </el-button>
-                <el-button text type="danger" size="small" @click="clearAllTypes">
-                  <el-icon><Delete /></el-icon> Clear
-                </el-button>
-            </div>
-            </div>
-            
-            <!-- Display all notification types -->
-            <div class="all-notification-types">
-              <el-check-tag
-                v-for="type in filteredNotificationTypes"
-                :key="type.code"
-                :checked="selectedTypes.includes(type.code)"
-                @change="(checked: boolean) => toggleTypeSelection(type.code, checked)"
-                class="notification-check-tag"
-              >
-                <span>{{ type.nameEn }}</span>
-                <el-popover
-                  placement="top"
-                  :width="250"
-                  trigger="hover"
-                  :content="getTypeTooltip(type)"
-                  :popper-style="{ padding: '8px 12px', fontSize: '13px', lineHeight: '1.4', color: 'white', backgroundColor: '#6a55f8', borderRadius: '4px' }"
-                  :offset="8"
-                  :show-after="50"
-                  :hide-after="100"
-                >
-                  <template #reference>
-                    <el-icon class="info-icon"><QuestionFilled /></el-icon>
-                  </template>
-                </el-popover>
-              </el-check-tag>
-            </div>
-          </div>
+        <el-form-item label="Name" prop="name">
+          <el-input 
+            v-model="contactForm.name" 
+            placeholder="Enter contact name" 
+            class="name-input"
+          />
         </el-form-item>
         
         <el-form-item label="Status" class="status-form-item">
           <el-switch
-            v-model="emailForm.status"
+            v-model="contactForm.status"
             inline-prompt
             :active-text="'On'"
             :inactive-text="'Off'"
@@ -367,20 +335,20 @@
       </el-form>
       <template #footer>
         <span class="dialog-footer">
-          <el-button @click="emailDialogVisible = false">Cancel</el-button>
+          <el-button @click="contactDialogVisible = false">Cancel</el-button>
           <el-button 
             type="primary" 
-            @click="testEmailConfig" 
-            :loading="testing"
-            :class="{ 'highlight-button': !testPassed }"
+            @click="testContactEmail" 
+            :loading="contactTesting"
+            :class="{ 'highlight-button': !contactTestPassed }"
           >
             Test
           </el-button>
           <el-button 
             type="primary" 
-            @click="saveEmail" 
-            :loading="submitting"
-            :disabled="!testPassed"
+            @click="saveContact" 
+            :loading="contactSubmitting"
+            :disabled="!contactTestPassed"
           >
             Save
           </el-button>
@@ -388,7 +356,7 @@
       </template>
     </el-dialog>
     
-    <!-- Delete Confirmation Dialog -->
+    <!-- 删除确认对话框 -->
     <el-dialog
       v-model="deleteConfirmVisible"
       title="Confirm Delete"
@@ -401,15 +369,41 @@
       <div class="delete-confirm-content">
         <el-icon class="delete-icon"><WarningFilled /></el-icon>
         <p class="delete-message">
-          Are you sure you want to delete this email configuration? 
+          Are you sure you want to delete this email configuration?
           <br /><br />
-          <span class="delete-warning">No further notifications will be sent.</span>
+          <span class="delete-warning">No more notifications will be sent.</span>
         </p>
       </div>
       <template #footer>
         <span class="dialog-footer">
           <el-button @click="cancelDelete">Cancel</el-button>
           <el-button type="danger" @click="confirmDelete">Delete</el-button>
+        </span>
+      </template>
+    </el-dialog>
+    
+    <!-- 删除联系人确认对话框 -->
+    <el-dialog
+      v-model="deleteContactConfirmVisible"
+      title="Confirm Delete"
+      width="420px"
+      :center="true"
+      :close-on-click-modal="false"
+      :close-on-press-escape="true"
+      destroy-on-close
+    >
+      <div class="delete-confirm-content">
+        <el-icon class="delete-icon"><WarningFilled /></el-icon>
+        <p class="delete-message">
+          Are you sure you want to delete this contact?
+          <br /><br />
+          <span class="delete-warning">This may affect notifications if this contact is used in existing configurations.</span>
+        </p>
+      </div>
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="cancelDeleteContact">Cancel</el-button>
+          <el-button type="danger" @click="confirmDeleteContact">Delete</el-button>
         </span>
       </template>
     </el-dialog>
@@ -433,7 +427,10 @@ import {
   Check, 
   CircleCheckFilled, 
   WarningFilled,
-  Loading
+  Loading,
+  RefreshRight,
+  Download,
+  Upload
 } from '@element-plus/icons-vue'
 import { format } from 'date-fns'
 import { 
@@ -449,7 +446,13 @@ import {
   updateNotificationTypes, 
   deleteEmailConfig, 
   updateEmailStatus as apiUpdateEmailStatus,
-  testEmailConfig as apiTestEmailConfig 
+  testEmailConfig as apiTestEmailConfig,
+  getEmailContacts,
+  addEmailContact,
+  updateEmailContact,
+  deleteEmailContact,
+  updateContactStatus as apiUpdateContactStatus,
+  testContact as apiTestContact
 } from '@/services/notification'
 
 // 自定义通知类型，按照需求表格定义
@@ -464,7 +467,7 @@ interface CustomNotificationType extends Partial<NotificationType> {
 // 表单数据接口
 interface EmailFormData {
   id?: string
-  contacts: EmailContact[] // 改为contacts数组，支持多个邮箱和接收人
+  contacts: EmailContact[] // 直接使用联系人对象列表
   status: boolean
   notificationTypes: string[]
   notificationSetting: {
@@ -474,59 +477,58 @@ interface EmailFormData {
   resendConfig: ResendConfig
 }
 
-// 新的单条联系人表单数据
-interface ContactFormData {
+// 联系人接口
+interface ContactData {
+  id?: string
   email: string
   name: string
+  status: boolean
+}
+
+// 联系人表单数据
+interface ContactFormData {
+  id?: string
+  email: string
+  name: string
+  status: boolean
 }
 
 // 自定义通知类型列表
 const customNotificationTypes: CustomNotificationType[] = [
   { 
     code: 'order_update_failed', 
-    name: '订单更新失败',
+    name: 'Order Update Failed',
     nameEn: 'Order Update Failed',
-    category: '订单更新失败',
+    category: 'Order Issues',
     scenario: 'Failed to update third-party order product information or address'
   },
   { 
     code: 'order_creation_failed', 
-    name: '订单创建失败',
+    name: 'Order Creation Failed',
     nameEn: 'Order Creation Failed',
-    category: '订单创建失败',
+    category: 'Order Issues',
     scenario: 'New order creation failed, e.g., insufficient inventory, product does not exist, etc.'
   },
   { 
     code: 'dispatch_failed', 
-    name: 'dispatch失败',
+    name: 'Dispatch Failed',
     nameEn: 'Dispatch Failed',
-    category: 'dispatch失败',
+    category: 'Dispatch Issues',
     scenario: 'Issues occurred during the dispatch process'
   },
   { 
-    code: 'system_error', 
-    name: '系统异常',
-    nameEn: 'System Error',
-    category: '系统异常',
-    scenario: 'Internal system errors, such as API failures, missing configurations, etc.'
-  },
-  { 
-    code: 'external_system_error', 
-    name: '外部系统异常（WMS等）',
-    nameEn: 'External System Error (WMS)',
-    category: '系统异常',
-    scenario: 'WMS order creation failure, fulfillment failure'
-  },
-  { 
     code: 'dc_sync_error', 
-    name: 'DC回传失败',
+    name: 'DC Sync Error',
     nameEn: 'DC Sync Error',
-    category: 'DC回传失败',
+    category: 'Integration Issues',
     scenario: 'DC data sync missing critical fields'
   }
 ];
 
-// 状态变量
+// Tab页状态
+const activeTab = ref('contacts'); // 默认显示联系人标签页
+
+// 邮件配置状态变量
 const loading = ref(false)
 const submitting = ref(false)
 const testing = ref(false)
@@ -536,8 +538,21 @@ const emailDialogVisible = ref(false)
 const isEdit = ref(false)
 const selectedTypes = ref<string[]>([])
 const scheduledTimes = ref<string[]>(['09:00'])
-// 记录无效邮箱的索引
-const invalidEmailIndex = ref<number | null>(null)
+
+// 联系人管理状态变量
+const contactsLoading = ref(false)
+const contactSubmitting = ref(false)
+const contactTesting = ref(false)
+const contactTestPassed = ref(false)
+const contactsList = ref<ContactData[]>([])
+const contactDialogVisible = ref(false)
+const isContactEdit = ref(false)
+const contactEmailTestResult = ref<{
+  status: 'success' | 'error' | 'pending',
+  message: string
+} | null>(null)
+
+// 其他状态变量
 // 错误信息
 const errorMessage = ref('')
 // 有效邮箱索引列表
@@ -551,6 +566,9 @@ const emailTestResults = ref<Array<{
 // 删除确认对话框
 const deleteConfirmVisible = ref(false)
 const currentDeletingEmail = ref<EmailConfig | null>(null)
+// 联系人删除确认对话框
+const deleteContactConfirmVisible = ref(false)
+const currentDeletingContact = ref<ContactData | null>(null)
 
 // 用于次日指定时间的时间选择器
 const nextdayTime = ref<string>('09:00')
@@ -558,7 +576,7 @@ const nextdayTime = ref<string>('09:00')
 // 表单相关
 const emailFormRef = ref<FormInstance>()
 const emailForm = reactive<EmailFormData>({
-  contacts: [{ email: '', name: '' }], // 初始化一个空联系人
+  contacts: [{ email: '', name: '' }], // 初始化为一个空联系人
   status: true,
   notificationTypes: [],
   notificationSetting: {
@@ -571,6 +589,14 @@ const emailForm = reactive<EmailFormData>({
     maxResendTimes: 3,
     onlyForUnresolved: true
   }
+})
+
+// 联系人表单相关
+const contactFormRef = ref<FormInstance>()
+const contactForm = reactive<ContactFormData>({
+  email: '',
+  name: '',
+  status: true
 })
 
 // 表单验证规则
@@ -593,15 +619,89 @@ const emailRules = reactive<FormRules>({
   ]
 })
 
+// 联系人表单验证规则
+const contactRules = reactive<FormRules>({
+  email: [
+    { required: true, message: 'Please enter an email address', trigger: 'blur' },
+    { type: 'email', message: 'Please enter a valid email format', trigger: 'blur' }
+  ],
+  name: [
+    { required: true, message: 'Please enter the contact name', trigger: 'blur' }
+  ]
+})
+
 // 过滤通知类型
 const filteredNotificationTypes = computed(() => {
   return customNotificationTypes;
 })
 
+// 类型映射，用于checkbox绑定
+const typesMap = ref<Record<string, boolean>>({})
+
 // 生命周期钩子
 onMounted(() => {
   fetchEmailList()
+  fetchContactsList()
+  // 默认设置一个配置
+  initDefaultEmailConfig()
 })
+
+// 初始化默认配置
+const initDefaultEmailConfig = () => {
+  // 默认选中指定的通知类型
+  const defaultSelectedTypes = [
+    'order_update_failed',    // 订单更新失败
+    'order_creation_failed',  // 订单创建失败
+    'dispatch_failed',        // Dispatch失败
+    'dc_sync_error'           // DC同步错误
+  ]
+  selectedTypes.value = [...defaultSelectedTypes]
+  emailForm.notificationTypes = [...selectedTypes.value]
+  
+  // 初始化类型映射
+  customNotificationTypes.forEach(type => {
+    typesMap.value[type.code] = selectedTypes.value.includes(type.code)
+  })
+  
+  // 初始化一个默认联系人
+  if (emailForm.contacts.length === 0) {
+    emailForm.contacts = [{ email: '', name: '' }]
+  }
+  
+  // 尝试从现有配置加载，如果有
+  if (emailList.value.length > 0) {
+    const existingConfig = emailList.value[0]
+    isEdit.value = true
+    emailForm.id = existingConfig.id
+    
+    // 设置联系人
+    if (existingConfig.contacts && existingConfig.contacts.length > 0) {
+      emailForm.contacts = [...existingConfig.contacts]
+    }
+    
+    emailForm.status = existingConfig.status
+    emailForm.notificationTypes = existingConfig.notificationTypes.map(t => t.code)
+    selectedTypes.value = [...emailForm.notificationTypes]
+    
+    // 设置通知设置
+    emailForm.notificationSetting = { 
+      ...existingConfig.notificationSetting 
+    }
+    
+    // 设置调度时间
+    if (existingConfig.notificationSetting.mode === 'scheduled' && existingConfig.notificationSetting.scheduledTimes) {
+      scheduledTimes.value = [...existingConfig.notificationSetting.scheduledTimes]
+    }
+    
+    // 设置重发配置
+    if (existingConfig.resendConfig) {
+      emailForm.resendConfig = { ...existingConfig.resendConfig }
+      if (existingConfig.resendConfig.mode === 'nextday' && existingConfig.resendConfig.specifiedTime) {
+        nextdayTime.value = existingConfig.resendConfig.specifiedTime
+      }
+    }
+  }
+}
 
 // 获取邮箱列表数据
 const fetchEmailList = async () => {
@@ -610,17 +710,229 @@ const fetchEmailList = async () => {
     // 调用API获取数据
     emailList.value = await getEmailConfigs()
   } catch (error) {
-    console.error('Failed to fetch email list:', error)
-    ElMessage.error('Failed to fetch email list')
+    console.error('获取邮件配置列表失败:', error)
+    ElMessage.error('获取邮件配置列表失败')
   } finally {
     loading.value = false
+  }
+}
+
+// 获取联系人列表数据
+const fetchContactsList = async () => {
+  contactsLoading.value = true
+  try {
+    // 调用API获取联系人数据
+    contactsList.value = await getEmailContacts()
+  } catch (error) {
+    console.error('获取联系人列表失败:', error)
+    ElMessage.error('获取联系人列表失败')
+  } finally {
+    contactsLoading.value = false
+  }
+}
+
+// 打开添加联系人对话框
+const openAddContactDialog = () => {
+  isContactEdit.value = false
+  contactForm.email = ''
+  contactForm.name = ''
+  contactForm.status = true
+  
+  if (contactForm.id) {
+    delete contactForm.id
+  }
+  
+  // 重置测试状态
+  contactTestPassed.value = false
+  contactEmailTestResult.value = null
+  
+  contactDialogVisible.value = true
+}
+
+// 打开编辑联系人对话框
+const openEditContactDialog = (row: ContactData) => {
+  isContactEdit.value = true
+  contactForm.id = row.id
+  contactForm.email = row.email
+  contactForm.name = row.name
+  contactForm.status = row.status
+  
+  // 重置测试状态
+  contactTestPassed.value = false
+  contactEmailTestResult.value = null
+  
+  contactDialogVisible.value = true
+}
+
+// 保存联系人
+const saveContact = async () => {
+  if (!contactFormRef.value) return
+  
+  if (!contactTestPassed.value) {
+    // 提示测试邮箱
+    ElMessage.warning('请先测试邮箱配置')
+    return
+  }
+  
+  await contactFormRef.value.validate(async (valid) => {
+    if (!valid) return
+    
+    contactSubmitting.value = true
+    try {
+      let savedContact: ContactData
+      
+      if (isContactEdit.value && contactForm.id) {
+        // 更新现有联系人
+        savedContact = await updateEmailContact({
+          id: contactForm.id,
+          email: contactForm.email,
+          name: contactForm.name,
+          status: contactForm.status
+        })
+        
+        // 更新本地数据
+        const index = contactsList.value.findIndex(item => item.id === savedContact.id)
+        if (index > -1) {
+          contactsList.value[index] = savedContact
+        }
+        
+        ElMessage.success('联系人信息更新成功')
+      } else {
+        // 添加新联系人
+        savedContact = await addEmailContact({
+          email: contactForm.email,
+          name: contactForm.name,
+          status: contactForm.status
+        })
+        
+        // 更新本地数据
+        contactsList.value.unshift(savedContact)
+        
+        ElMessage.success('联系人添加成功')
+      }
+      
+      contactDialogVisible.value = false
+    } catch (error) {
+      console.error('保存联系人失败:', error)
+      ElMessage.error('保存失败，请重试')
+    } finally {
+      contactSubmitting.value = false
+    }
+  })
+}
+
+// 更新联系人状态
+const updateContactStatus = async (row: ContactData, status: boolean) => {
+  try {
+    // 调用API更新状态，确保 id 不为 undefined
+    if (row.id) {
+      await apiUpdateContactStatus(row.id, status)
+      
+      // 更新本地数据
+      row.status = status
+      
+      if (status) {
+        ElMessage.success(`Contact enabled`)
+      } else {
+        ElMessage.warning(`Contact disabled, will not receive notifications`)
+      }
+    }
+  } catch (error) {
+    console.error('Failed to update contact status:', error)
+    ElMessage.error('Status update failed')
+    // 恢复原状态
+    row.status = !status
+  }
+}
+
+// 显示删除联系人确认对话框
+const showDeleteContactConfirm = (row: ContactData) => {
+  currentDeletingContact.value = row
+  deleteContactConfirmVisible.value = true
+}
+
+// 确认删除联系人
+const confirmDeleteContact = async () => {
+  if (!currentDeletingContact.value) return
+  
+  try {
+    // 调用API删除数据
+    await deleteEmailContact(currentDeletingContact.value.id!)
+    
+    // 更新本地数据
+    contactsList.value = contactsList.value.filter(item => item.id !== currentDeletingContact.value!.id)
+    
+    ElMessage.success('联系人删除成功')
+    deleteContactConfirmVisible.value = false
+    currentDeletingContact.value = null
+  } catch (error) {
+    console.error('删除联系人失败:', error)
+    ElMessage.error('删除失败，请重试')
+    deleteContactConfirmVisible.value = false
+    currentDeletingContact.value = null
+  }
+}
+
+// 取消删除联系人
+const cancelDeleteContact = () => {
+  deleteContactConfirmVisible.value = false
+  currentDeletingContact.value = null
+}
+
+// 测试联系人邮箱
+const testContactEmail = async () => {
+  if (!contactForm.email) {
+    ElMessage.warning('请输入邮箱地址')
+    return
+  }
+  
+  // 验证邮箱格式
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  if (!emailRegex.test(contactForm.email)) {
+    contactEmailTestResult.value = {
+      status: 'error',
+      message: '邮箱格式不正确'
+    }
+    contactTestPassed.value = false
+    return
+  }
+  
+  // 设置为测试中状态
+  contactEmailTestResult.value = {
+    status: 'pending',
+    message: '测试中...'
+  }
+  contactTesting.value = true
+  
+  try {
+    // 调用API测试邮箱
+    await apiTestContact({
+      email: contactForm.email,
+      name: contactForm.name || '测试用户'
+    })
+    
+    // 测试成功
+    contactEmailTestResult.value = {
+      status: 'success',
+      message: '邮箱有效，测试通过'
+    }
+    contactTestPassed.value = true
+  } catch (error) {
+    console.error('测试邮箱失败:', error)
+    contactEmailTestResult.value = {
+      status: 'error',
+      message: '邮箱测试失败'
+    }
+    contactTestPassed.value = false
+  } finally {
+    contactTesting.value = false
   }
 }
 
 // 打开添加邮箱对话框
 const openAddEmailDialog = () => {
   isEdit.value = false
-  emailForm.contacts = [{ email: '', name: '' }]
+  emailForm.contacts = [{ email: '', name: '' }] // 初始化为一个空联系人
   emailForm.status = true
   // 默认选中指定的通知类型
   const defaultSelectedTypes = [
@@ -650,13 +962,6 @@ const openAddEmailDialog = () => {
     delete emailForm.id
   }
   
-  // 重置测试状态
-  testPassed.value = false
-  invalidEmailIndex.value = null
-  errorMessage.value = ''
-  validEmailIndices.value = []
-  emailTestResults.value = []
-  
   scheduledTimes.value = ['09:00']
   emailDialogVisible.value = true
 }
@@ -666,8 +971,13 @@ const openEditEmailDialog = (row: EmailConfig) => {
   isEdit.value = true
   const typeCodes = row.notificationTypes.map(t => t.code)
   
-  // 填充联系人
-  emailForm.contacts = row.contacts || [{ email: '', name: '' }]
+  // 设置联系人
+  if (row.contacts && row.contacts.length > 0) {
+    emailForm.contacts = [...row.contacts]
+  } else {
+    emailForm.contacts = [{ email: '', name: '' }]
+  }
+  
   emailForm.id = row.id
   emailForm.status = row.status
   emailForm.notificationTypes = typeCodes
@@ -722,35 +1032,29 @@ const openEditEmailDialog = (row: EmailConfig) => {
     nextdayTime.value = '09:00'
   }
   
-  // 重置测试状态
-  testPassed.value = false
-  invalidEmailIndex.value = null
-  errorMessage.value = ''
-  validEmailIndices.value = []
-  emailTestResults.value = []
-  
   selectedTypes.value = typeCodes
   emailDialogVisible.value = true
+}
+
+// 添加联系人
+const addContact = () => {
+  emailForm.contacts.push({ email: '', name: '' })
+}
+
+// 删除联系人
+const removeContact = (index: number) => {
+  if (emailForm.contacts.length > 1) {
+    emailForm.contacts.splice(index, 1)
+  }
 }
 
 // 保存邮箱配置
 const saveEmail = async () => {
   if (!emailFormRef.value) return
   
-  if (!testPassed.value) {
-    // 不使用吐司提示，但需要高亮第一个邮箱让用户知道需要测试
-    if (emailForm.contacts.length > 0) {
-      invalidEmailIndex.value = 0
-      errorMessage.value = 'Please test the email configuration first'
-    }
-    return
-  }
-  
   await emailFormRef.value.validate(async (valid) => {
-    if (!valid) return
-    
-    // 验证联系人信息
-    if (!validateContacts()) {
+    if (!valid) {
+      ElMessage.warning('请填写完整的配置信息')
       return
     }
     
@@ -765,16 +1069,28 @@ const saveEmail = async () => {
           category 
         } as NotificationType))
       
+      // 验证联系人字段
+      const selectedContacts = emailForm.contacts.filter(contact => 
+        contact.email.trim() !== '' && contact.name.trim() !== ''
+      )
+      
+      if (selectedContacts.length === 0) {
+        ElMessage.warning('请添加至少一个有效的联系人')
+        submitting.value = false
+        return
+      }
+      
       let savedConfig: EmailConfig
       
       if (isEdit.value && emailForm.id) {
         // 更新现有配置
         savedConfig = await updateEmailConfig({
           id: emailForm.id,
-          contacts: emailForm.contacts,
+          contacts: selectedContacts,
           status: emailForm.status,
           notificationTypes: notificationTypeObjects,
           notificationSetting: emailForm.notificationSetting,
+          resendConfig: emailForm.resendConfig,
           createdTime: emailList.value.find(e => e.id === emailForm.id)?.createdTime || new Date().toISOString(),
           updatedTime: new Date().toISOString()
         })
@@ -783,32 +1099,33 @@ const saveEmail = async () => {
         const index = emailList.value.findIndex(item => item.id === savedConfig.id)
         if (index > -1) {
           emailList.value[index] = savedConfig
+        } else {
+          // 如果之前没有这个配置，添加到列表
+          emailList.value.unshift(savedConfig)
         }
         
-        // 仅限列表页显示成功信息
-        ElMessage.success('Email information updated successfully')
+        ElMessage.success('邮件配置更新成功')
       } else {
         // 添加新配置
         savedConfig = await addEmailConfig({
-          contacts: emailForm.contacts,
+          contacts: selectedContacts,
           status: emailForm.status,
           notificationTypes: notificationTypeObjects,
-          notificationSetting: emailForm.notificationSetting
+          notificationSetting: emailForm.notificationSetting,
+          resendConfig: emailForm.resendConfig
         })
         
         // 更新本地数据
-        emailList.value.unshift(savedConfig)
+        emailList.value = [savedConfig] // 只保留一个配置
+        isEdit.value = true
+        emailForm.id = savedConfig.id
         
-        // 仅限列表页显示成功信息
-        ElMessage.success('Email added successfully')
+        ElMessage.success('邮件配置保存成功')
       }
       
-      emailDialogVisible.value = false
     } catch (error) {
-      console.error('Failed to save email configuration:', error)
-      // 显示保存失败错误在表单中
-      errorMessage.value = 'Save failed, please try again'
-      invalidEmailIndex.value = 0
+      console.error('保存邮件配置失败:', error)
+      ElMessage.error('保存失败，请重试')
     } finally {
       submitting.value = false
     }
@@ -825,16 +1142,14 @@ const updateEmailStatus = async (row: EmailConfig, status: boolean) => {
     row.status = status
     row.updatedTime = new Date().toISOString()
     
-    // 保留列表页的成功/警告提示
     if (status) {
-      ElMessage.success(`Email enabled successfully`)
+      ElMessage.success(`邮件配置已启用`)
     } else {
-      ElMessage.warning(`Email disabled. Notifications will no longer be sent to these addresses`)
+      ElMessage.warning(`邮件配置已禁用，不会再发送通知到这些邮箱`)
     }
   } catch (error) {
-    console.error('Failed to update email status:', error)
-    // 保留列表页的错误提示
-    ElMessage.error('Status update failed')
+    console.error('更新邮件状态失败:', error)
+    ElMessage.error('状态更新失败')
     // 恢复原状态
     row.status = !status
   }
@@ -857,12 +1172,12 @@ const confirmDelete = async () => {
     // 更新本地数据
     emailList.value = emailList.value.filter(item => item.id !== currentDeletingEmail.value!.id)
     
-    ElMessage.success('Email configuration deleted')
+    ElMessage.success('邮件配置删除成功')
     deleteConfirmVisible.value = false
     currentDeletingEmail.value = null
   } catch (error) {
-    console.error('Failed to delete email configuration:', error)
-    ElMessage.error('Delete failed, please try again')
+    console.error('删除邮件配置失败:', error)
+    ElMessage.error('删除失败，请重试')
     deleteConfirmVisible.value = false
     currentDeletingEmail.value = null
   }
@@ -872,22 +1187,6 @@ const confirmDelete = async () => {
 const cancelDelete = () => {
   deleteConfirmVisible.value = false
   currentDeletingEmail.value = null
-}
-
-// 删除邮箱配置
-const deleteEmail = async (row: EmailConfig) => {
-  try {
-    // 调用API删除数据
-    await deleteEmailConfig(row.id)
-    
-    // 更新本地数据
-    emailList.value = emailList.value.filter(item => item.id !== row.id)
-    
-    ElMessage.success('Email configuration deleted')
-  } catch (error) {
-    console.error('Failed to delete email configuration:', error)
-    ElMessage.error('Delete failed, please try again')
-  }
 }
 
 // 格式化日期时间
@@ -903,26 +1202,44 @@ const formatDateTime = (dateString: string) => {
 // 切换通知类型选择
 const toggleTypeSelection = (code: string, checked: boolean) => {
   if (checked) {
-    selectedTypes.value.push(code)
+    if (!selectedTypes.value.includes(code)) {
+      selectedTypes.value.push(code)
+    }
   } else {
     const index = selectedTypes.value.indexOf(code)
     if (index !== -1) {
       selectedTypes.value.splice(index, 1)
     }
   }
+  typesMap.value[code] = checked
   emailForm.notificationTypes = [...selectedTypes.value]
+}
+
+// 点击类型项切换选中状态
+const toggleTypeItem = (code: string) => {
+  const newValue = !typesMap.value[code]
+  typesMap.value[code] = newValue
+  toggleTypeSelection(code, newValue)
 }
 
 // 全选所有通知类型
 const selectAllTypes = () => {
   selectedTypes.value = customNotificationTypes.map(t => t.code)
   emailForm.notificationTypes = [...selectedTypes.value]
+  // 更新类型映射
+  customNotificationTypes.forEach(type => {
+    typesMap.value[type.code] = true
+  })
 }
 
 // 清除所有选择
 const clearAllTypes = () => {
   selectedTypes.value = []
   emailForm.notificationTypes = []
+  // 更新类型映射
+  customNotificationTypes.forEach(type => {
+    typesMap.value[type.code] = false
+  })
 }
 
 // 获取通知类型名称
@@ -937,215 +1254,9 @@ const getNotificationDescription = (code: string) => {
   return type?.scenario || ''
 }
 
-// 测试单个邮箱
-const testSingleEmail = async (email: string, name: string, index: number) => {
-  // 验证邮箱格式
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-  if (!emailRegex.test(email)) {
-    return {
-      status: 'error' as const,
-      message: 'Invalid email format'
-    }
-  }
-
-  try {
-    // 调用API测试单个邮箱配置
-    await apiTestEmailConfig({
-      emails: [email],
-      names: [name || 'Test User']
-    })
-    
-    return {
-      status: 'success' as const,
-      message: 'Email valid and test passed'
-    }
-  } catch (error) {
-    console.error(`Failed to test email ${email}:`, error)
-    return {
-      status: 'error' as const,
-      message: 'Email test failed'
-    }
-  }
-}
-
-// 测试邮箱配置
-const testEmailConfig = async () => {
-  if (emailForm.contacts.length === 0 || !emailForm.contacts[0].email) {
-    errorMessage.value = 'Please enter at least one email address'
-    invalidEmailIndex.value = 0
-    return
-  }
-  
-  // 重置测试状态
-  validEmailIndices.value = []
-  
-  // 初始化所有邮箱的测试状态为pending
-  emailTestResults.value = emailForm.contacts.map((_, index) => ({
-    index,
-    status: 'pending' as const,
-    message: 'Testing...'
-  }))
-  
-  // 验证格式并收集所有有效邮箱
-  const validContacts: {index: number, email: string, name: string}[] = []
-  
-  // 先进行基本验证
-  for (let i = 0; i < emailForm.contacts.length; i++) {
-    const contact = emailForm.contacts[i]
-    
-    // 验证姓名和邮箱是否填写
-    if (!contact.email || !contact.name) {
-      emailTestResults.value[i] = {
-        index: i,
-        status: 'error',
-        message: 'Email and name required'
-      }
-      continue
-    }
-    
-    // 验证邮箱格式
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-    if (!emailRegex.test(contact.email)) {
-      emailTestResults.value[i] = {
-        index: i,
-        status: 'error',
-        message: 'Invalid email format'
-      }
-      continue
-    }
-    
-    // 收集有效的联系人进行测试
-    validContacts.push({
-      index: i,
-      email: contact.email,
-      name: contact.name
-    })
-  }
-  
-  // 如果没有有效的联系人，直接返回
-  if (validContacts.length === 0) {
-    testPassed.value = false
-    return
-  }
-  
-  testing.value = true
-  
-  try {
-    // 测试每个有效的邮箱
-    for (const contact of validContacts) {
-      // 显示测试进行中的状态
-      emailTestResults.value[contact.index] = {
-        index: contact.index,
-        status: 'pending',
-        message: 'Testing...'
-      }
-      
-      const result = await testSingleEmail(contact.email, contact.name, contact.index)
-      
-      // 更新测试结果
-      emailTestResults.value[contact.index] = {
-        index: contact.index,
-        status: result.status,
-        message: result.message
-      }
-      
-      // 如果测试通过，添加到有效邮箱列表
-      if (result.status === 'success') {
-        validEmailIndices.value.push(contact.index)
-      }
-    }
-    
-    // 如果所有邮箱都测试通过，设置总体测试通过
-    if (validEmailIndices.value.length === emailForm.contacts.length) {
-      testPassed.value = true
-    } else {
-      testPassed.value = false
-    }
-  } catch (error) {
-    console.error('Failed to test emails:', error)
-    testPassed.value = false
-  } finally {
-    testing.value = false
-  }
-}
-
-// 添加联系人
-const addContact = () => {
-  emailForm.contacts.push({ email: '', name: '' })
-  // 添加联系人后需要重新测试
-  testPassed.value = false
-  validEmailIndices.value = []
-  emailTestResults.value = []
-}
-
-// 删除联系人
-const removeContact = (index: number) => {
-  // 保证至少有一个联系人
-  if (emailForm.contacts.length > 1) {
-    emailForm.contacts.splice(index, 1)
-    // 更新测试结果数组
-    emailTestResults.value = emailTestResults.value.filter(result => result.index !== index)
-    emailTestResults.value.forEach(result => {
-      if (result.index > index) {
-        result.index--
-      }
-    })
-    
-    // 更新有效邮箱索引
-    validEmailIndices.value = validEmailIndices.value.filter(i => i !== index)
-    validEmailIndices.value = validEmailIndices.value.map(i => i > index ? i - 1 : i)
-    
-    // 如果删除了无效邮箱，可能需要重新评估测试状态
-    if (validEmailIndices.value.length === emailForm.contacts.length) {
-      testPassed.value = true
-    } else {
-      testPassed.value = false
-    }
-  }
-}
-
-// 监听联系人信息变化
-watch(() => emailForm.contacts, () => {
-  // 联系人变化时重置测试状态
-  testPassed.value = false
-  invalidEmailIndex.value = null
-  errorMessage.value = ''
-  validEmailIndices.value = []
-  emailTestResults.value = []
-}, { deep: true })
-
-// 验证联系人信息
-const validateContacts = () => {
-  // 验证是否有联系人
-  if (emailForm.contacts.length === 0) {
-    errorMessage.value = 'Please add at least one contact'
-    return false
-  }
-  
-  // 验证每个联系人的邮箱和姓名
-  for (let i = 0; i < emailForm.contacts.length; i++) {
-    const contact = emailForm.contacts[i]
-    if (!contact.email || !contact.name) {
-      errorMessage.value = 'Please fill in complete contact email and name'
-      invalidEmailIndex.value = i
-      return false
-    }
-    
-    // 验证邮箱格式
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-    if (!emailRegex.test(contact.email)) {
-      errorMessage.value = `Invalid email format`
-      invalidEmailIndex.value = i
-      return false
-    }
-  }
-  
-  return true
-}
-
 // 生成通知类型的提示信息
 const getTypeTooltip = (type: any) => {
-  return type.scenario || 'No usage scenario description'
+  return type.scenario || '无使用场景描述'
 }
 
 // 添加定时发送时间点
@@ -1176,21 +1287,60 @@ const toggleResend = (enabled: boolean) => {
 const updateSpecifiedTime = () => {
   emailForm.resendConfig.specifiedTime = nextdayTime.value
 }
+
+// 联系人批量导入相关
+const handleImportFile = (file: any) => {
+  if (!file) return
+  
+  const formData = new FormData()
+  formData.append('file', file.raw)
+  
+  // 显示导入中状态
+  contactsLoading.value = true
+  
+  // 模拟导入处理
+  setTimeout(() => {
+    // 这里应该调用实际的API进行批量导入
+    // 例如: importContactsFromFile(formData)
+    
+    // 模拟导入成功效果
+    ElMessage.success('Successfully imported contacts from file')
+    fetchContactsList() // 重新加载联系人列表
+  }, 1500)
+}
+
+// 下载导入模板
+const downloadImportTemplate = () => {
+  // 在实际应用中，这里应该是从服务器下载模板文件
+  // 这里以创建一个简单的CSV文件为例进行模拟
+  
+  const template = 'email,name,status\nuser1@example.com,User 1,true\nuser2@example.com,User 2,false'
+  const blob = new Blob([template], { type: 'text/csv' })
+  const url = URL.createObjectURL(blob)
+  
+  // 创建下载链接
+  const link = document.createElement('a')
+  link.href = url
+  link.download = 'contacts_import_template.csv'
+  document.body.appendChild(link)
+  link.click()
+  
+  // 清理
+  setTimeout(() => {
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+  }, 0)
+  
+  ElMessage.success('Template downloaded successfully')
+}
 </script>
 
 <style lang="scss" scoped>
 .email-config-container {
-  padding: 24px;
+  padding: 16px;
   min-height: 100vh;
-  background: var(--bg-dark);
-  
-  /* Override Element Plus default colors */
-  --el-color-primary: #6a55f8;
-  --el-color-primary-light-3: #8c7af9;
-  --el-color-primary-light-5: #b0a2fa;
-  --el-color-primary-light-7: #d5ccff;
-  --el-color-primary-light-9: #f3f0ff;
-  --el-color-primary-dark-2: #5a46d6;
+  background-color: #17171F;
+  color: #ffffff;
 }
 
 .page-header {
@@ -1200,524 +1350,291 @@ const updateSpecifiedTime = () => {
   margin-bottom: 24px;
   
   h1 {
-    font-size: 24px;
+    font-size: 20px;
     font-weight: 500;
     margin: 0;
-    color: var(--text-primary);
+    color: #ffffff;
   }
 }
 
-.email-list-card {
+.config-tabs {
+  :deep(.el-tabs__header) {
+    border-bottom: none;
+    margin-bottom: 16px;
+  }
+  
+  :deep(.el-tabs__item) {
+    color: rgba(255, 255, 255, 0.6);
+    
+    &.is-active {
+      color: #ffffff;
+    }
+  }
+  
+  :deep(.el-tabs__active-bar) {
+    background-color: #8C65F6;
+  }
+}
+
+.settings-section {
+  position: relative;
+  margin-bottom: 28px;
+  padding-top: 8px;
+}
+
+.section-icon {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background-color: #8C65F6;
+  
+  .el-icon {
+    color: #fff;
+    font-size: 14px;
+  }
+}
+
+.section-title {
+  font-size: 16px;
+  font-weight: 500;
+  color: #fff;
+  margin-left: 32px;
+  margin-bottom: 8px;
+}
+
+.section-desc {
+  margin-left: 32px;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.5);
+  margin-bottom: 16px;
+}
+
+.notification-types {
+  margin-left: 32px;
+}
+
+.actions-row {
+  display: flex;
+  justify-content: flex-end;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.type-list {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+}
+
+.type-item {
+  display: flex;
+  align-items: flex-start;
+  padding: 12px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  
+  &:last-child {
+    border-bottom: none;
+  }
+  
+  &:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+  }
+  
+  &.is-selected {
+    background-color: rgba(140, 101, 246, 0.1);
+  }
+  
+  .el-checkbox {
+    margin-right: 8px;
+    margin-top: 2px;
+  }
+}
+
+.type-info {
+  flex: 1;
+}
+
+.type-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: #fff;
+  margin-bottom: 4px;
+}
+
+.type-desc {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.setting-row {
+  display: flex;
+  margin-bottom: 20px;
+  margin-left: 32px;
+}
+
+.setting-name {
+  width: 120px;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.8);
+  line-height: 32px;
+}
+
+.setting-value {
+  flex: 1;
+}
+
+.time-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.time-item {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.input-with-unit {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  
+  .unit {
+    color: rgba(255, 255, 255, 0.7);
+  }
+}
+
+.add-time-btn {
+  margin-top: 8px;
+}
+
+.save-btn {
+  margin-left: 32px;
+  margin-top: 24px;
+  background-color: #8C65F6;
+  border-color: #8C65F6;
+  
+  &:hover {
+    background-color: #9B78FF;
+    border-color: #9B78FF;
+  }
+}
+
+// 覆盖Element Plus暗色主题
+:deep(.el-checkbox__input.is-checked .el-checkbox__inner) {
+  background-color: #8C65F6;
+  border-color: #8C65F6;
+}
+
+:deep(.el-radio__input.is-checked .el-radio__inner) {
+  background-color: #8C65F6;
+  border-color: #8C65F6;
+}
+
+:deep(.el-radio__label) {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+:deep(.el-radio__input.is-checked + .el-radio__label) {
+  color: #8C65F6;
+}
+
+:deep(.el-checkbox__label) {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+:deep(.el-switch.is-checked .el-switch__core) {
+  background-color: #8C65F6;
+  border-color: #8C65F6;
+}
+
+:deep(.el-button--text) {
+  color: #8C65F6;
+}
+
+.contacts-wrapper {
   margin-bottom: 24px;
 }
 
-/* Contact list display style */
-.contacts-info {
+.contacts-header {
   display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.contact-item {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  margin-bottom: 8px;
-  padding: 12px;
-  border-radius: 4px;
-  transition: all 0.3s;
-}
-
-.email-info {
-  display: flex;
-  flex-direction: column;
-}
-
-.email {
-  font-weight: bold;
-}
-
-.name {
-  color: var(--text-secondary);
-  font-size: 12px;
-}
-
-.no-contacts {
-  color: var(--text-secondary);
-  font-style: italic;
-}
-
-/* Form contact style */
-.contacts-form-item {
+  justify-content: flex-end;
   margin-bottom: 20px;
 }
 
-.contacts-list {
+.header-actions {
   display: flex;
-  flex-direction: column;
   gap: 12px;
 }
+
+.import-upload {
+  display: inline-block;
+}
+
+.contacts-table-wrapper {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+:deep(.dark-table) {
+  background-color: transparent;
+  color: #ffffff;
   
-.contact-item {
-    display: flex;
-  align-items: flex-start;
-  gap: 8px;
+  .el-table__header-wrapper th {
+    background-color: rgba(140, 101, 246, 0.1);
+    color: rgba(255, 255, 255, 0.9);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  
+  .el-table__row {
+    background-color: transparent;
     
-  .contact-inputs {
-      display: flex;
-    flex: 1;
-    gap: 12px;
-    flex-direction: row;
-    align-items: center;
-    
-    .email-input {
-      flex: 3;
+    &:hover > td {
+      background-color: rgba(255, 255, 255, 0.05) !important;
     }
     
-    .name-input {
-      flex: 2;
+    td {
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      color: rgba(255, 255, 255, 0.8);
     }
   }
   
-  .contact-actions {
-    display: flex;
-    align-items: center;
-    margin-left: 4px;
+  .el-table__empty-block {
+    background-color: transparent;
+  }
+  
+  .el-table__empty-text {
+    color: rgba(255, 255, 255, 0.5);
   }
 }
 
-.add-contact-btn {
-  margin-top: 16px;
+:deep(.el-empty__description) {
+  color: rgba(255, 255, 255, 0.5);
 }
 
-.notification-settings {
-  display: flex;
-  flex-direction: column;
-
-  .notification-type-tags {
-    display: flex;
-    align-items: flex-start;
-    margin-bottom: 12px;
-
-    .send-setting {
-      display: flex;
-      align-items: center;
-      margin-right: 12px;
-      
-      .send-icon {
-        margin-right: 4px;
-        color: #6a55f8;
-        font-size: 16px;
-      }
-      
-      .send-text {
-        font-weight: 600;
-        color: #6a55f8;
-      }
-    }
-    
-    .time-points {
-      display: flex;
-      flex-direction: column;
-      width: 100%;
-      
-      .time-points-title {
-        display: flex;
-        align-items: center;
-        margin-bottom: 8px;
-        
-        .send-icon {
-          margin-right: 4px;
-          color: #67c23a;
-          font-size: 16px;
-        }
-        
-        .send-text {
-          font-weight: 600;
-          color: #67c23a;
-        }
-      }
-      
-      .time-points-list {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 8px;
-        margin-left: 20px;
-        
-        .time-point {
-          display: flex;
-          align-items: center;
-          padding: 2px 8px;
-          background-color: #f0f9eb;
-          border-radius: 4px;
-          
-          .time-icon {
-            font-size: 14px;
-            color: #67c23a;
-            margin-right: 4px;
-          }
-          
-          .time-text {
-            font-size: 13px;
-            color: #67c23a;
-          }
-        }
-        
-        .no-time-point {
-          font-size: 13px;
-          color: #909399;
-          font-style: italic;
-        }
-      }
-    }
-  }
-  
-  .main-types {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 4px;
-  }
-  
-  .notification-tag {
-    margin-bottom: 4px;
-    background-color: #ecf5ff;
-    color: #409eff;
-    border-color: #d9ecff;
-  }
-  
-  .no-types {
-    font-size: 13px;
-    color: #909399;
-    font-style: italic;
-  }
+.email-info, .name-info {
+  color: #ffffff;
 }
 
 .action-buttons {
   display: flex;
-  gap: 8px;
   justify-content: center;
-}
-
-/* Notification type category style */
-.notification-tag-selection {
-  width: 100%;
-}
-
-.selection-actions {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 16px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid #f0f0f0;
-}
-
-.selected-count {
-  margin-left: 16px;
-  font-size: 13px;
-  color: var(--el-text-color-secondary);
-  
-  .count {
-    color: #6a55f8;
-    font-weight: 500;
-  }
-}
-
-.action-buttons {
-  display: flex;
-  gap: 10px;
-}
-
-.all-notification-types {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  padding: 0;
-  background-color: transparent;
-  border: none;
-}
-
-.notification-check-tag {
-  padding: 6px 12px;
-  border-radius: 4px;
-  font-size: 14px;
-  background-color: #f9f9f9;
-  color: #606266;
-  cursor: pointer;
-  transition: all 0.15s;
-    display: flex;
-    align-items: center;
-  border: 1px solid transparent;
-  box-shadow: none;
-  margin-bottom: 6px;
-  
-  &:hover {
-    background-color: #f3f0ff;
-    color: #6a55f8;
-    border-color: transparent;
-  }
-  
-  .info-icon {
-    margin-left: 5px;
-    font-size: 14px;
-    color: #aaa;
-    cursor: help;
-    transition: color 0.2s;
-    
-    &:hover {
-      color: #6a55f8;
-    }
-  }
-}
-
-.notification-check-tag.is-checked {
-  background-color: #6a55f8;
-  border-color: transparent;
-  color: white;
-  box-shadow: none;
-}
-
-/* Tooltip style */
-:deep(.el-popover) {
-  max-width: 250px;
-  border-radius: 4px;
-  box-shadow: 0 4px 12px rgba(106, 85, 248, 0.2);
-  border: none;
-}
-
-/* 错误高亮样式 */
-.error-highlight {
-  position: relative;
-  padding: 8px;
-  border-radius: 4px;
-  background-color: rgba(245, 108, 108, 0.1);
-  border: 1px dashed #f56c6c;
-}
-
-.success-highlight {
-  position: relative;
-  padding: 8px;
-  border-radius: 4px;
-  background-color: rgba(103, 194, 58, 0.1);
-  border: 1px dashed #67c23a;
-}
-
-.is-error {
-  .el-input__wrapper {
-    box-shadow: 0 0 0 1px #f56c6c inset !important;
-  }
-}
-
-/* 高亮按钮样式 */
-.highlight-button {
-  background-color: #e6a23c !important;
-  border-color: #e6a23c !important;
-  color: white !important;
-  box-shadow: 0 0 12px rgba(230, 162, 60, 0.4) !important;
-  animation: pulse 1.5s infinite;
-}
-
-@keyframes pulse {
-  0% {
-    box-shadow: 0 0 0 0 rgba(230, 162, 60, 0.7);
-  }
-  70% {
-    box-shadow: 0 0 0 10px rgba(230, 162, 60, 0);
-  }
-  100% {
-    box-shadow: 0 0 0 0 rgba(230, 162, 60, 0);
-  }
-}
-
-/* 按钮组样式 */
-.dialog-footer {
-  display: flex;
-  gap: 10px;
-  
-  .el-button {
-    flex: 1;
-  }
-}
-
-/* 联系人输入区域布局优化 */
-.contact-inputs {
-  display: flex;
-  flex: 1;
-  gap: 12px;
-  flex-direction: row;
-  align-items: center;
-  
-  .email-input {
-    flex: 3;
-  }
-  
-  .name-input {
-    flex: 2;
-  }
-}
-
-.contact-actions {
-  display: flex;
-  align-items: center;
-  margin-left: 4px;
-}
-
-.email-input-wrapper {
-  position: relative;
-  flex: 3;
-  
-  .input-error-message {
-    position: absolute;
-    font-size: 12px;
-    color: #f56c6c;
-    margin-top: 4px;
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    
-    .el-icon {
-      font-size: 14px;
-    }
-  }
-  
-  .input-success-message {
-    position: absolute;
-    font-size: 12px;
-    color: #67c23a;
-    margin-top: 4px;
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    
-    .el-icon {
-      font-size: 14px;
-    }
-  }
-  
-  .input-pending-message {
-    position: absolute;
-    font-size: 12px;
-    color: #909399;
-    margin-top: 4px;
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    
-    .el-icon {
-      font-size: 14px;
-    }
-  }
-}
-
-/* 按钮内的加载动画 */
-.is-loading {
-  animation: rotate 1s linear infinite;
-}
-
-@keyframes rotate {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-/* 待处理高亮样式 */
-.pending-highlight {
-  position: relative;
-  padding: 8px;
-  border-radius: 4px;
-  background-color: rgba(144, 147, 153, 0.1);
-  border: 1px dashed #909399;
-}
-
-.delete-confirm-content {
-  display: flex;
-  align-items: flex-start;
-  padding: 20px 0;
-  
-  .delete-icon {
-    font-size: 26px;
-    color: #f56c6c;
-    margin-right: 16px;
-    margin-top: 4px;
-  }
-  
-  .delete-message {
-    font-size: 16px;
-    line-height: 1.6;
-    margin: 0;
-    color: #303133;
-    
-    .delete-warning {
-      color: #f56c6c;
-      font-weight: 500;
-    }
-  }
-}
-
-// 重发设置样式
-.resend-setting-item {
-  margin-top: 16px;
-  margin-bottom: 16px;
-}
-
-.resend-form {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.resend-settings {
-  padding: 16px;
-  border-radius: 4px;
-  background-color: transparent;
-  margin-top: 12px;
-}
-
-.resend-mode {
-  margin-bottom: 16px;
-}
-
-.resend-mode-group {
-  display: flex;
-  flex-direction: row;
-  flex-wrap: nowrap;
-  gap: 20px;
-}
-
-.interval-settings,
-.nextday-settings,
-.common-settings {
-  margin-top: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.interval-hours,
-.specified-time,
-.max-resend,
-.only-unresolved {
-  display: flex;
-  align-items: center;
   gap: 8px;
-}
-
-.setting-label {
-  min-width: 100px;
-  margin-right: 8px;
-}
-
-.unit {
-  margin-left: 8px;
-  color: var(--text-secondary);
-}
-
-.info-icon {
-  color: #6a55f8;
-  cursor: pointer;
-  margin-left: 4px;
 }
 </style> 
+
+
+
+

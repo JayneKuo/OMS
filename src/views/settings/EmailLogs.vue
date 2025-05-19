@@ -1,14 +1,14 @@
 <template>
   <div class="email-logs-container">
     <div class="page-header">
-      <h2>异常日志 Exception Logs</h2>
+      <h2>Exception Logs</h2>
       <div class="header-actions">
-        <el-tooltip content="刷新" placement="top">
+        <el-tooltip content="Refresh" placement="top">
           <span class="icon-button" @click="refreshData">
             <el-icon><Refresh /></el-icon>
           </span>
         </el-tooltip>
-        <el-tooltip content="批量发送邮件" placement="top">
+        <el-tooltip content="Batch Send Email" placement="top">
           <span class="icon-button success-icon" @click="showBatchSendDialog">
             <el-icon><Message /></el-icon>
           </span>
@@ -19,57 +19,57 @@
     <!-- Search Filter Area -->
     <div class="search-area">
       <el-form :model="searchForm" inline>
-        <el-form-item label="时间范围">
+        <el-form-item label="Time Range">
           <el-date-picker
             v-model="searchForm.timeRange"
             type="daterange"
-            range-separator="至"
-            start-placeholder="开始日期"
-            end-placeholder="结束日期"
+            range-separator="to"
+            start-placeholder="Start Date"
+            end-placeholder="End Date"
             value-format="YYYY-MM-DD"
           />
         </el-form-item>
-        <el-form-item label="问题类型">
+        <el-form-item label="Issue Type">
           <el-select 
             v-model="searchForm.issueType" 
-            placeholder="选择问题类型" 
+            placeholder="Select Issue Type" 
             clearable
             style="min-width: 180px;"
           >
-            <el-option label="库存异常" value="inventory" />
-            <el-option label="订单异常" value="order" />
-            <el-option label="物流异常" value="logistics" />
-            <el-option label="系统错误" value="system" />
-            <el-option label="其他问题" value="other" />
+            <el-option label="Inventory Issue" value="inventory" />
+            <el-option label="Order Issue" value="order" />
+            <el-option label="Logistics Issue" value="logistics" />
+            <el-option label="System Error" value="system" />
+            <el-option label="Other Issues" value="other" />
           </el-select>
         </el-form-item>
-        <el-form-item label="解决状态">
+        <el-form-item label="Status">
           <el-select 
             v-model="searchForm.status" 
-            placeholder="选择状态" 
+            placeholder="Select Status" 
             clearable
             style="min-width: 180px;"
           >
-            <el-option label="未解决" value="unsolved" />
-            <el-option label="已解决" value="solved" />
+            <el-option label="Unresolved" value="unsolved" />
+            <el-option label="Resolved" value="solved" />
           </el-select>
         </el-form-item>
-        <el-form-item label="邮件状态">
+        <el-form-item label="Email Status">
           <el-select 
             v-model="searchForm.emailSent" 
-            placeholder="邮件发送状态" 
+            placeholder="Email Status" 
             clearable
             style="min-width: 180px;"
           >
-            <el-option label="已发送" value="sent" />
-            <el-option label="未发送" value="unsent" />
-            <el-option label="发送失败" value="failed" />
+            <el-option label="Sent" value="sent" />
+            <el-option label="Unsent" value="unsent" />
+            <el-option label="Failed" value="failed" />
           </el-select>
         </el-form-item>
-        <el-form-item label="渠道">
+        <el-form-item label="Channel">
           <el-select 
             v-model="searchForm.channel" 
-            placeholder="选择渠道" 
+            placeholder="Select Channel" 
             clearable
             style="min-width: 180px;"
           >
@@ -77,19 +77,19 @@
             <el-option label="Shopify" value="shopify" />
             <el-option label="Walmart" value="walmart" />
             <el-option label="eBay" value="ebay" />
-            <el-option label="其他" value="other" />
+            <el-option label="Other" value="other" />
           </el-select>
         </el-form-item>
-        <el-form-item label="关键词">
+        <el-form-item label="Keyword">
           <el-input 
             v-model="searchForm.keyword" 
-            placeholder="订单ID/系统ID/描述" 
+            placeholder="Order ID/System ID/Description" 
             style="min-width: 250px;"
           />
         </el-form-item>
         <el-form-item>
-          <el-button type="primary" @click="search">搜索</el-button>
-          <el-button @click="resetSearch">重置</el-button>
+          <el-button type="primary" @click="search">Search</el-button>
+          <el-button @click="resetSearch">Reset</el-button>
         </el-form-item>
       </el-form>
     </div>
@@ -103,9 +103,9 @@
       @selection-change="handleSelectionChange"
     >
       <el-table-column type="selection" width="55" />
-      <el-table-column prop="channel" label="渠道" width="120" />
-      <el-table-column prop="channelOrderId" label="渠道订单ID" width="180" show-overflow-tooltip />
-      <el-table-column prop="systemOrderId" label="OMS ID" width="180" show-overflow-tooltip>
+      <el-table-column prop="channel" label="Channel" width="120" />
+      <el-table-column prop="channelOrderId" label="Channel Order NO." width="180" show-overflow-tooltip />
+      <el-table-column prop="systemOrderId" label="OMS Order NO." width="180" show-overflow-tooltip>
         <template #default="scope">
           <el-link 
             type="primary" 
@@ -117,42 +117,42 @@
           </el-link>
         </template>
       </el-table-column>
-      <el-table-column prop="issueType" label="问题类型" width="120">
+      <el-table-column prop="issueType" label="Issue Type" width="120">
         <template #default="scope">
           <el-tag :type="getIssueTypeTag(scope.row.issueType)">
             {{ getIssueTypeLabel(scope.row.issueType) }}
           </el-tag>
         </template>
       </el-table-column>
-      <el-table-column prop="description" label="问题描述" min-width="200" show-overflow-tooltip />
-      <el-table-column prop="status" label="解决状态" width="120">
+      <el-table-column prop="description" label="Description" min-width="200" show-overflow-tooltip />
+      <el-table-column prop="status" label="Status" width="120">
         <template #default="scope">
           <el-tag :type="getStatusTag(scope.row.status)">
             {{ getStatusLabel(scope.row.status) }}
           </el-tag>
         </template>
       </el-table-column>
-      <el-table-column prop="emailSent" label="邮件状态" width="100">
+      <el-table-column prop="emailSent" label="Email Status" width="100">
         <template #default="scope">
           <el-tag :type="getEmailSentTag(scope.row.emailSent)">
             {{ getEmailSentLabel(scope.row.emailSent) }}
           </el-tag>
         </template>
       </el-table-column>
-      <el-table-column prop="lastSendTime" label="更新时间" width="180" sortable>
+      <el-table-column prop="lastSendTime" label="Update Time" width="180" sortable>
         <template #default="scope">
           {{ formatDateTime(scope.row.lastSendTime || scope.row.createTime) }}
         </template>
       </el-table-column>
-      <el-table-column label="操作" width="120" fixed="right">
+      <el-table-column label="Actions" width="120" fixed="right">
         <template #default="scope">
           <div class="action-buttons">
-            <el-tooltip content="查看详情" placement="top">
+            <el-tooltip content="View Details" placement="top">
               <span class="icon-button primary-icon" @click="viewDetails(scope.row)">
                 <el-icon><Document /></el-icon>
               </span>
             </el-tooltip>
-            <el-tooltip content="发送邮件" placement="top" v-if="scope.row.emailSent === 'unsent'">
+            <el-tooltip content="Send Email" placement="top" v-if="scope.row.emailSent === 'unsent'">
               <span 
                 class="icon-button success-icon"
                 @click="sendEmail(scope.row)"
@@ -181,28 +181,28 @@
     <!-- Detail Dialog -->
     <el-dialog
       v-model="detailDialogVisible"
-      title="异常日志详情 Exception Log Detail"
+      title="Exception Log Detail"
       width="60%"
     >
       <div v-if="currentDetail" class="log-detail">
         <div class="detail-item">
-          <span class="label">创建时间:</span>
+          <span class="label">Created Time:</span>
           <span>{{ formatDateTime(currentDetail.createTime) }}</span>
         </div>
         <div class="detail-item" v-if="currentDetail.lastSendTime && currentDetail.lastSendTime !== currentDetail.createTime">
-          <span class="label">更新时间:</span>
+          <span class="label">Updated Time:</span>
           <span>{{ formatDateTime(currentDetail.lastSendTime) }}</span>
         </div>
         <div class="detail-item">
-          <span class="label">渠道:</span>
+          <span class="label">Channel:</span>
           <span>{{ currentDetail.channel }}</span>
         </div>
         <div class="detail-item">
-          <span class="label">渠道订单ID:</span>
+          <span class="label">Channel Order NO.:</span>
           <span>{{ currentDetail.channelOrderId }}</span>
         </div>
         <div class="detail-item">
-          <span class="label">OMS ID:</span>
+          <span class="label">OMS Order NO.:</span>
           <el-link 
             v-if="currentDetail?.systemOrderId" 
             type="primary" 
@@ -215,37 +215,37 @@
           <span v-else>-</span>
         </div>
         <div class="detail-item">
-          <span class="label">问题类型:</span>
+          <span class="label">Issue Type:</span>
           <el-tag :type="getIssueTypeTag(currentDetail.issueType)">
             {{ getIssueTypeLabel(currentDetail.issueType) }}
           </el-tag>
         </div>
         <div class="detail-item">
-          <span class="label">问题描述:</span>
+          <span class="label">Description:</span>
           <div class="description-content">{{ currentDetail.description }}</div>
         </div>
         <div class="detail-item">
-          <span class="label">解决状态:</span>
+          <span class="label">Status:</span>
           <el-tag :type="getStatusTag(currentDetail.status)">
             {{ getStatusLabel(currentDetail.status) }}
           </el-tag>
         </div>
         <div class="detail-item">
-          <span class="label">邮件状态:</span>
+          <span class="label">Email Status:</span>
           <el-tag :type="getEmailSentTag(currentDetail.emailSent)">
             {{ getEmailSentLabel(currentDetail.emailSent) }}
           </el-tag>
         </div>
         <div class="detail-item" v-if="currentDetail.recipients">
-          <span class="label">收件人:</span>
+          <span class="label">Recipients:</span>
           <span>{{ currentDetail.recipients }}</span>
         </div>
         <div class="detail-item" v-if="currentDetail.emailContent">
-          <span class="label">邮件内容:</span>
+          <span class="label">Email Content:</span>
           <div class="email-content" v-html="currentDetail.emailContent"></div>
         </div>
         <div class="detail-item" v-if="currentDetail.emailHistory && currentDetail.emailHistory.length > 0">
-          <span class="label">发送历史记录:</span>
+          <span class="label">Send History:</span>
           <div class="email-history">
             <div class="history-item" v-for="(history, index) in currentDetail.emailHistory" :key="index">
               <div class="history-time">{{ formatDateTime(history.sendTime) }}</div>
@@ -254,27 +254,27 @@
                   {{ getEmailSentLabel(history.status) }}
                 </el-tag>
               </div>
-              <div class="history-recipients" v-if="history.recipients">收件人: {{ history.recipients }}</div>
+              <div class="history-recipients" v-if="history.recipients">Recipients: {{ history.recipients }}</div>
             </div>
           </div>
         </div>
         <div class="detail-item" v-if="currentDetail.resolveTime">
-          <span class="label">解决时间:</span>
+          <span class="label">Resolve Time:</span>
           <span>{{ formatDateTime(currentDetail.resolveTime) }}</span>
         </div>
         <div class="detail-item" v-if="currentDetail.resolveNote">
-          <span class="label">解决方案:</span>
+          <span class="label">Resolution:</span>
           <div class="resolve-note">{{ currentDetail.resolveNote }}</div>
         </div>
       </div>
       <template #footer>
         <span class="dialog-footer">
-          <el-tooltip content="关闭" placement="top">
+          <el-tooltip content="Close" placement="top">
             <span class="icon-button" @click="detailDialogVisible = false">
               <el-icon><Close /></el-icon>
             </span>
           </el-tooltip>
-          <el-tooltip content="发送邮件" placement="top" v-if="currentDetail && currentDetail.emailSent === 'unsent'">
+          <el-tooltip content="Send Email" placement="top" v-if="currentDetail && currentDetail.emailSent === 'unsent'">
             <span 
               class="icon-button success-icon"
               @click="sendEmail(currentDetail!)"
@@ -282,7 +282,7 @@
               <el-icon><Message /></el-icon>
             </span>
           </el-tooltip>
-          <el-tooltip content="重新发送" placement="top" v-if="currentDetail && currentDetail.emailSent !== 'unsent'">
+          <el-tooltip content="Resend" placement="top" v-if="currentDetail && currentDetail.emailSent !== 'unsent'">
             <span 
               class="icon-button success-icon"
               @click="sendEmail(currentDetail!)"
@@ -297,27 +297,27 @@
     <!-- Resolve Issue Dialog -->
     <el-dialog
       v-model="resolveDialogVisible"
-      title="标记问题为已解决"
+      title="Mark Issue as Resolved"
       width="50%"
     >
       <el-form :model="resolveForm" label-width="120px">
-        <el-form-item label="解决方案">
+        <el-form-item label="Resolution">
           <el-input
             v-model="resolveForm.resolveNote"
             type="textarea"
             :rows="4"
-            placeholder="请输入解决方案或处理结果"
+            placeholder="Enter resolution or handling result"
           />
         </el-form-item>
       </el-form>
       <template #footer>
         <span class="dialog-footer">
-          <el-tooltip content="取消" placement="top">
+          <el-tooltip content="Cancel" placement="top">
             <span class="icon-button" @click="resolveDialogVisible = false">
               <el-icon><Close /></el-icon>
             </span>
           </el-tooltip>
-          <el-tooltip content="确认" placement="top">
+          <el-tooltip content="Confirm" placement="top">
             <span class="icon-button primary-icon" @click="confirmResolve">
               <el-icon><Check /></el-icon>
             </span>
@@ -329,18 +329,18 @@
     <!-- Send Email Dialog -->
     <el-dialog
       v-model="emailDialogVisible"
-      title="发送邮件通知"
+      title="Send Email Notification"
       width="60%"
     >
       <el-form :model="emailForm" label-width="120px">
-        <el-form-item label="收件人">
+        <el-form-item label="Recipients">
           <el-select
             v-model="emailForm.recipientList"
             multiple
             filterable
             allow-create
             default-first-option
-            placeholder="请输入收件人邮箱，按Enter键添加多个"
+            placeholder="Enter recipient emails, press Enter to add multiple"
             style="width: 100%"
           >
             <el-option
@@ -351,14 +351,14 @@
             />
           </el-select>
         </el-form-item>
-        <el-form-item label="抄送">
+        <el-form-item label="CC">
           <el-select
             v-model="emailForm.ccList"
             multiple
             filterable
             allow-create
             default-first-option
-            placeholder="请输入抄送邮箱，按Enter键添加多个"
+            placeholder="Enter CC emails, press Enter to add multiple"
             style="width: 100%"
           >
             <el-option
@@ -369,26 +369,26 @@
             />
           </el-select>
         </el-form-item>
-        <el-form-item label="主题">
-          <el-input v-model="emailForm.subject" placeholder="请输入邮件主题" />
+        <el-form-item label="Subject">
+          <el-input v-model="emailForm.subject" placeholder="Enter email subject" />
         </el-form-item>
-        <el-form-item label="内容">
+        <el-form-item label="Content">
           <el-input
             v-model="emailForm.content"
             type="textarea"
             :rows="8"
-            placeholder="请输入邮件内容"
+            placeholder="Enter email content"
           />
         </el-form-item>
       </el-form>
       <template #footer>
         <span class="dialog-footer">
-          <el-tooltip content="取消" placement="top">
+          <el-tooltip content="Cancel" placement="top">
             <span class="icon-button" @click="emailDialogVisible = false">
               <el-icon><Close /></el-icon>
             </span>
           </el-tooltip>
-          <el-tooltip content="发送" placement="top">
+          <el-tooltip content="Send" placement="top">
             <span class="icon-button primary-icon" @click="confirmSendEmail">
               <el-icon><Message /></el-icon>
             </span>
@@ -400,44 +400,44 @@
     <!-- Batch Send Email Dialog -->
     <el-dialog
       v-model="batchEmailDialogVisible"
-      title="批量发送邮件通知"
+      title="Batch Send Email Notifications"
       width="50%"
     >
       <div class="batch-email-content">
-        <p>您将要批量发送以下异常的邮件通知：</p>
+        <p>You are about to send email notifications for the following exceptions:</p>
         <div class="batch-summary">
-          <p v-if="selectedRows.length > 0">已选择 {{ selectedRows.length }} 条记录</p>
-          <p v-else>未选择任何记录，将发送所有未解决且未发送邮件的异常</p>
+          <p v-if="selectedRows.length > 0">{{ selectedRows.length }} records selected</p>
+          <p v-else>No records selected, will send to all unresolved issues without emails</p>
           
           <el-alert
             v-if="computedSendList.length === 0"
-            title="没有符合条件的记录可发送"
+            title="No records match the criteria for sending"
             type="warning"
             :closable="false"
             style="margin-top: 10px;"
           />
           
           <div v-else class="type-summary">
-            <h4>按类型统计：</h4>
+            <h4>Summary by Type:</h4>
             <ul>
               <li v-for="(count, type) in getIssueTypeCounts()" :key="type">
-                {{ getIssueTypeLabel(type) }}: {{ count }} 条
+                {{ getIssueTypeLabel(type) }}: {{ count }} record(s)
               </li>
             </ul>
           </div>
         </div>
         
         <div class="batch-options" v-if="computedSendList.length > 0">
-          <p>默认将为每种问题类型使用相应的收件人。您也可以设置统一的收件人：</p>
+          <p>Default recipients will be used based on issue type. You can also set unified recipients:</p>
           <el-form>
-            <el-form-item label="统一收件人">
+            <el-form-item label="Unified Recipients">
               <el-select
                 v-model="batchEmailForm.recipientList"
                 multiple
                 filterable
                 allow-create
                 default-first-option
-                placeholder="留空则使用默认收件人配置，按Enter键添加多个邮箱"
+                placeholder="Leave empty to use default recipients, press Enter to add multiple"
                 style="width: 100%"
               >
                 <el-option
@@ -448,14 +448,14 @@
                 />
               </el-select>
             </el-form-item>
-            <el-form-item label="统一抄送">
+            <el-form-item label="Unified CC">
               <el-select
                 v-model="batchEmailForm.ccList"
                 multiple
                 filterable
                 allow-create
                 default-first-option
-                placeholder="可选，按Enter键添加多个抄送地址"
+                placeholder="Optional, press Enter to add multiple CC addresses"
                 style="width: 100%"
               >
                 <el-option
@@ -471,12 +471,12 @@
       </div>
       <template #footer>
         <span class="dialog-footer">
-          <el-tooltip content="取消" placement="top">
+          <el-tooltip content="Cancel" placement="top">
             <span class="icon-button" @click="batchEmailDialogVisible = false">
               <el-icon><Close /></el-icon>
             </span>
           </el-tooltip>
-          <el-tooltip content="发送" placement="top">
+          <el-tooltip content="Send" placement="top">
             <span 
               class="icon-button primary-icon" 
               @click="confirmBatchSend"
@@ -549,11 +549,11 @@ const batchEmailForm = reactive({
 
 // 常用联系人列表
 const commonRecipients = [
-  { label: '仓库管理员', value: 'warehouse@example.com' },
-  { label: '订单客服', value: 'orders@example.com' },
-  { label: '物流部门', value: 'logistics@example.com' },
-  { label: 'IT支持', value: 'it-support@example.com' },
-  { label: '客户支持', value: 'support@example.com' }
+  { label: 'Warehouse Admin', value: 'warehouse@example.com' },
+  { label: 'Order Service', value: 'orders@example.com' },
+  { label: 'Logistics Dept', value: 'logistics@example.com' },
+  { label: 'IT Support', value: 'it-support@example.com' },
+  { label: 'Customer Support', value: 'support@example.com' }
 ]
 
 // 生命周期钩子
@@ -584,8 +584,8 @@ const fetchData = async () => {
     tableData.value = res.data
     total.value = res.total
   } catch (error) {
-    console.error('获取邮件日志失败：', error)
-    ElMessage.error('获取邮件日志失败')
+    console.error('Failed to get email logs:', error)
+    ElMessage.error('Failed to get email logs')
   } finally {
     loading.value = false
   }
@@ -642,7 +642,7 @@ const markAsSolvedInDialog = () => {
 // 确认解决
 const confirmResolve = async () => {
   if (!resolveForm.resolveNote.trim()) {
-    ElMessage.warning('请输入解决方案')
+    ElMessage.warning('Please enter a resolution')
     return
   }
   
@@ -668,11 +668,11 @@ const confirmResolve = async () => {
       }
     }
     
-    ElMessage.success('问题已标记为已解决')
+    ElMessage.success('Issue marked as resolved')
     resolveDialogVisible.value = false
   } catch (error) {
-    console.error('标记问题已解决失败：', error)
-    ElMessage.error('操作失败，请重试')
+    console.error('Failed to mark issue as resolved:', error)
+    ElMessage.error('Operation failed, please try again')
   } finally {
     loading.value = false
   }
@@ -685,7 +685,7 @@ const sendEmail = (row: LogItem) => {
   // 如果邮件已发送过且有内容，则使用之前的内容作为模板
   if (row.emailSent !== 'unsent' && row.emailContent) {
     // 预填邮件表单
-    emailForm.subject = `系统异常通知: ${getIssueTypeLabel(row.issueType)}`
+    emailForm.subject = `System Exception Notification: ${getIssueTypeLabel(row.issueType)}`
     
     // 将HTML格式转回普通文本
     emailForm.content = row.emailContent.replace(/<br>/g, '\n').replace(/<[^>]*>/g, '')
@@ -698,8 +698,8 @@ const sendEmail = (row: LogItem) => {
     }
   } else {
     // 使用默认模板
-    emailForm.subject = `系统异常通知: ${getIssueTypeLabel(row.issueType)}`
-    emailForm.content = `系统检测到以下异常：\n\n问题类型: ${getIssueTypeLabel(row.issueType)}\n描述: ${row.description}\n\n渠道: ${row.channel}\n渠道订单ID: ${row.channelOrderId}\n系统订单ID: ${row.systemOrderId}\n\n请尽快处理该问题。`
+    emailForm.subject = `System Exception Notification: ${getIssueTypeLabel(row.issueType)}`
+    emailForm.content = `System detected the following exception:\n\nIssue Type: ${getIssueTypeLabel(row.issueType)}\nDescription: ${row.description}\n\nChannel: ${row.channel}\nChannel Order NO.: ${row.channelOrderId}\nOMS Order NO.: ${row.systemOrderId}\n\nPlease address this issue promptly.`
     emailForm.recipientList = [getDefaultRecipientsByIssueType(row.issueType)];
   }
   
@@ -714,8 +714,8 @@ const resendEmail = (row: LogItem) => {
   
   // 如果有之前的内容，则使用之前的内容
   emailForm.subject = row.emailContent 
-    ? `系统异常通知: ${getIssueTypeLabel(row.issueType)}` 
-    : `系统异常通知: ${getIssueTypeLabel(row.issueType)}`
+    ? `System Exception Notification: ${getIssueTypeLabel(row.issueType)}` 
+    : `System Exception Notification: ${getIssueTypeLabel(row.issueType)}`
   
   // 获取之前的内容，如果有的话
   if (row.emailContent) {
@@ -723,7 +723,7 @@ const resendEmail = (row: LogItem) => {
     emailForm.content = row.emailContent.replace(/<br>/g, '\n').replace(/<[^>]*>/g, '')
   } else {
     // 使用默认模板
-    emailForm.content = `系统检测到以下异常：\n\n问题类型: ${getIssueTypeLabel(row.issueType)}\n描述: ${row.description}\n\n渠道: ${row.channel}\n渠道订单ID: ${row.channelOrderId}\n系统订单ID: ${row.systemOrderId}\n\n请尽快处理该问题。`
+    emailForm.content = `System detected the following exception:\n\nIssue Type: ${getIssueTypeLabel(row.issueType)}\nDescription: ${row.description}\n\nChannel: ${row.channel}\nChannel Order NO.: ${row.channelOrderId}\nOMS Order NO.: ${row.systemOrderId}\n\nPlease address this issue promptly.`
   }
   
   // 之前的收件人信息
@@ -736,17 +736,17 @@ const resendEmail = (row: LogItem) => {
 // 确认发送邮件
 const confirmSendEmail = async () => {
   if (emailForm.recipientList.length === 0) {
-    ElMessage.warning('请输入至少一个收件人邮箱')
+    ElMessage.warning('Please enter at least one recipient email')
     return
   }
   
   if (!emailForm.subject.trim()) {
-    ElMessage.warning('请输入邮件主题')
+    ElMessage.warning('Please enter an email subject')
     return
   }
   
   if (!emailForm.content.trim()) {
-    ElMessage.warning('请输入邮件内容')
+    ElMessage.warning('Please enter email content')
     return
   }
   
@@ -803,11 +803,11 @@ const confirmSendEmail = async () => {
       }
     }
     
-    ElMessage.success('邮件已发送')
+    ElMessage.success('Email sent')
     emailDialogVisible.value = false
   } catch (error) {
-    console.error('发送邮件失败：', error)
-    ElMessage.error('发送邮件失败，请重试')
+    console.error('Failed to send email:', error)
+    ElMessage.error('Failed to send email, please try again')
   } finally {
     loading.value = false
   }
@@ -855,7 +855,7 @@ const showBatchSendDialog = () => {
 // 确认批量发送
 const confirmBatchSend = async () => {
   if (computedSendList.value.length === 0) {
-    ElMessage.warning('没有符合条件的记录可发送')
+    ElMessage.warning('No records match the criteria for sending')
     return
   }
   
@@ -876,8 +876,8 @@ const confirmBatchSend = async () => {
         const emailData = {
           recipients: batchEmailForm.recipients || getDefaultRecipientsByIssueType(issue.issueType),
           cc: batchEmailForm.cc || '',
-          subject: `系统异常通知: ${getIssueTypeLabel(issue.issueType)}`,
-          content: `系统检测到以下异常：\n\n问题类型: ${getIssueTypeLabel(issue.issueType)}\n描述: ${issue.description}\n\n渠道: ${issue.channel}\n渠道订单ID: ${issue.channelOrderId}\n系统订单ID: ${issue.systemOrderId}\n\n请尽快处理该问题。`
+          subject: `System Exception Notification: ${getIssueTypeLabel(issue.issueType)}`,
+          content: `System detected the following exception:\n\nIssue Type: ${getIssueTypeLabel(issue.issueType)}\nDescription: ${issue.description}\n\nChannel: ${issue.channel}\nChannel Order NO.: ${issue.channelOrderId}\nOMS Order NO.: ${issue.systemOrderId}\n\nPlease address this issue promptly.`
         }
         
         // 发送邮件
@@ -891,26 +891,26 @@ const confirmBatchSend = async () => {
           tableData.value[index].lastSendTime = new Date().toISOString()
         }
       } catch (error) {
-        console.error(`发送邮件失败 (ID: ${issue.id}):`, error)
+        console.error(`Failed to send email (ID: ${issue.id}):`, error)
         failCount++
       }
     }
     
     // 显示结果消息
     if (successCount > 0 && failCount === 0) {
-      ElMessage.success(`成功发送了 ${successCount} 条异常通知邮件`)
+      ElMessage.success(`Successfully sent ${successCount} notification emails`)
     } else if (successCount > 0 && failCount > 0) {
-      ElMessage.warning(`成功发送了 ${successCount} 条邮件，${failCount} 条发送失败`)
+      ElMessage.warning(`Successfully sent ${successCount} emails, ${failCount} failed`)
     } else {
-      ElMessage.error(`所有邮件发送失败`)
+      ElMessage.error(`All emails failed to send`)
     }
     
     // 关闭对话框并刷新数据
     batchEmailDialogVisible.value = false
     fetchData()
   } catch (error) {
-    console.error('批量发送邮件失败：', error)
-    ElMessage.error('批量发送邮件失败')
+    console.error('Batch email sending failed:', error)
+    ElMessage.error('Batch email sending failed')
   } finally {
     loading.value = false
   }
@@ -950,11 +950,11 @@ const formatDateTime = (dateStr: string) => {
 // 获取问题类型标签
 const getIssueTypeLabel = (type: string) => {
   const typeMap: Record<string, string> = {
-    'inventory': '库存异常',
-    'order': '订单异常',
-    'logistics': '物流异常',
-    'system': '系统错误',
-    'other': '其他问题'
+    'inventory': 'Inventory Issue',
+    'order': 'Order Issue',
+    'logistics': 'Logistics Issue',
+    'system': 'System Error',
+    'other': 'Other Issues'
   }
   return typeMap[type] || type
 }
@@ -974,8 +974,8 @@ const getIssueTypeTag = (type: string) => {
 // 获取状态标签
 const getStatusLabel = (status: string) => {
   const statusMap: Record<string, string> = {
-    'unsolved': '未解决',
-    'solved': '已解决'
+    'unsolved': 'Unresolved',
+    'solved': 'Resolved'
   }
   return statusMap[status] || status
 }
@@ -992,9 +992,9 @@ const getStatusTag = (status: string) => {
 // 获取邮件发送状态标签
 const getEmailSentLabel = (status: string) => {
   const statusMap: Record<string, string> = {
-    'sent': '已发送',
-    'unsent': '未发送',
-    'failed': '发送失败'
+    'sent': 'Sent',
+    'unsent': 'Unsent',
+    'failed': 'Failed'
   }
   return statusMap[status] || status
 }
