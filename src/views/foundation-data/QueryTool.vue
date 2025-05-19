@@ -293,6 +293,35 @@
                 {{ scope.row.masterProductName || '-' }}
               </template>
             </el-table-column>
+            <el-table-column label="Inventory Location">
+              <template #default="scope">
+                <el-popover
+                  placement="top-start"
+                  title="库存位置详情"
+                  :width="280"
+                  trigger="hover"
+                >
+                  <template #default>
+                    <div class="inventory-location-detail">
+                      <div v-if="scope.row.inventoryLocations && scope.row.inventoryLocations.length > 0">
+                        <div class="location-item" v-for="(loc, index) in scope.row.inventoryLocations" :key="index">
+                          <span class="location-name">{{ loc.name }}:</span>
+                          <span class="location-quantity">{{ loc.quantity || 0 }}</span>
+                        </div>
+                      </div>
+                      <div v-else class="no-location">
+                        <span>暂无库存位置信息</span>
+                      </div>
+                    </div>
+                  </template>
+                  <template #reference>
+                    <span class="inventory-location-hover">
+                      {{ getMainLocation(scope.row) }}
+                    </span>
+                  </template>
+                </el-popover>
+              </template>
+            </el-table-column>
             <el-table-column label="Channel Stock" align="right">
               <template #default="scope">
                 {{ scope.row.stock || '0' }}
@@ -1499,6 +1528,20 @@ const formatJson = (json: any) => {
   if (!json) return ''
   return JSON.stringify(json, null, 2)
 }
+
+// 获取主要库存位置
+const getMainLocation = (product: any) => {
+  if (!product.inventoryLocations || product.inventoryLocations.length === 0) {
+    return '未指定'
+  }
+  
+  // 找出库存最多的位置
+  const mainLocation = [...(product.inventoryLocations || [])].sort((a, b) => 
+    (b.quantity || 0) - (a.quantity || 0)
+  )[0]
+  
+  return mainLocation ? `${mainLocation.name} (${mainLocation.quantity || 0})` : '未指定'
+}
 </script>
 
 <style scoped>
@@ -1690,6 +1733,40 @@ const formatJson = (json: any) => {
 }
 
 .sync-stock-hover {
+  cursor: pointer;
+  color: #409eff;
+}
+
+.inventory-location-detail {
+  padding: 10px;
+}
+
+.location-item {
+  margin-bottom: 5px;
+  display: flex;
+  justify-content: space-between;
+}
+
+.location-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: #303133;
+}
+
+.location-quantity {
+  font-size: 14px;
+  color: #409eff;
+  font-weight: 500;
+}
+
+.no-location {
+  color: #909399;
+  font-size: 13px;
+  text-align: center;
+  padding: 5px 0;
+}
+
+.inventory-location-hover {
   cursor: pointer;
   color: #409eff;
 }

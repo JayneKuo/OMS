@@ -80,6 +80,10 @@ export interface ProductData {
     value: number;
     method?: 'percent' | 'fixed';
   };
+  inventoryLocations?: Array<{
+    name: string;
+    quantity: number;
+  }>;
 }
 
 // 库存数据

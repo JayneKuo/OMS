@@ -331,7 +331,12 @@ export const productList: ProductData[] = [
     syncRule: {
       type: 'percent',
       value: 80
-    }
+    },
+    inventoryLocations: [
+      { name: '上海仓', quantity: 25 },
+      { name: '北京仓', quantity: 15 },
+      { name: '广州仓', quantity: 5 }
+    ]
   },
   {
     sku: 'SKU001',
@@ -357,7 +362,11 @@ export const productList: ProductData[] = [
     syncRule: {
       type: 'fixed',
       value: 100
-    }
+    },
+    inventoryLocations: [
+      { name: '欧洲仓', quantity: 18 },
+      { name: '美国仓', quantity: 7 }
+    ]
   },
   {
     sku: 'SKU001',
@@ -381,7 +390,11 @@ export const productList: ProductData[] = [
       type: 'reduce',
       value: 10,
       method: 'percent'
-    }
+    },
+    inventoryLocations: [
+      { name: '美国仓', quantity: 12 },
+      { name: '加州仓', quantity: 3 }
+    ]
   },
   {
     sku: 'SKU002',
@@ -408,7 +421,11 @@ export const productList: ProductData[] = [
       type: 'reduce',
       value: 50,
       method: 'fixed'
-    }
+    },
+    inventoryLocations: [
+      { name: '英国仓', quantity: 14 },
+      { name: '美国仓', quantity: 8 }
+    ]
   },
   {
     sku: 'SKU003',
@@ -428,7 +445,10 @@ export const productList: ProductData[] = [
     syncRule: {
       type: 'percent',
       value: 90
-    }
+    },
+    inventoryLocations: [
+      { name: '主仓库', quantity: 7 }
+    ]
   },
   {
     sku: 'SKU004',
@@ -448,7 +468,11 @@ export const productList: ProductData[] = [
     syncRule: {
       type: 'percent',
       value: 90
-    }
+    },
+    inventoryLocations: [
+      { name: '德州仓', quantity: 10 },
+      { name: '纽约仓', quantity: 8 }
+    ]
   },
   {
     sku: 'SKU005',
@@ -462,7 +486,10 @@ export const productList: ProductData[] = [
     customerName: '客户A',
     stock: 25,
     wmsStock: 38,
-    store: 'US Store'
+    store: 'US Store',
+    inventoryLocations: [
+      { name: '中心仓库', quantity: 38 }
+    ]
   },
   // 新增商品数据
   {
@@ -477,7 +504,10 @@ export const productList: ProductData[] = [
     customerName: '客户A',
     stock: 8,
     wmsStock: 10,
-    store: 'US Store'
+    store: 'US Store',
+    inventoryLocations: [
+      { name: '加州配送中心', quantity: 10 }
+    ]
   },
   {
     sku: 'SKU011',
@@ -491,7 +521,11 @@ export const productList: ProductData[] = [
     customerName: '客户C',
     stock: 15,
     wmsStock: 20,
-    store: 'US Store'
+    store: 'US Store',
+    inventoryLocations: [
+      { name: '南方仓', quantity: 12 },
+      { name: '北方仓', quantity: 8 }
+    ]
   },
   {
     sku: 'SKU012',
