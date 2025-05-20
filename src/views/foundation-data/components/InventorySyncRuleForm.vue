@@ -42,53 +42,59 @@
         </el-select>
       </el-form-item>
       
-      <!-- 库存来源 - 修改为只展示DI配置的仓库信息，不允许用户选择 -->
-      <el-form-item label="Inventory Source" prop="inventorySource">
-        <div v-if="!form.channelStoreId" class="di-notice warning-notice">
-          <el-alert
-            type="warning"
-            :closable="false"
-            show-icon
+      <!-- 库存来源 -->
+      <el-form-item label="Inventory Source" prop="warehouseIds">
+        <div class="warehouse-selector">
+          <el-select 
+            v-model="form.warehouseIds" 
+            multiple 
+            collapse-tags 
+            collapse-tags-tooltip
+            class="w-full" 
+            placeholder="请选择仓库" 
           >
-            <template #default>
-              <p>Please select a channel store to load warehouse configuration.</p>
-            </template>
-          </el-alert>
-        </div>
-        
-        <div v-else-if="diLoading" class="di-loading">
-          <el-skeleton style="width: 100%" animated>
-            <template #template>
-              <div style="padding: 14px;">
-                <el-skeleton-item variant="text" style="width: 100%; margin-bottom: 8px;" />
-                <el-skeleton-item variant="text" style="width: 90%; margin-bottom: 8px;" />
-                <el-skeleton-item variant="text" style="width: 80%;" />
+            <el-option
+              key="all"
+              label="全部仓库"
+              value="all"
+              @click.native="handleSelectAll"
+            >
+              <div class="warehouse-option">
+                <el-icon><House /></el-icon>
+                <span>全部仓库</span>
               </div>
-            </template>
-          </el-skeleton>
-        </div>
-        
-        <div v-else class="inventory-source-direct">
-          <div class="source-type-row">
-            <div class="source-type" :class="form.inventorySource === 'all' ? 'all-source' : 'specific-source'">
-              {{ form.inventorySource === 'all' ? 'All Warehouses' : 'Specific Warehouses' }}
-            </div>
-            <div class="di-source">
-              <el-icon><Connection /></el-icon>
-              <span>From DI Configuration</span>
+            </el-option>
+            
+            <el-option
+              v-for="warehouse in allWarehouses"
+              :key="warehouse.id"
+              :label="warehouse.name"
+              :value="warehouse.id"
+            >
+              <div class="warehouse-option">
+                <el-icon><House /></el-icon>
+                <span>{{ warehouse.name }}</span>
+                <span class="warehouse-code">({{ warehouse.code }})</span>
+              </div>
+            </el-option>
+          </el-select>
+          
+          <div v-if="showAllWarehouses" class="all-warehouses">
+            <div class="warehouses-list">
+              {{ allWarehouses.map(w => w.name).join('、') }}
             </div>
           </div>
           
-          <div class="warehouses-row">
-            <div v-if="form.inventorySource === 'all'" class="warehouse-list">
-              {{ props.warehouses.map((w: Warehouse) => w.name).join(', ') }}
-            </div>
-            <div v-else-if="form.warehouseIds.length > 0" class="warehouse-list">
-              {{ form.warehouseIds.map((id: string) => getWarehouseName(id)).join(', ') }}
-            </div>
-            <div v-else class="warehouse-list empty">
-              No warehouses selected in DI configuration
-            </div>
+          <div v-else-if="form.warehouseIds.length > 0" class="selected-warehouses">
+            <el-tag 
+              v-for="id in form.warehouseIds" 
+              :key="id" 
+              closable 
+              size="small"
+              @close="removeWarehouse(id)"
+            >
+              {{ getWarehouseName(id) }}
+            </el-tag>
           </div>
         </div>
       </el-form-item>
@@ -385,10 +391,8 @@ watch(() => props.visible, (val) => {
     form.syncMode = rule.syncMode;
     form.status = rule.status !== undefined ? rule.status : true;
     
-    // 如果有channelStoreId，自动加载DI配置
-    if (rule.channelStoreId) {
-      loadDIConfiguration(rule.channelStoreId);
-    }
+    // 设置是否全选
+    selectAllWarehouses.value = rule.inventorySource === 'all';
   } else if (val) {
     // 新建模式：重置表单
     resetForm();
@@ -412,70 +416,31 @@ function getChannelTypeName(type: string): string {
   return channelMap[type] || type
 }
 
-// 添加DI配置加载状态和选中Store的DI配置
-const diLoading = ref(false);
-const selectedStoreDIConfig = ref<{
-  inventorySource: 'all' | 'specific',
-  warehouseIds: string[]
-} | null>(null);
+// 添加计算属性判断是否选择所有仓库
+const selectAllWarehouses = ref(false);
 
-// 更新店铺选择变更方法
-async function handleStoreChange(storeId: string) {
-  const storeObj = props.channelStores.find(s => s.id === storeId);
-  if (storeObj) {
-    form.channelType = storeObj.channelType;
-    form.storeName = storeObj.storeName;
-    form.storeIcon = storeObj.storeIcon || '';
-    
-    // 重置以前的DI配置
-    selectedStoreDIConfig.value = null;
-    
-    // 加载新选中store的DI配置
-    await loadDIConfiguration(storeId);
-  }
-}
-
-// 从DI加载仓库配置
-async function loadDIConfiguration(storeId: string) {
-  diLoading.value = true;
-  selectedStoreDIConfig.value = null;
-  
-  try {
-    // 模拟API调用延迟
-    await new Promise(resolve => setTimeout(resolve, 1200));
-    
-    // 查找store及其DI配置
-    const store = props.channelStores.find(s => s.id === storeId);
-    if (store?.diConfig) {
-      selectedStoreDIConfig.value = {
-        inventorySource: store.diConfig.inventorySource,
-        warehouseIds: [...store.diConfig.warehouseIds]
-      };
-      
-      // 自动设置表单中的库存来源和仓库，不允许用户修改
-      form.inventorySource = store.diConfig.inventorySource;
-      form.warehouseIds = store.diConfig.inventorySource === 'specific' && store.diConfig.warehouseIds.length 
-        ? [...store.diConfig.warehouseIds] 
-        : [];
-      
-      ElMessage.success('仓库配置已从DI加载');
-    } else {
-      // 默认配置
-      selectedStoreDIConfig.value = {
-        inventorySource: 'all',
-        warehouseIds: []
-      };
+// 监听warehouseIds变化
+watch(() => form.warehouseIds, (newIds) => {
+  // 检查是否包含'all'值
+  if (newIds.includes('all')) {
+    // 移除'all'并添加所有仓库ID
+    const warehouseIds = props.warehouses.map(w => w.id);
+    form.warehouseIds = warehouseIds;
+    form.inventorySource = 'all';
+    selectAllWarehouses.value = true;
+  } else {
+    // 检查是否选择了所有仓库
+    const allWarehouseIds = props.warehouses.map(w => w.id);
+    if (newIds.length === allWarehouseIds.length && 
+        allWarehouseIds.every(id => newIds.includes(id))) {
+      selectAllWarehouses.value = true;
       form.inventorySource = 'all';
-      form.warehouseIds = [];
-      ElMessage.info('未找到DI配置，使用默认配置（所有仓库）');
+    } else {
+      selectAllWarehouses.value = false;
+      form.inventorySource = 'specific';
     }
-  } catch (error) {
-    console.error('加载DI配置出错:', error);
-    ElMessage.error('无法从DI加载仓库配置');
-  } finally {
-    diLoading.value = false;
   }
-}
+});
 
 // 方法：重置表单
 function resetForm() {
@@ -491,8 +456,18 @@ function resetForm() {
   form.syncMode = 'proportion';
   form.status = true;
   
-  // 重置DI配置
-  selectedStoreDIConfig.value = null;
+  // 重置全选状态
+  selectAllWarehouses.value = false;
+}
+
+// 方法：处理全选仓库
+function handleSelectAll() {
+  // 清除之前的选择
+  form.warehouseIds = [];
+  // 添加所有仓库ID
+  form.warehouseIds = props.warehouses.map(w => w.id);
+  form.inventorySource = 'all';
+  selectAllWarehouses.value = true;
 }
 
 // 方法：提交表单
@@ -505,20 +480,15 @@ function submitForm() {
         return;
       }
       
-      // 确保warehouseIds与DI配置一致
-      if (selectedStoreDIConfig.value) {
-        form.inventorySource = selectedStoreDIConfig.value.inventorySource;
-        form.warehouseIds = selectedStoreDIConfig.value.inventorySource === 'specific' 
-          ? [...selectedStoreDIConfig.value.warehouseIds] 
-          : [];
-      }
+      // 设置inventorySource字段
+      form.inventorySource = selectAllWarehouses.value ? 'all' : 'specific';
       
       // 构造完整的规则对象
       const newRule: SyncRule = {
         id: props.rule?.id || '',
         channelType: selectedStore.channelType,
-        channelStoreId: form.channelStoreId,
         storeName: selectedStore.storeName,
+        channelStoreId: form.channelStoreId,
         storeIcon: selectedStore.storeIcon,
         inventorySource: form.inventorySource,
         warehouseIds: form.warehouseIds,
@@ -546,11 +516,6 @@ function getWarehouseCode(warehouseId: string): string {
   return warehouse ? warehouse.code : ''
 }
 
-// 添加计算属性判断是否有DI配置
-const hasDIConfig = computed(() => {
-  return selectedStoreDIConfig.value !== null;
-})
-
 // 添加计算属性获取所有仓库
 const allWarehouses = computed(() => {
   return props.warehouses || [];
@@ -562,6 +527,34 @@ const selectedSpecificWarehouses = computed(() => {
     .map((id: string) => props.warehouses.find(w => w.id === id))
     .filter((w): w is Warehouse => w !== undefined);
 });
+
+// 添加计算属性判断是否有可用仓库
+const availableWarehouses = computed(() => {
+  if (selectAllWarehouses.value) {
+    return []; // 如果全选了，则返回空数组
+  }
+  return props.warehouses || [];
+});
+
+// 添加方法处理移除仓库
+function removeWarehouse(warehouseId: string) {
+  form.warehouseIds = form.warehouseIds.filter(id => id !== warehouseId);
+}
+
+// 添加计算属性判断是否显示全部仓库文本
+const showAllWarehouses = computed(() => {
+  return selectAllWarehouses.value;
+});
+
+// 更新店铺选择变更方法
+async function handleStoreChange(storeId: string) {
+  const storeObj = props.channelStores.find(s => s.id === storeId);
+  if (storeObj) {
+    form.channelType = storeObj.channelType;
+    form.storeName = storeObj.storeName;
+    form.storeIcon = storeObj.storeIcon || '';
+  }
+}
 </script>
 
 <style scoped>
@@ -668,11 +661,25 @@ const selectedSpecificWarehouses = computed(() => {
 .warehouse-tags {
   display: flex;
   flex-wrap: wrap;
-  gap: 5px;
+  margin-top: 8px;
+  margin-bottom: 8px;
 }
 
 .warehouse-tag {
-  margin-bottom: 3px;
+  margin-bottom: 6px;
+}
+
+.warehouses-names {
+  font-size: 14px;
+  color: #303133;
+  line-height: 1.5;
+  word-break: break-word;
+  max-height: 100px;
+  overflow-y: auto;
+  padding: 8px;
+  background-color: #f5f7fa;
+  border-radius: 4px;
+  margin-top: 8px;
 }
 
 .radio-options {
@@ -908,5 +915,92 @@ const selectedSpecificWarehouses = computed(() => {
 .option-desc {
   color: #606266;
   font-size: 14px;
+}
+
+.warehouse-select-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.select-all-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.selected-warehouses-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.source-type {
+  font-weight: 600;
+  font-size: 15px;
+}
+
+.warehouses-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.warehouses-total {
+  font-size: 14px;
+  color: #606266;
+  font-weight: 500;
+}
+
+.no-warehouses-selected {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 16px;
+}
+
+.warehouse-selector {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.select-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.el-select {
+  flex: 1;
+}
+
+.all-warehouses {
+  margin-top: 8px;
+  padding: 0;
+  color: #606266;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.all-warehouses span {
+  display: block;
+  margin-bottom: 4px;
+  font-weight: 500;
+  color: #303133;
+}
+
+.all-warehouses .warehouses-list {
+  max-height: 100px;
+  overflow-y: auto;
+  padding: 4px 0;
+  font-size: 14px;
+}
+
+.selected-warehouses {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
 }
 </style> 
