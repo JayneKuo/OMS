@@ -112,6 +112,18 @@
                 {{ keyword }}
               </el-tag>
             </div>
+            <div class="address-items mt-2" v-if="row.config.deliveryAddress.addresses.length">
+              <div v-for="(addr, idx) in row.config.deliveryAddress.addresses" :key="idx" class="address-item-display">
+                <el-tag 
+                  size="small" 
+                  type="success"
+                  class="mr-2"
+                >
+                  {{ addr.type }}
+                </el-tag>
+                {{ addr.value }}
+              </div>
+            </div>
           </div>
         </template>
       </el-table-column>
@@ -185,6 +197,25 @@
               <el-link type="primary" :underline="false">
                 {{ row.config.notifications.webhook.url }}
               </el-link>
+            </div>
+          </div>
+        </template>
+      </el-table-column>
+
+      <el-table-column label="Order Tags" min-width="150">
+        <template #default="{ row }">
+          <div class="tag-group">
+            <el-tag 
+              v-for="tag in row.config.orderTags.tags" 
+              :key="tag"
+              size="small"
+              type="warning"
+              class="mr-2"
+            >
+              {{ tag }}
+            </el-tag>
+            <div v-if="row.config.orderTags.tags.length > 0">
+              Logic: {{ row.config.orderTags.logic }}
             </div>
           </div>
         </template>
@@ -377,23 +408,252 @@
 
           <!-- 收货地址 -->
           <el-form-item label="Delivery Address">
-            <div class="address-filters">
-              <el-select
-                v-model="editDialog.currentRule.config.deliveryAddress.matchType"
-                placeholder="Match type"
-                class="match-type-select"
+            <!-- 添加的地址条件部分 -->
+            <div class="address-list">
+              <div class="address-list-header">
+                <div class="address-logic-selector">
+                  <span>Address Match Logic:</span>
+                  <el-select
+                    v-model="editDialog.currentRule.config.deliveryAddress.logic"
+                    style="width: 150px; margin-left: 10px; margin-right: 20px;"
+                  >
+                    <el-option
+                      v-for="type in LOGIC_TYPES"
+                      :key="type.value"
+                      :label="type.label"
+                      :value="type.value"
+                    />
+                  </el-select>
+                </div>
+                <el-button 
+                  type="primary" 
+                  size="small" 
+                  @click="addAddressCondition"
+                >
+                  Add Address Condition
+                </el-button>
+              </div>
+              
+              <div class="address-logic-explanation">
+                <span v-if="editDialog.currentRule.config.deliveryAddress.logic === 'AND'">
+                  <el-icon><InfoFilled /></el-icon> All conditions must match (AND logic)
+                </span>
+                <span v-else>
+                  <el-icon><InfoFilled /></el-icon> Any condition may match (OR logic)
+                </span>
+              </div>
+              
+              <div 
+                v-for="(addr, index) in editDialog.currentRule.config.deliveryAddress.addresses" 
+                :key="index"
+                class="address-item"
               >
-                <el-option
-                  v-for="type in MATCH_TYPES"
-                  :key="type.value"
-                  :label="type.label"
-                  :value="type.value"
-                />
-              </el-select>
+                <el-select
+                  v-model="addr.type"
+                  placeholder="Address Type"
+                  style="width: 140px"
+                >
+                  <el-option
+                    v-for="type in ADDRESS_TYPES"
+                    :key="type.value"
+                    :label="type.label"
+                    :value="type.value"
+                  />
+                </el-select>
+                
+                <!-- 国家选择 -->
+                <template v-if="addr.type === 'country'">
+                  <el-select
+                    v-model="addr.value"
+                    placeholder="Select Country"
+                    filterable
+                    style="flex: 1"
+                  >
+                    <el-option
+                      v-for="country in COUNTRIES"
+                      :key="country.value"
+                      :label="country.label"
+                      :value="country.value"
+                    />
+                  </el-select>
+                </template>
+                
+                <!-- 州/省选择 -->
+                <template v-else-if="addr.type === 'state'">
+                  <el-select
+                    v-model="addr.country"
+                    placeholder="Select Country"
+                    style="width: 120px"
+                    @change="(val: string) => { addr.value = ''; }"
+                  >
+                    <el-option
+                      v-for="country in COUNTRIES"
+                      :key="country.value"
+                      :label="country.label"
+                      :value="country.value"
+                    />
+                  </el-select>
+                  <el-select
+                    v-model="addr.value"
+                    placeholder="Select State"
+                    filterable
+                    style="flex: 1"
+                    :disabled="!addr.country"
+                  >
+                    <template v-if="addr.country === 'USA'">
+                      <el-option
+                        v-for="state in US_STATES"
+                        :key="state.value"
+                        :label="state.label"
+                        :value="state.value"
+                      />
+                    </template>
+                    <template v-else-if="addr.country === 'China'">
+                      <el-option
+                        v-for="state in CHINA_PROVINCES"
+                        :key="state.value"
+                        :label="state.label"
+                        :value="state.value"
+                      />
+                    </template>
+                    <template v-else-if="addr.country === 'Canada'">
+                      <el-option
+                        v-for="state in CANADA_PROVINCES"
+                        :key="state.value"
+                        :label="state.label"
+                        :value="state.value"
+                      />
+                    </template>
+                  </el-select>
+                </template>
+                
+                <!-- 城市选择 -->
+                <template v-else-if="addr.type === 'city'">
+                  <el-select
+                    v-model="addr.country"
+                    placeholder="Select Country"
+                    style="width: 120px"
+                    @change="(val: string) => { addr.state = ''; addr.value = ''; }"
+                  >
+                    <el-option
+                      v-for="country in COUNTRIES"
+                      :key="country.value"
+                      :label="country.label"
+                      :value="country.value"
+                    />
+                  </el-select>
+                  <el-select
+                    v-model="addr.state"
+                    placeholder="Select State"
+                    filterable
+                    style="width: 140px"
+                    :disabled="!addr.country"
+                    @change="(val: string) => { addr.value = ''; }"
+                  >
+                    <template v-if="addr.country === 'USA'">
+                      <el-option
+                        v-for="state in US_STATES"
+                        :key="state.value"
+                        :label="state.label"
+                        :value="state.value"
+                      />
+                    </template>
+                    <template v-else-if="addr.country === 'China'">
+                      <el-option
+                        v-for="state in CHINA_PROVINCES"
+                        :key="state.value"
+                        :label="state.label"
+                        :value="state.value"
+                      />
+                    </template>
+                    <template v-else-if="addr.country === 'Canada'">
+                      <el-option
+                        v-for="state in CANADA_PROVINCES"
+                        :key="state.value"
+                        :label="state.label"
+                        :value="state.value"
+                      />
+                    </template>
+                  </el-select>
+                  <el-select
+                    v-model="addr.value"
+                    placeholder="Select City"
+                    filterable
+                    style="flex: 1"
+                    :disabled="!addr.state"
+                  >
+                    <template v-if="addr.country === 'USA' && addr.state">
+                      <el-option
+                        v-for="city in addr.country === 'USA' ? (US_CITIES[addr.state as keyof typeof US_CITIES] || []) : []"
+                        :key="city.value"
+                        :label="city.label"
+                        :value="city.value"
+                      />
+                    </template>
+                    <template v-else-if="addr.country === 'China' && addr.state">
+                      <el-option
+                        v-for="city in addr.country === 'China' ? (CHINA_CITIES[addr.state as keyof typeof CHINA_CITIES] || []) : []"
+                        :key="city.value"
+                        :label="city.label"
+                        :value="city.value"
+                      />
+                    </template>
+                    <template v-else-if="addr.country === 'Canada' && addr.state">
+                      <el-option
+                        v-for="city in addr.country === 'Canada' ? (CANADA_CITIES[addr.state as keyof typeof CANADA_CITIES] || []) : []"
+                        :key="city.value"
+                        :label="city.label"
+                        :value="city.value"
+                      />
+                    </template>
+                  </el-select>
+                </template>
+                
+                <!-- 地址关键词选择 -->
+                <template v-else-if="addr.type === 'keyword'">
+                  <el-select
+                    v-model="addr.value"
+                    placeholder="Select Keyword"
+                    filterable
+                    allow-create
+                    style="flex: 1"
+                  >
+                    <el-option
+                      v-for="keyword in ADDRESS_KEYWORDS"
+                      :key="keyword.value"
+                      :label="keyword.label"
+                      :value="keyword.value"
+                    />
+                  </el-select>
+                </template>
+                
+                <!-- 其他地址类型输入 -->
+                <template v-else>
+                  <el-input
+                    v-model="addr.value"
+                    :placeholder="addr.type === 'full' ? 'Enter Full Address' : addr.type === 'zipcode' ? 'Enter Zip Code' : 'Enter Value'"
+                    style="flex: 1"
+                  />
+                </template>
+                
+                <el-button
+                  type="danger"
+                  @click="removeAddressCondition(index)"
+                >
+                  <el-icon><Delete /></el-icon>
+                </el-button>
+              </div>
+            </div>
+          </el-form-item>
+
+          <!-- 订单标签条件 -->
+          <el-form-item label="Order Tags">
+            <div class="tags-filter">
               <el-select
-                v-model="editDialog.currentRule.config.deliveryAddress.logic"
+                v-model="editDialog.currentRule.config.orderTags.logic"
                 placeholder="Logic"
                 class="logic-select"
+                style="width: 140px"
               >
                 <el-option
                   v-for="type in LOGIC_TYPES"
@@ -403,12 +663,13 @@
                 />
               </el-select>
               <el-select
-                v-model="editDialog.currentRule.config.deliveryAddress.keywords"
+                v-model="editDialog.currentRule.config.orderTags.tags"
                 multiple
                 filterable
                 allow-create
-                placeholder="Enter keywords"
-                class="keywords-input"
+                placeholder="Enter order tags"
+                class="tags-input"
+                style="flex: 1"
               />
             </div>
           </el-form-item>
@@ -543,7 +804,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Warning, Plus, Delete, Sort, Document, Bell } from '@element-plus/icons-vue'
+import { Warning, Plus, Delete, Sort, Document, Bell, InfoFilled } from '@element-plus/icons-vue'
 
 // Types
 interface AddressRule {
@@ -551,6 +812,12 @@ interface AddressRule {
   matchType: 'fuzzy' | 'exact';
   logic: 'AND' | 'OR';
   regions: string[];
+  addresses: Array<{
+    type: 'country' | 'full' | 'state' | 'city' | 'zipcode' | 'keyword';
+    value: string;
+    country?: string; // 州/城市所属的国家
+    state?: string;   // 城市所属的州
+  }>;
 }
 
 interface SKURule {
@@ -561,6 +828,12 @@ interface SKURule {
     min: number | null;
     max: number | null;
   };
+}
+
+// 添加订单标签规则接口
+interface OrderTagRule {
+  tags: string[];
+  logic: 'AND' | 'OR';
 }
 
 interface Notification {
@@ -579,6 +852,8 @@ interface RuleConfig {
     list: string[];
   };
   skus: SKURule;
+  // 添加订单标签规则
+  orderTags: OrderTagRule;
   notifications: Notification;
   mutuallyExclusive: boolean;
   holdMode: 'permanent' | 'duration' | 'dateRange';
@@ -608,6 +883,212 @@ const LOGIC_TYPES = [
   { label: 'Match Any (OR)', value: 'OR' },
   { label: 'Match All (AND)', value: 'AND' }
 ]
+
+const ADDRESS_TYPES = [
+  { label: 'Country', value: 'country' },
+  { label: 'Full Address', value: 'full' },
+  { label: 'State/Province', value: 'state' },
+  { label: 'City', value: 'city' },
+  { label: 'Zip Code', value: 'zipcode' },
+  { label: 'Address Keyword', value: 'keyword' }
+]
+
+// 添加国家列表
+const COUNTRIES = [
+  { label: 'USA', value: 'USA' },
+  { label: 'China', value: 'China' },
+  { label: 'Canada', value: 'Canada' },
+  { label: 'UK', value: 'UK' },
+  { label: 'Germany', value: 'Germany' },
+  { label: 'France', value: 'France' },
+  { label: 'Japan', value: 'Japan' },
+  { label: 'Australia', value: 'Australia' }
+]
+
+// 添加美国州列表
+const US_STATES = [
+  { label: 'Alabama', value: 'Alabama' },
+  { label: 'Alaska', value: 'Alaska' },
+  { label: 'Arizona', value: 'Arizona' },
+  { label: 'Arkansas', value: 'Arkansas' },
+  { label: 'California', value: 'California' },
+  { label: 'Colorado', value: 'Colorado' },
+  { label: 'Connecticut', value: 'Connecticut' },
+  { label: 'Delaware', value: 'Delaware' },
+  { label: 'Florida', value: 'Florida' },
+  { label: 'Georgia', value: 'Georgia' },
+  { label: 'Hawaii', value: 'Hawaii' },
+  { label: 'Idaho', value: 'Idaho' },
+  { label: 'Illinois', value: 'Illinois' },
+  { label: 'Indiana', value: 'Indiana' },
+  { label: 'Iowa', value: 'Iowa' },
+  { label: 'Kansas', value: 'Kansas' },
+  { label: 'Kentucky', value: 'Kentucky' },
+  { label: 'Louisiana', value: 'Louisiana' },
+  { label: 'Maine', value: 'Maine' },
+  { label: 'Maryland', value: 'Maryland' },
+  { label: 'Massachusetts', value: 'Massachusetts' },
+  { label: 'Michigan', value: 'Michigan' },
+  { label: 'Minnesota', value: 'Minnesota' },
+  { label: 'Mississippi', value: 'Mississippi' },
+  { label: 'Missouri', value: 'Missouri' },
+  { label: 'Montana', value: 'Montana' },
+  { label: 'Nebraska', value: 'Nebraska' },
+  { label: 'Nevada', value: 'Nevada' },
+  { label: 'New Hampshire', value: 'New Hampshire' },
+  { label: 'New Jersey', value: 'New Jersey' },
+  { label: 'New Mexico', value: 'New Mexico' },
+  { label: 'New York', value: 'New York' },
+  { label: 'North Carolina', value: 'North Carolina' },
+  { label: 'North Dakota', value: 'North Dakota' },
+  { label: 'Ohio', value: 'Ohio' },
+  { label: 'Oklahoma', value: 'Oklahoma' },
+  { label: 'Oregon', value: 'Oregon' },
+  { label: 'Pennsylvania', value: 'Pennsylvania' },
+  { label: 'Rhode Island', value: 'Rhode Island' },
+  { label: 'South Carolina', value: 'South Carolina' },
+  { label: 'South Dakota', value: 'South Dakota' },
+  { label: 'Tennessee', value: 'Tennessee' },
+  { label: 'Texas', value: 'Texas' },
+  { label: 'Utah', value: 'Utah' },
+  { label: 'Vermont', value: 'Vermont' },
+  { label: 'Virginia', value: 'Virginia' },
+  { label: 'Washington', value: 'Washington' },
+  { label: 'West Virginia', value: 'West Virginia' },
+  { label: 'Wisconsin', value: 'Wisconsin' },
+  { label: 'Wyoming', value: 'Wyoming' }
+]
+
+// 美国主要城市数据（示例数据）
+const US_CITIES = {
+  'California': [
+    { label: 'Los Angeles', value: 'Los Angeles' },
+    { label: 'San Francisco', value: 'San Francisco' },
+    { label: 'San Diego', value: 'San Diego' },
+    { label: 'San Jose', value: 'San Jose' },
+    { label: 'Sacramento', value: 'Sacramento' }
+  ],
+  'New York': [
+    { label: 'New York City', value: 'New York City' },
+    { label: 'Buffalo', value: 'Buffalo' },
+    { label: 'Rochester', value: 'Rochester' },
+    { label: 'Syracuse', value: 'Syracuse' },
+    { label: 'Albany', value: 'Albany' }
+  ],
+  'Texas': [
+    { label: 'Houston', value: 'Houston' },
+    { label: 'Dallas', value: 'Dallas' },
+    { label: 'Austin', value: 'Austin' },
+    { label: 'San Antonio', value: 'San Antonio' },
+    { label: 'Fort Worth', value: 'Fort Worth' }
+  ],
+  'Florida': [
+    { label: 'Miami', value: 'Miami' },
+    { label: 'Orlando', value: 'Orlando' },
+    { label: 'Tampa', value: 'Tampa' },
+    { label: 'Jacksonville', value: 'Jacksonville' },
+    { label: 'Tallahassee', value: 'Tallahassee' }
+  ]
+}
+
+// 常见地址关键词
+const ADDRESS_KEYWORDS = [
+  { label: 'PO BOX', value: 'PO BOX' },
+  { label: 'P.O. BOX', value: 'P.O. BOX' },
+  { label: 'APT', value: 'APT' },
+  { label: 'APARTMENT', value: 'APARTMENT' },
+  { label: 'SUITE', value: 'SUITE' },
+  { label: 'STE', value: 'STE' },
+  { label: 'UNIT', value: 'UNIT' },
+  { label: 'FLOOR', value: 'FLOOR' },
+  { label: 'FL', value: 'FL' },
+  { label: 'BUILDING', value: 'BUILDING' },
+  { label: 'BLDG', value: 'BLDG' }
+]
+
+// 添加中国省份列表
+const CHINA_PROVINCES = [
+  { label: 'Beijing', value: 'Beijing' },
+  { label: 'Shanghai', value: 'Shanghai' },
+  { label: 'Guangdong', value: 'Guangdong' },
+  { label: 'Jiangsu', value: 'Jiangsu' },
+  { label: 'Zhejiang', value: 'Zhejiang' },
+  { label: 'Sichuan', value: 'Sichuan' },
+  { label: 'Shandong', value: 'Shandong' },
+  { label: 'Henan', value: 'Henan' },
+  { label: 'Hubei', value: 'Hubei' },
+  { label: 'Fujian', value: 'Fujian' }
+]
+
+// 添加加拿大省份列表
+const CANADA_PROVINCES = [
+  { label: 'Ontario', value: 'Ontario' },
+  { label: 'Quebec', value: 'Quebec' },
+  { label: 'British Columbia', value: 'British Columbia' },
+  { label: 'Alberta', value: 'Alberta' },
+  { label: 'Manitoba', value: 'Manitoba' },
+  { label: 'Saskatchewan', value: 'Saskatchewan' },
+  { label: 'Nova Scotia', value: 'Nova Scotia' },
+  { label: 'New Brunswick', value: 'New Brunswick' },
+  { label: 'Newfoundland and Labrador', value: 'Newfoundland and Labrador' },
+  { label: 'Prince Edward Island', value: 'Prince Edward Island' }
+]
+
+// 中国城市数据
+const CHINA_CITIES = {
+  'Guangdong': [
+    { label: 'Guangzhou', value: 'Guangzhou' },
+    { label: 'Shenzhen', value: 'Shenzhen' },
+    { label: 'Dongguan', value: 'Dongguan' },
+    { label: 'Foshan', value: 'Foshan' },
+    { label: 'Zhuhai', value: 'Zhuhai' }
+  ],
+  'Beijing': [
+    { label: 'Beijing', value: 'Beijing' }
+  ],
+  'Shanghai': [
+    { label: 'Shanghai', value: 'Shanghai' }
+  ],
+  'Jiangsu': [
+    { label: 'Nanjing', value: 'Nanjing' },
+    { label: 'Suzhou', value: 'Suzhou' },
+    { label: 'Wuxi', value: 'Wuxi' },
+    { label: 'Changzhou', value: 'Changzhou' },
+    { label: 'Yangzhou', value: 'Yangzhou' }
+  ],
+  'Zhejiang': [
+    { label: 'Hangzhou', value: 'Hangzhou' },
+    { label: 'Ningbo', value: 'Ningbo' },
+    { label: 'Wenzhou', value: 'Wenzhou' },
+    { label: 'Shaoxing', value: 'Shaoxing' },
+    { label: 'Jinhua', value: 'Jinhua' }
+  ]
+}
+
+// 加拿大城市数据
+const CANADA_CITIES = {
+  'Ontario': [
+    { label: 'Toronto', value: 'Toronto' },
+    { label: 'Ottawa', value: 'Ottawa' },
+    { label: 'Mississauga', value: 'Mississauga' },
+    { label: 'Hamilton', value: 'Hamilton' },
+    { label: 'London', value: 'London' }
+  ],
+  'Quebec': [
+    { label: 'Montreal', value: 'Montreal' },
+    { label: 'Quebec City', value: 'Quebec City' },
+    { label: 'Laval', value: 'Laval' },
+    { label: 'Gatineau', value: 'Gatineau' },
+    { label: 'Longueuil', value: 'Longueuil' }
+  ],
+  'British Columbia': [
+    { label: 'Vancouver', value: 'Vancouver' },
+    { label: 'Victoria', value: 'Victoria' },
+    { label: 'Surrey', value: 'Surrey' },
+    { label: 'Burnaby', value: 'Burnaby' },
+    { label: 'Richmond', value: 'Richmond' }
+  ]
+}
 
 // State
 const viewMode = ref('list')
@@ -712,7 +1193,11 @@ const holdRules = ref([
         keywords: ['上海', '北京'],
         matchType: 'fuzzy',
         logic: 'OR',
-        regions: []
+        regions: [],
+        addresses: [
+          { type: 'city' as const, value: '上海', country: 'China', state: '' },
+          { type: 'city' as const, value: '北京', country: 'China', state: '' }
+        ]
       },
       warehouse: {
         list: ['WH001', 'WH002']
@@ -725,6 +1210,10 @@ const holdRules = ref([
           min: 5000,
           max: null
         }
+      },
+      orderTags: {
+        tags: ['VIP', 'premium'],
+        logic: 'OR'
       },
       notifications: {
         emails: ['vip@example.com', 'manager@example.com'],
@@ -754,7 +1243,11 @@ const holdRules = ref([
         keywords: ['USA', 'UK', 'Europe'],
         matchType: 'fuzzy',
         logic: 'OR',
-        regions: []
+        regions: [],
+        addresses: [
+          { type: 'state' as const, value: 'California', country: 'USA', state: '' },
+          { type: 'country' as const, value: 'UK', country: '', state: '' }
+        ]
       },
       warehouse: {
         list: ['WH003']
@@ -767,6 +1260,10 @@ const holdRules = ref([
           min: null,
           max: null
         }
+      },
+      orderTags: {
+        tags: ['international', 'priority'],
+        logic: 'AND'
       },
       notifications: {
         emails: ['overseas@example.com'],
@@ -794,7 +1291,8 @@ const holdRules = ref([
         keywords: [],
         matchType: 'fuzzy',
         logic: 'OR',
-        regions: []
+        regions: [],
+        addresses: []
       },
       warehouse: {
         list: ['WH001', 'WH002', 'WH003', 'WH004']
@@ -807,6 +1305,10 @@ const holdRules = ref([
           min: 10000,
           max: null
         }
+      },
+      orderTags: {
+        tags: ['high-value'],
+        logic: 'OR'
       },
       notifications: {
         emails: ['finance@example.com', 'audit@example.com', 'manager@example.com'],
@@ -839,7 +1341,8 @@ const createDefaultRule = (): Rule => ({
       keywords: [],
       matchType: 'fuzzy',
       logic: 'OR',
-      regions: []
+      regions: [],
+      addresses: []
     },
     warehouse: {
       list: []
@@ -853,12 +1356,17 @@ const createDefaultRule = (): Rule => ({
         max: null
       }
     },
+    // 添加订单标签规则默认值
+    orderTags: {
+      tags: [],
+      logic: 'OR'
+    },
     notifications: {
       emails: [],
       webhook: null
     },
     mutuallyExclusive: false,
-    holdMode: 'custom',
+    holdMode: 'permanent',
     holdDuration: {
       value: 24,
       unit: 'hours'
@@ -984,7 +1492,52 @@ const resetAllRules = () => {
       type: 'warning'
     }
   ).then(() => {
-    holdRules.value = [createDefaultRule()]
+    // 使用示例规则来重置
+    holdRules.value = [{
+      id: `rule_${Date.now()}`,
+      name: 'Default Rule',
+      enabled: false,
+      triggerCount: 0,
+      lastTriggered: '',
+      config: {
+        priority: 0,
+        orderSource: [],
+        deliveryAddress: {
+          keywords: [],
+          matchType: 'fuzzy',
+          logic: 'OR',
+          regions: [],
+          addresses: []
+        },
+        warehouse: {
+          list: []
+        },
+        skus: {
+          list: [],
+          categories: [],
+          brands: [],
+          priceRange: {
+            min: null,
+            max: null
+          }
+        },
+        orderTags: {
+          tags: [],
+          logic: 'OR'
+        },
+        notifications: {
+          emails: [],
+          webhook: null
+        },
+        mutuallyExclusive: false,
+        holdMode: 'permanent',
+        holdDuration: {
+          value: 24,
+          unit: 'hours'
+        },
+        holdDateRange: null
+      }
+    }];
     ElMessage.success('All rules reset')
   })
 }
@@ -1087,6 +1640,23 @@ const addEmail = () => {
 const removeEmail = (index: number) => {
   if (!editDialog.value.currentRule) return
   editDialog.value.currentRule.config.notifications.emails.splice(index, 1)
+}
+
+// 添加地址条件
+const addAddressCondition = () => {
+  if (!editDialog.value.currentRule) return
+  editDialog.value.currentRule.config.deliveryAddress.addresses.push({
+    type: 'full',
+    value: '',
+    country: '',
+    state: ''
+  })
+}
+
+// 删除地址条件
+const removeAddressCondition = (index: number) => {
+  if (!editDialog.value.currentRule) return
+  editDialog.value.currentRule.config.deliveryAddress.addresses.splice(index, 1)
 }
 </script>
 
@@ -1313,6 +1883,21 @@ const removeEmail = (index: number) => {
   }
 }
 
+.address-items {
+  margin-top: 8px;
+  
+  .address-item-display {
+    display: flex;
+    align-items: center;
+    margin-bottom: 4px;
+    font-size: 12px;
+  }
+}
+
+.mt-2 {
+  margin-top: 8px;
+}
+
 .webhook-info {
   margin-top: 4px;
 }
@@ -1367,5 +1952,46 @@ const removeEmail = (index: number) => {
       flex: 1;
     }
   }
+}
+
+.address-list {
+  margin-top: 16px;
+  
+  .address-list-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    font-weight: 500;
+  }
+  
+  .address-logic-selector {
+    display: flex;
+    align-items: center;
+  }
+  
+  .address-logic-explanation {
+    margin-bottom: 12px;
+    color: #606266;
+    font-size: 13px;
+    
+    .el-icon {
+      margin-right: 5px;
+      color: #409EFF;
+    }
+  }
+  
+  .address-item {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 8px;
+    align-items: center;
+  }
+}
+
+.tags-filter {
+  display: flex;
+  gap: 12px;
+  align-items: center;
 }
 </style> 

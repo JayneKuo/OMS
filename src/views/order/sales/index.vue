@@ -62,18 +62,68 @@
       <div class="search-title">SEARCH BY</div>
       <el-form :model="searchForm" class="search-form">
         <el-form-item>
-          <el-input
-            v-model="searchForm.orderNo"
-            placeholder="Order No."
-            clearable
-          />
+          <div class="tags-input-wrapper">
+            <div class="tags-input-field">
+              <div class="tags-list-container">
+                <div class="tags-list" v-show="orderNoTags.length > 0">
+                  <el-tag 
+                    v-for="(tag, index) in orderNoTags" 
+                    :key="index" 
+                    closable 
+                    @close="removeOrderNoTag(tag)"
+                    size="small"
+                    class="tag-item"
+                    @click="editOrderNoTag(tag, index)"
+                  >
+                    {{ tag }}
+                  </el-tag>
+                  <span v-if="orderNoTags.length > 10" class="more-tags">
+                    +{{ orderNoTags.length - 10 }} more
+                  </span>
+                </div>
+                <input
+                  class="tags-input"
+                  v-model="orderNoInput"
+                  placeholder="Order No. (Press Enter to add multiple)"
+                  @keydown.enter.prevent="addOrderNoTag"
+                  @paste="handlePaste($event, 'orderNo')"
+                  ref="orderNoInputRef"
+                />
+              </div>
+            </div>
+          </div>
         </el-form-item>
         <el-form-item>
-          <el-input
-            v-model="searchForm.channelOrderNo"
-            placeholder="Channel Sales Order No."
-            clearable
-          />
+          <div class="tags-input-wrapper">
+            <div class="tags-input-field">
+              <div class="tags-list-container">
+                <div class="tags-list" v-show="channelOrderNoTags.length > 0">
+                  <el-tag 
+                    v-for="(tag, index) in channelOrderNoTags" 
+                    :key="index" 
+                    closable 
+                    @close="removeChannelOrderNoTag(tag)"
+                    size="small"
+                    class="tag-item"
+                    @click="editChannelOrderNoTag(tag, index)"
+                  >
+                    {{ tag }}
+                  </el-tag>
+                  <span v-if="channelOrderNoTags.length > 10" class="more-tags">
+                    +{{ channelOrderNoTags.length - 10 }} more
+                  </span>
+                </div>
+                <input
+                  class="tags-input"
+                  v-model="channelOrderNoInput"
+                  placeholder="Channel Sales Order No. (Press Enter to add multiple)"
+                  @keydown.enter.prevent="addChannelOrderNoTag"
+                  @paste="handlePaste($event, 'channelOrderNo')"
+                  ref="channelOrderNoInputRef"
+                />
+              </div>
+            </div>
+          </div>
         </el-form-item>
         <el-form-item>
           <el-select
@@ -238,17 +288,20 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed } from 'vue'
+import { ref, reactive, computed, onMounted, nextTick, watch } from 'vue'
 import {
   Download,
   Search,
   Refresh,
   Plus,
   Upload,
-  Document
+  Document,
+  ArrowDown,
+  ArrowUp,
+  Close
 } from '@element-plus/icons-vue'
 import type { FormInstance } from 'element-plus'
-import { OrderStatus, OrderAction, STATUS_CONFIG, type OrderItem } from './types'
+import { OrderStatus, OrderAction, STATUS_CONFIG, type OrderItem, FulfillmentMode } from './types'
 import ActionDialogs from './components/ActionDialogs.vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
@@ -262,6 +315,149 @@ const searchForm = reactive({
   carrier: '',
   onlySingleUnit: false
 })
+
+// 批量输入相关
+const orderNoInput = ref('')
+const channelOrderNoInput = ref('')
+const orderNoTags = ref<string[]>([])
+const channelOrderNoTags = ref<string[]>([])
+const orderNoInputRef = ref<HTMLInputElement | null>(null)
+const channelOrderNoInputRef = ref<HTMLInputElement | null>(null)
+const editingOrderNoIndex = ref(-1)
+const editingChannelOrderNoIndex = ref(-1)
+
+// 监听标签数量变化，检查是否需要显示更多标签
+const checkTagsOverflow = () => {
+  // 此函数保留以便将来可能的扩展
+  // 当前的实现中不再需要特别检查溢出，但函数调用保留在现有代码中
+}
+
+// 编辑订单号标签
+const editOrderNoTag = (tag: string, index: number) => {
+  // 将标签内容放入输入框
+  orderNoInput.value = tag
+  // 标记正在编辑的标签索引
+  editingOrderNoIndex.value = index
+  // 删除原标签
+  orderNoTags.value.splice(index, 1)
+  // 更新搜索表单
+  searchForm.orderNo = orderNoTags.value.join(',')
+  // 聚焦输入框
+  setTimeout(() => {
+    orderNoInputRef.value?.focus()
+  }, 10)
+}
+
+// 编辑渠道订单号标签
+const editChannelOrderNoTag = (tag: string, index: number) => {
+  // 将标签内容放入输入框
+  channelOrderNoInput.value = tag
+  // 标记正在编辑的标签索引
+  editingChannelOrderNoIndex.value = index
+  // 删除原标签
+  channelOrderNoTags.value.splice(index, 1)
+  // 更新搜索表单
+  searchForm.channelOrderNo = channelOrderNoTags.value.join(',')
+  // 聚焦输入框
+  setTimeout(() => {
+    channelOrderNoInputRef.value?.focus()
+  }, 10)
+}
+
+// 修改添加标签的函数，支持编辑模式
+const addOrderNoTag = () => {
+  const value = orderNoInput.value.trim()
+  if (value && !orderNoTags.value.includes(value)) {
+    // 如果是编辑模式，插入到原来的位置
+    if (editingOrderNoIndex.value >= 0) {
+      orderNoTags.value.splice(editingOrderNoIndex.value, 0, value)
+      editingOrderNoIndex.value = -1
+    } else {
+      orderNoTags.value.push(value)
+    }
+    searchForm.orderNo = orderNoTags.value.join(',')
+    orderNoInput.value = ''
+    // 自动触发搜索
+    fetchData()
+    // 检查是否需要显示更多标签
+    checkTagsOverflow()
+    // 保持焦点在输入框
+    setTimeout(() => {
+      orderNoInputRef.value?.focus()
+    }, 10)
+  }
+}
+
+// 修改添加渠道订单号标签的函数，支持编辑模式
+const addChannelOrderNoTag = () => {
+  const value = channelOrderNoInput.value.trim()
+  if (value && !channelOrderNoTags.value.includes(value)) {
+    // 如果是编辑模式，插入到原来的位置
+    if (editingChannelOrderNoIndex.value >= 0) {
+      channelOrderNoTags.value.splice(editingChannelOrderNoIndex.value, 0, value)
+      editingChannelOrderNoIndex.value = -1
+    } else {
+      channelOrderNoTags.value.push(value)
+    }
+    searchForm.channelOrderNo = channelOrderNoTags.value.join(',')
+    channelOrderNoInput.value = ''
+    // 自动触发搜索
+    fetchData()
+    // 检查是否需要显示更多标签
+    checkTagsOverflow()
+    // 保持焦点在输入框
+    setTimeout(() => {
+      channelOrderNoInputRef.value?.focus()
+    }, 10)
+  }
+}
+
+// 处理粘贴事件
+const handlePaste = (event: ClipboardEvent, type: 'orderNo' | 'channelOrderNo') => {
+  event.preventDefault()
+  const pasteText = event.clipboardData?.getData('text') || ''
+  if (!pasteText) return
+  
+  // 按行分割并过滤空行
+  const lines = pasteText.split(/[\n,;\s]+/).filter(line => line.trim())
+  
+  if (lines.length) {
+    if (type === 'orderNo') {
+      // 添加到订单号标签
+      lines.forEach(line => {
+        const trimmed = line.trim()
+        if (trimmed && !orderNoTags.value.includes(trimmed)) {
+          orderNoTags.value.push(trimmed)
+        }
+      })
+      searchForm.orderNo = orderNoTags.value.join(',')
+      // 检查是否需要显示展开按钮
+      checkTagsOverflow()
+      // 自动聚焦输入框
+      setTimeout(() => {
+        orderNoInputRef.value?.focus()
+      }, 10)
+    } else {
+      // 添加到渠道订单号标签
+      lines.forEach(line => {
+        const trimmed = line.trim()
+        if (trimmed && !channelOrderNoTags.value.includes(trimmed)) {
+          channelOrderNoTags.value.push(trimmed)
+        }
+      })
+      searchForm.channelOrderNo = channelOrderNoTags.value.join(',')
+      // 检查是否需要显示展开按钮
+      checkTagsOverflow()
+      // 自动聚焦输入框
+      setTimeout(() => {
+        channelOrderNoInputRef.value?.focus()
+      }, 10)
+    }
+    
+    // 自动触发搜索
+    fetchData()
+  }
+}
 
 // 选项数据
 const channelOptions = [
@@ -311,7 +507,9 @@ const mockTableData: OrderItem[] = [
     orderDate: '2024-03-19T07:55:00',
     grandTotal: 4.10,
     shipDate: null,
-    product: 'Product A'
+    product: 'Product A',
+    fulfillmentMode: FulfillmentMode.Manual,
+    subOrders: []
   },
   {
     id: '2',
@@ -328,7 +526,9 @@ const mockTableData: OrderItem[] = [
     orderDate: '2024-03-18T07:12:00',
     grandTotal: 13.00,
     shipDate: null,
-    product: 'Product B'
+    product: 'Product B',
+    fulfillmentMode: FulfillmentMode.Manual,
+    subOrders: []
   },
   {
     id: '3',
@@ -345,7 +545,9 @@ const mockTableData: OrderItem[] = [
     orderDate: '2024-03-18T08:30:00',
     grandTotal: 25.50,
     shipDate: null,
-    product: 'Product C'
+    product: 'Product C',
+    fulfillmentMode: FulfillmentMode.Manual,
+    subOrders: []
   },
   {
     id: '4',
@@ -362,7 +564,9 @@ const mockTableData: OrderItem[] = [
     orderDate: '2024-03-17T10:30:00',
     grandTotal: 45.99,
     shipDate: null,
-    product: 'Product D'
+    product: 'Product D',
+    fulfillmentMode: FulfillmentMode.Manual,
+    subOrders: []
   },
   {
     id: '5',
@@ -379,7 +583,9 @@ const mockTableData: OrderItem[] = [
     orderDate: '2024-03-16T15:20:00',
     grandTotal: 32.75,
     shipDate: null,
-    product: 'Product E'
+    product: 'Product E',
+    fulfillmentMode: FulfillmentMode.Manual,
+    subOrders: []
   },
   {
     id: '6',
@@ -396,7 +602,9 @@ const mockTableData: OrderItem[] = [
     orderDate: '2024-03-15T09:45:00',
     grandTotal: 67.50,
     shipDate: null,
-    product: 'Product F'
+    product: 'Product F',
+    fulfillmentMode: FulfillmentMode.Manual,
+    subOrders: []
   },
   {
     id: '7',
@@ -413,7 +621,9 @@ const mockTableData: OrderItem[] = [
     orderDate: '2024-03-14T14:15:00',
     grandTotal: 19.99,
     shipDate: null,
-    product: 'Product G'
+    product: 'Product G',
+    fulfillmentMode: FulfillmentMode.Manual,
+    subOrders: []
   },
   {
     id: '8',
@@ -430,7 +640,9 @@ const mockTableData: OrderItem[] = [
     orderDate: '2024-03-13T11:30:00',
     grandTotal: 88.25,
     shipDate: null,
-    product: 'Product H'
+    product: 'Product H',
+    fulfillmentMode: FulfillmentMode.Manual,
+    subOrders: []
   },
   {
     id: '9',
@@ -447,7 +659,9 @@ const mockTableData: OrderItem[] = [
     orderDate: '2024-03-12T16:20:00',
     grandTotal: 54.99,
     shipDate: '2024-03-13T10:00:00',
-    product: 'Product I'
+    product: 'Product I',
+    fulfillmentMode: FulfillmentMode.Manual,
+    subOrders: []
   },
   {
     id: '10',
@@ -464,7 +678,9 @@ const mockTableData: OrderItem[] = [
     orderDate: '2024-03-11T13:45:00',
     grandTotal: 129.99,
     shipDate: '2024-03-12T09:30:00',
-    product: 'Product J'
+    product: 'Product J',
+    fulfillmentMode: FulfillmentMode.Manual,
+    subOrders: []
   }
 ]
 
@@ -534,7 +750,10 @@ const getActionLabel = (action: OrderAction) => {
     [OrderAction.Cancel]: 'Cancel',
     [OrderAction.Edit]: 'Edit',
     [OrderAction.Deallocate]: 'Deallocate',
-    [OrderAction.Dispatch]: 'Dispatch'
+    [OrderAction.Dispatch]: 'Dispatch',
+    [OrderAction.Reopen]: 'Reopen',
+    [OrderAction.Split]: 'Split',
+    [OrderAction.Merge]: 'Merge'
   }
   return labels[action]
 }
@@ -724,6 +943,40 @@ const getReturnStatusType = (status?: ReturnOrderStatus) => {
   }
   return types[status] || ''
 }
+
+// 移除订单号标签
+const removeOrderNoTag = (tag: string) => {
+  const index = orderNoTags.value.indexOf(tag)
+  if (index > -1) {
+    orderNoTags.value.splice(index, 1)
+    searchForm.orderNo = orderNoTags.value.join(',')
+    // 自动触发搜索
+    fetchData()
+    // 检查是否需要显示更多标签
+    checkTagsOverflow()
+    // 保持焦点在输入框
+    setTimeout(() => {
+      orderNoInputRef.value?.focus()
+    }, 10)
+  }
+}
+
+// 移除渠道订单号标签
+const removeChannelOrderNoTag = (tag: string) => {
+  const index = channelOrderNoTags.value.indexOf(tag)
+  if (index > -1) {
+    channelOrderNoTags.value.splice(index, 1)
+    searchForm.channelOrderNo = channelOrderNoTags.value.join(',')
+    // 自动触发搜索
+    fetchData()
+    // 检查是否需要显示更多标签
+    checkTagsOverflow()
+    // 保持焦点在输入框
+    setTimeout(() => {
+      channelOrderNoInputRef.value?.focus()
+    }, 10)
+  }
+}
 </script>
 
 <style lang="scss" scoped>
@@ -788,6 +1041,112 @@ const getReturnStatusType = (status?: ReturnOrderStatus) => {
       
       .el-switch__label {
         color: var(--text-secondary);
+      }
+    }
+  }
+  
+  .tags-input-wrapper {
+    width: 100%;
+    
+    .tags-input-field {
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+      min-height: 36px;
+      height: 36px;
+      padding: 6px 12px;
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      background: var(--component-bg);
+      position: relative;
+      overflow: hidden;
+      transition: all 0.2s ease;
+      
+      &:focus-within {
+        height: auto;
+        min-height: 36px;
+        padding: 8px 12px;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 1px rgba(var(--el-color-primary-rgb), 0.2);
+      }
+      
+      .tags-list-container {
+        width: 100%;
+        position: relative;
+        
+        .tags-list {
+          display: flex;
+          flex-wrap: nowrap;
+          gap: 4px;
+          width: 100%;
+          overflow: hidden;
+          white-space: nowrap;
+          height: 24px;
+          align-items: center;
+          margin-bottom: 4px;
+          
+          &:empty {
+            margin-bottom: 0;
+            display: none;
+          }
+          
+          .tag-item {
+            flex-shrink: 0;
+            margin: 0 2px 0 0;
+            background-color: rgba(var(--el-color-primary-rgb), 0.1);
+            border-color: rgba(var(--el-color-primary-rgb), 0.2);
+            color: var(--primary-color);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            
+            &:hover {
+              background-color: rgba(var(--el-color-primary-rgb), 0.2);
+            }
+          }
+          
+          .more-tags {
+            display: inline-block;
+            margin-left: 4px;
+            font-size: 12px;
+            color: var(--primary-color);
+            font-weight: 500;
+            cursor: pointer;
+            align-self: center;
+            flex-shrink: 0;
+            
+            &:hover {
+              text-decoration: underline;
+            }
+          }
+        }
+        
+        .tags-input {
+          width: 100%;
+          border: none;
+          outline: none;
+          background: transparent;
+          height: 24px;
+          line-height: 24px;
+          color: var(--text-primary);
+          padding: 0;
+          font-size: 14px;
+          
+          &::placeholder {
+            color: var(--text-secondary);
+            opacity: 0.95;
+          }
+        }
+      }
+      
+      &:focus-within {
+        .tags-list-container {
+          .tags-list {
+            flex-wrap: wrap;
+            white-space: normal;
+            height: auto;
+            width: 100%;
+          }
+        }
       }
     }
   }
