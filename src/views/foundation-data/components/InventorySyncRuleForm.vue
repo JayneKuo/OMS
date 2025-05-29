@@ -99,6 +99,89 @@
         </div>
       </el-form-item>
       
+      <!-- 商品同步配置 -->
+      <el-form-item label="Product Sync" prop="productSyncMode">
+        <div class="radio-options">
+          <div class="radio-option">
+            <el-radio v-model="form.productSyncMode" label="all">All Products</el-radio>
+            <div class="option-desc">Sync inventory for all products in selected warehouses</div>
+          </div>
+          <div class="radio-option">
+            <el-radio v-model="form.productSyncMode" label="include">Include Specific Products</el-radio>
+            <div class="option-desc">Only sync inventory for selected products</div>
+          </div>
+          <div class="radio-option">
+            <el-radio v-model="form.productSyncMode" label="exclude">Exclude Specific Products</el-radio>
+            <div class="option-desc">Sync inventory for all products except selected ones</div>
+          </div>
+        </div>
+      </el-form-item>
+
+      <el-form-item 
+        v-if="form.productSyncMode !== 'all'" 
+        :label="form.productSyncMode === 'include' ? 'Select Products to Sync' : 'Select Products to Exclude'" 
+        prop="productIds"
+      >
+        <div class="product-selector">
+          <el-select 
+            v-model="form.productIds" 
+            multiple 
+            filterable 
+            remote 
+            reserve-keyword
+            :placeholder="form.productSyncMode === 'include' ? 'Search and select products to sync' : 'Search and select products to exclude'"
+            :remote-method="handleProductSearch"
+            :loading="productSearchLoading"
+            class="w-full"
+          >
+            <el-option
+              v-for="product in searchedProducts"
+              :key="product.id"
+              :label="product.name"
+              :value="product.id"
+            >
+              <div class="product-option">
+                <el-image 
+                  v-if="product.image" 
+                  :src="product.image" 
+                  class="product-image"
+                  :preview-src-list="[product.image]"
+                />
+                <div class="product-info">
+                  <div class="product-name">{{ product.name }}</div>
+                  <div class="product-details">
+                    <span class="product-sku">SKU: {{ product.sku }}</span>
+                    <span v-if="product.barcode" class="product-barcode">Barcode: {{ product.barcode }}</span>
+                  </div>
+                </div>
+              </div>
+            </el-option>
+          </el-select>
+          
+          <div v-if="form.productIds.length > 0" class="selected-products">
+            <div class="selected-count">{{ form.productIds.length }} products selected</div>
+            <div class="product-tags">
+              <el-tag 
+                v-for="product in selectedProductsList"
+                :key="product.id" 
+                closable 
+                size="small"
+                @close="removeProduct(product.id)"
+              >
+                <div class="product-tag-content">
+                  <el-image 
+                    v-if="product.image" 
+                    :src="product.image" 
+                    class="product-tag-image"
+                  />
+                  <span>{{ product.name }}</span>
+                </div>
+              </el-tag>
+            </div>
+          </div>
+        </div>
+      </el-form-item>
+      
       <!-- 同步方式 -->
       <el-form-item label="Sync Method" prop="syncType">
         <div class="radio-options">
@@ -269,6 +352,8 @@ interface SyncRule {
   status?: boolean
   createdTime?: string
   updatedTime?: string
+  productSyncMode: 'all' | 'include' | 'exclude'
+  productIds: string[]
 }
 
 // 反应式表单类型
@@ -284,6 +369,17 @@ interface FormState {
   syncValue: number
   syncMode: 'proportion' | 'deduction'
   status: boolean
+  productSyncMode: 'all' | 'include' | 'exclude'
+  productIds: string[]
+}
+
+// 商品相关的类型定义
+interface Product {
+  id: string
+  name: string
+  sku: string
+  barcode?: string
+  image?: string
 }
 
 // 定义组件属性
@@ -328,7 +424,9 @@ const form = reactive<FormState>({
   syncType: 'percentage',
   syncValue: 80,
   syncMode: 'proportion',
-  status: true
+  status: true,
+  productSyncMode: 'all',
+  productIds: []
 })
 
 // 表单验证规则
@@ -390,6 +488,8 @@ watch(() => props.visible, (val) => {
     form.syncValue = rule.syncValue;
     form.syncMode = rule.syncMode;
     form.status = rule.status !== undefined ? rule.status : true;
+    form.productSyncMode = rule.productSyncMode;
+    form.productIds = [...rule.productIds];
     
     // 设置是否全选
     selectAllWarehouses.value = rule.inventorySource === 'all';
@@ -455,9 +555,13 @@ function resetForm() {
   form.syncValue = 80;
   form.syncMode = 'proportion';
   form.status = true;
+  form.productSyncMode = 'all';
+  form.productIds = [];
   
   // 重置全选状态
   selectAllWarehouses.value = false;
+  selectedProducts.value.clear();
+  searchedProducts.value = [];
 }
 
 // 方法：处理全选仓库
@@ -495,7 +599,9 @@ function submitForm() {
         syncType: form.syncType,
         syncValue: form.syncValue,
         syncMode: form.syncMode,
-        status: form.status
+        status: form.status,
+        productSyncMode: form.productSyncMode,
+        productIds: form.productIds,
       };
       
       // 提交表单
@@ -554,6 +660,74 @@ async function handleStoreChange(storeId: string) {
     form.storeName = storeObj.storeName;
     form.storeIcon = storeObj.storeIcon || '';
   }
+}
+
+// 在script setup中添加相关的响应式变量和方法
+const productSearchLoading = ref(false)
+const searchedProducts = ref<Product[]>([])
+const selectedProducts = ref<Map<string, Product>>(new Map())
+
+// 计算属性：已选商品列表
+const selectedProductsList = computed(() => {
+  return Array.from(selectedProducts.value.values())
+})
+
+// 处理商品搜索
+async function handleProductSearch(query: string) {
+  if (query.length < 2) return
+  
+  productSearchLoading.value = true
+  try {
+    // 这里需要调用后端API进行商品搜索
+    // const response = await searchProducts(query)
+    // searchedProducts.value = response.data
+    // 模拟数据
+    await new Promise(resolve => setTimeout(resolve, 500))
+    searchedProducts.value = [
+      {
+        id: '1',
+        name: 'Test Product 1',
+        sku: 'TEST001',
+        barcode: '123456789',
+        image: 'https://placeholder.com/100'
+      },
+      {
+        id: '2',
+        name: 'Test Product 2',
+        sku: 'TEST002',
+        barcode: '987654321',
+        image: 'https://placeholder.com/100'
+      }
+    ]
+  } catch (error) {
+    console.error('Failed to search products:', error)
+    ElMessage.error('Failed to search products')
+  } finally {
+    productSearchLoading.value = false
+  }
+}
+
+// 监听选中的商品变化
+watch(() => form.productIds, (newIds) => {
+  // 更新已选商品Map
+  const newSelectedProducts = new Map()
+  newIds.forEach(id => {
+    if (selectedProducts.value.has(id)) {
+      newSelectedProducts.set(id, selectedProducts.value.get(id)!)
+    } else {
+      const product = searchedProducts.value.find(p => p.id === id)
+      if (product) {
+        newSelectedProducts.set(id, product)
+      }
+    }
+  })
+  selectedProducts.value = newSelectedProducts
+}, { deep: true })
+
+// 移除已选商品
+function removeProduct(productId: string) {
+  form.productIds = form.productIds.filter(id => id !== productId)
+  selectedProducts.value.delete(productId)
 }
 </script>
 
@@ -1002,5 +1176,82 @@ async function handleStoreChange(storeId: string) {
   flex-wrap: wrap;
   gap: 8px;
   margin-top: 8px;
+}
+
+.product-selector {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.product-option {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 0;
+}
+
+.product-image {
+  width: 40px;
+  height: 40px;
+  object-fit: cover;
+  border-radius: 4px;
+}
+
+.product-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.product-name {
+  font-size: 14px;
+  color: #303133;
+  font-weight: 500;
+}
+
+.product-details {
+  display: flex;
+  gap: 16px;
+}
+
+.product-sku,
+.product-barcode {
+  font-size: 12px;
+  color: #909399;
+}
+
+.selected-products {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.selected-count {
+  font-size: 13px;
+  color: #606266;
+}
+
+.product-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.product-tag-content {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.product-tag-image {
+  width: 16px;
+  height: 16px;
+  border-radius: 2px;
+}
+
+:deep(.el-select-dropdown__item) {
+  padding: 0 12px;
 }
 </style> 
