@@ -77,6 +77,56 @@
             </div>
           </template>
         </el-table-column>
+
+        <!-- 添加商品同步规则列 -->
+        <el-table-column 
+          prop="productSyncMode" 
+          label="Product Sync" 
+          min-width="180"
+        >
+          <template #default="{ row }">
+            <div class="product-sync">
+              <div class="sync-type" :class="row.productSyncMode === 'all' ? 'all-products' : row.productSyncMode === 'include' ? 'include-products' : 'exclude-products'">
+                {{ row.productSyncMode === 'all' ? 'All Products' : row.productSyncMode === 'include' ? 'Include Products' : 'Exclude Products' }}
+              </div>
+              
+              <div v-if="row.productSyncMode !== 'all'" class="product-list-simple">
+                <div class="product-count">
+                  {{ row.productIds.length }} products {{ row.productSyncMode === 'include' ? 'included' : 'excluded' }}
+                </div>
+                <el-popover
+                  placement="top"
+                  :width="300"
+                  trigger="hover"
+                >
+                  <template #reference>
+                    <el-link type="primary" class="view-products">View Products</el-link>
+                  </template>
+                  <template #default>
+                    <div class="products-popover">
+                      <div class="popover-title">
+                        {{ row.productSyncMode === 'include' ? 'Included Products' : 'Excluded Products' }}
+                      </div>
+                      <div class="product-items">
+                        <div v-for="productId in row.productIds" :key="productId" class="product-item">
+                          <el-image 
+                            v-if="getProductImage(productId)"
+                            :src="getProductImage(productId)"
+                            class="product-item-image"
+                          />
+                          <div class="product-item-info">
+                            <div class="product-item-name">{{ getProductName(productId) }}</div>
+                            <div class="product-item-sku">SKU: {{ getProductSku(productId) }}</div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </template>
+                </el-popover>
+              </div>
+            </div>
+          </template>
+        </el-table-column>
         
         <el-table-column prop="syncSetting" label="Sync Settings" min-width="180">
           <template #default="{ row }">
@@ -164,6 +214,8 @@ interface SyncRule {
   status?: boolean
   createdTime?: string
   updatedTime?: string
+  productSyncMode: 'all' | 'include' | 'exclude'
+  productIds: string[]
 }
 
 // 响应式状态
@@ -339,8 +391,36 @@ function formatDateTime(date: Date): string {
   return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
 }
 
-// 初始化数据
-onMounted(() => {
+// 添加商品相关的类型定义
+interface Product {
+  id: string
+  name: string
+  sku: string
+  barcode?: string
+  image?: string
+}
+
+// 添加商品数据缓存
+const productsCache = ref<Map<string, Product>>(new Map())
+
+// 添加获取商品信息的方法
+function getProductName(productId: string): string {
+  const product = productsCache.value.get(productId)
+  return product ? product.name : `Product ${productId}`
+}
+
+function getProductSku(productId: string): string {
+  const product = productsCache.value.get(productId)
+  return product ? product.sku : productId
+}
+
+function getProductImage(productId: string): string | undefined {
+  const product = productsCache.value.get(productId)
+  return product?.image
+}
+
+// 修改加载数据的方法
+onMounted(async () => {
   // 模拟加载渠道数据，包含DI配置
   channelStores.value = [
     { 
@@ -420,7 +500,9 @@ onMounted(() => {
       syncValue: 80,
       status: true,
       createdTime: '2023-06-15 14:30:00',
-      updatedTime: '2023-06-15 14:30:00'
+      updatedTime: '2023-06-15 14:30:00',
+      productSyncMode: 'include',
+      productIds: ['1', '2', '3']
     },
     {
       id: '2',
@@ -435,7 +517,9 @@ onMounted(() => {
       syncValue: 60,
       status: true,
       createdTime: '2023-06-16 09:15:00',
-      updatedTime: '2023-06-16 10:20:00'
+      updatedTime: '2023-06-16 10:20:00',
+      productSyncMode: 'exclude',
+      productIds: ['4']
     },
     {
       id: '3',
@@ -450,7 +534,9 @@ onMounted(() => {
       syncValue: 100,
       status: false,
       createdTime: '2023-06-17 16:45:00',
-      updatedTime: '2023-06-17 16:45:00'
+      updatedTime: '2023-06-17 16:45:00',
+      productSyncMode: 'all',
+      productIds: ['5', '6', '7']
     },
     {
       id: '4',
@@ -465,7 +551,9 @@ onMounted(() => {
       syncValue: 10,
       status: true,
       createdTime: '2023-06-18 10:30:00',
-      updatedTime: '2023-06-18 10:30:00'
+      updatedTime: '2023-06-18 10:30:00',
+      productSyncMode: 'exclude',
+      productIds: ['8']
     },
     {
       id: '5',
@@ -480,7 +568,9 @@ onMounted(() => {
       syncValue: 90,
       status: true,
       createdTime: '2023-07-01 08:15:00',
-      updatedTime: '2023-07-02 09:30:00'
+      updatedTime: '2023-07-02 09:30:00',
+      productSyncMode: 'include',
+      productIds: ['9', '10']
     },
     {
       id: '6',
@@ -495,9 +585,97 @@ onMounted(() => {
       syncValue: 50,
       status: false,
       createdTime: '2023-07-05 14:20:00',
-      updatedTime: '2023-07-05 14:20:00'
+      updatedTime: '2023-07-05 14:20:00',
+      productSyncMode: 'exclude',
+      productIds: ['11']
     }
   ]
+
+  // 模拟加载商品数据
+  const mockProducts: Product[] = [
+    {
+      id: '1',
+      name: 'Test Product 1',
+      sku: 'TEST001',
+      barcode: '123456789',
+      image: 'https://placeholder.com/100'
+    },
+    {
+      id: '2',
+      name: 'Test Product 2',
+      sku: 'TEST002',
+      barcode: '987654321',
+      image: 'https://placeholder.com/100'
+    },
+    {
+      id: '3',
+      name: 'Test Product 3',
+      sku: 'TEST003',
+      barcode: '456789123',
+      image: 'https://placeholder.com/100'
+    },
+    {
+      id: '4',
+      name: 'Test Product 4',
+      sku: 'TEST004',
+      barcode: '123456789',
+      image: 'https://placeholder.com/100'
+    },
+    {
+      id: '5',
+      name: 'Test Product 5',
+      sku: 'TEST005',
+      barcode: '987654321',
+      image: 'https://placeholder.com/100'
+    },
+    {
+      id: '6',
+      name: 'Test Product 6',
+      sku: 'TEST006',
+      barcode: '456789123',
+      image: 'https://placeholder.com/100'
+    },
+    {
+      id: '7',
+      name: 'Test Product 7',
+      sku: 'TEST007',
+      barcode: '123456789',
+      image: 'https://placeholder.com/100'
+    },
+    {
+      id: '8',
+      name: 'Test Product 8',
+      sku: 'TEST008',
+      barcode: '987654321',
+      image: 'https://placeholder.com/100'
+    },
+    {
+      id: '9',
+      name: 'Test Product 9',
+      sku: 'TEST009',
+      barcode: '456789123',
+      image: 'https://placeholder.com/100'
+    },
+    {
+      id: '10',
+      name: 'Test Product 10',
+      sku: 'TEST010',
+      barcode: '123456789',
+      image: 'https://placeholder.com/100'
+    },
+    {
+      id: '11',
+      name: 'Test Product 11',
+      sku: 'TEST011',
+      barcode: '987654321',
+      image: 'https://placeholder.com/100'
+    }
+  ]
+
+  // 缓存商品数据
+  mockProducts.forEach(product => {
+    productsCache.value.set(product.id, product)
+  })
 })
 
 // 添加获取DI配置的方法
@@ -688,5 +866,100 @@ const getWarehouseNamesPreview = (rule: SyncRule): string => {
   font-weight: 500;
   color: #606266;
   text-align: center;
+}
+
+.product-sync {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sync-type {
+  font-weight: 600;
+  font-size: 14px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  display: inline-block;
+}
+
+.all-products {
+  color: #409eff;
+  background-color: rgba(64, 158, 255, 0.1);
+}
+
+.include-products {
+  color: #67c23a;
+  background-color: rgba(103, 194, 58, 0.1);
+}
+
+.exclude-products {
+  color: #e6a23c;
+  background-color: rgba(230, 162, 60, 0.1);
+}
+
+.product-list-simple {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.product-count {
+  font-size: 13px;
+  color: #606266;
+}
+
+.view-products {
+  font-size: 13px;
+}
+
+.products-popover {
+  padding: 8px;
+}
+
+.popover-title {
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #ebeef5;
+}
+
+.product-items {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.product-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.product-item:last-child {
+  border-bottom: none;
+}
+
+.product-item-image {
+  width: 32px;
+  height: 32px;
+  border-radius: 4px;
+  object-fit: cover;
+}
+
+.product-item-info {
+  flex: 1;
+}
+
+.product-item-name {
+  font-size: 13px;
+  color: #303133;
+  margin-bottom: 2px;
+}
+
+.product-item-sku {
+  font-size: 12px;
+  color: #909399;
 }
 </style> 
