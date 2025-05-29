@@ -208,6 +208,36 @@ const routes: RouteRecordRaw[] = [
             component: () => import('@/views/knowledge-base/EnhancedKnowledgeEditor.vue')
           }
         ]
+      },
+      {
+        path: '/data-reports',
+        name: 'DataReports',
+        component: () => import('@/layouts/RouterView.vue'),
+        meta: {
+          title: '数据报表'
+        },
+        children: [
+          {
+            path: '',
+            name: 'DataReportsOverview',
+            component: () => import('@/views/data-reports/index.vue')
+          },
+          {
+            path: 'sales-forecast',
+            name: 'SalesForecast',
+            component: () => import('@/views/data-reports/SalesForecast.vue')
+          },
+          {
+            path: 'sales-prediction',
+            name: 'SalesPrediction',
+            component: () => import('@/views/data-reports/SalesPrediction.vue')
+          },
+          {
+            path: 'slow-moving-rules',
+            name: 'SlowMovingRules',
+            component: () => import('@/views/data-reports/SlowMovingRules.vue')
+          }
+        ]
       }
     ]
   }

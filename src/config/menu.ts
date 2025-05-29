@@ -13,7 +13,10 @@ import {
   TrendCharts,
   Message,
   List,
-  Search
+  Search,
+  DataLine,
+  Timer,
+  Warning
 } from '@element-plus/icons-vue'
 
 export interface MenuItem {
@@ -160,6 +163,28 @@ export const menuConfig: MenuItem[] = [
         title: 'Knowledge Application',
         path: '/knowledge-base/knowledge-application',
         icon: Document
+      }
+    ]
+  },
+  {
+    title: '数据报表',
+    path: '/data-reports',
+    icon: DataLine,
+    children: [
+      {
+        title: '实时概览',
+        path: '/data-reports/sales-forecast',
+        icon: TrendCharts
+      },
+      {
+        title: '销量预测',
+        path: '/data-reports/sales-prediction',
+        icon: Timer
+      },
+      {
+        title: '滞销规则',
+        path: '/data-reports/slow-moving-rules',
+        icon: Warning
       }
     ]
   }
