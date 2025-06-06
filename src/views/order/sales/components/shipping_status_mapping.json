@@ -1,0 +1,75 @@
+{
+  "standard_statuses": {
+    "CREATED": "已创建",
+    "PICKED_UP": "已揽件",
+    "ARRIVED_ORIGIN": "到达始发站",
+    "DEPARTED_ORIGIN": "离开发货地",
+    "IN_TRANSIT": "运输途中",
+    "ARRIVED_HUB": "到达中转站",
+    "DEPARTED_HUB": "离开中转站",
+    "OUT_FOR_DELIVERY": "派送中",
+    "DELIVERED": "已送达",
+    "EXCEPTION": "异常",
+    "DELAYED": "延误"
+  },
+  "carriers": {
+    "UPS": {
+      "Label Created": "CREATED",
+      "Shipper created a label, UPS has not received the package yet.": "CREATED",
+      "Pickup Scan": "PICKED_UP",
+      "Arrived at Facility": "ARRIVED_HUB",
+      "Departed from Facility": "DEPARTED_HUB",
+      "Out for Delivery": "OUT_FOR_DELIVERY",
+      "Delivered": "DELIVERED",
+      "Exception": "EXCEPTION",
+      "Delay": "DELAYED"
+    },
+    "FedEx": {
+      "Shipment information sent to FedEx": "CREATED",
+      "Picked up": "PICKED_UP",
+      "Arrived at FedEx location": "ARRIVED_HUB",
+      "Left FedEx origin facility": "DEPARTED_ORIGIN",
+      "On the way": "IN_TRANSIT",
+      "On FedEx vehicle for delivery": "OUT_FOR_DELIVERY",
+      "Delivered": "DELIVERED",
+      "Delivery exception": "EXCEPTION",
+      "Delay": "DELAYED"
+    },
+    "USPS": {
+      "Pre-Shipment": "CREATED",
+      "Accepted at USPS Origin Facility": "PICKED_UP",
+      "Arrived at USPS Facility": "ARRIVED_HUB",
+      "Departed USPS Facility": "DEPARTED_HUB",
+      "In Transit to Next Facility": "IN_TRANSIT",
+      "Out for Delivery": "OUT_FOR_DELIVERY",
+      "Delivered": "DELIVERED",
+      "Delivery Attempt": "EXCEPTION",
+      "Arriving Late": "DELAYED"
+    },
+    "DHL": {
+      "Shipment Info Received": "CREATED",
+      "Picked up": "PICKED_UP",
+      "Arrived at DHL Facility": "ARRIVED_HUB",
+      "Departed DHL Facility": "DEPARTED_HUB",
+      "In Transit": "IN_TRANSIT",
+      "With delivery courier": "OUT_FOR_DELIVERY",
+      "Delivered": "DELIVERED",
+      "Delay in delivery": "DELAYED",
+      "Exception": "EXCEPTION"
+    }
+  },
+  "fallback_strategy": {
+    "match_keywords": {
+      "Delivered": "DELIVERED",
+      "Out for Delivery": "OUT_FOR_DELIVERY",
+      "Picked up": "PICKED_UP",
+      "In Transit": "IN_TRANSIT",
+      "Arrived": "ARRIVED_HUB",
+      "Departed": "DEPARTED_HUB",
+      "Exception": "EXCEPTION",
+      "Delay": "DELAYED",
+      "Created": "CREATED"
+    },
+    "default": "UNKNOWN"
+  }
+} 

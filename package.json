@@ -28,10 +28,11 @@
     "path": "^0.12.7",
     "sortablejs": "^1.15.0",
     "uuid": "^11.1.0",
-    "vue": "^3.3.4",
+    "vue": "^3.4.21",
     "vue-echarts": "^7.0.3",
     "vue-router": "^4.2.4",
-    "xlsx": "^0.18.5"
+    "xlsx": "^0.18.5",
+    "pinia": "^2.1.7"
   },
   "devDependencies": {
     "@types/echarts": "^4.9.22",

@@ -897,8 +897,15 @@ const handleBatchAction = (action: OrderAction) => {
 }
 
 const handleOrderDetail = (row: OrderItem) => {
-  // 跳转到订单详情页
-  router.push(`/order/sales/${row.orderNo}`)
+  // 跳转到订单详情页，并传递订单状态
+  router.push({
+    path: `/order/sales/${row.id}`,
+    query: {
+      status: row.status,
+      orderNo: row.orderNo,
+      channelOrderNo: row.channelOrderNo
+    }
+  })
 }
 
 // 添加获取状态数量的方法

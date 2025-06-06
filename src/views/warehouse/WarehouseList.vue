@@ -64,6 +64,44 @@
           </el-select>
         </template>
       </el-table-column>
+      <el-table-column label="ORDER FULFILLMENT" width="150" align="center">
+        <template #default="{ row }">
+          <el-tooltip
+            :content="!row.wmsVersion ? 'Please specify WMS version first' : ''"
+            placement="top"
+            :disabled="!!row.wmsVersion"
+          >
+            <div>
+              <el-switch
+                v-model="row.enableFulfillment"
+                @change="handleFulfillmentChange(row)"
+                :loading="row.loading"
+                :disabled="!row.wmsVersion"
+                :model-value="row.wmsVersion ? row.enableFulfillment : false"
+              />
+            </div>
+          </el-tooltip>
+        </template>
+      </el-table-column>
+      <el-table-column label="INVENTORY SYNC" width="150" align="center">
+        <template #default="{ row }">
+          <el-tooltip
+            :content="!row.wmsVersion ? 'Please specify WMS version first' : ''"
+            placement="top"
+            :disabled="!!row.wmsVersion"
+          >
+            <div>
+              <el-switch
+                v-model="row.enableInventorySync"
+                @change="handleInventorySyncChange(row)"
+                :loading="row.loading"
+                :disabled="!row.wmsVersion"
+                :model-value="row.wmsVersion ? row.enableInventorySync : false"
+              />
+            </div>
+          </el-tooltip>
+        </template>
+      </el-table-column>
     </el-table>
 
     <!-- Batch Configuration Dialog -->
@@ -147,6 +185,8 @@ interface Warehouse {
     lastSuccessful: Date
     errorMessage?: string
   }
+  enableFulfillment: boolean
+  enableInventorySync: boolean
 }
 
 interface BatchConfigForm {
@@ -169,7 +209,9 @@ const warehouseList = ref<Warehouse[]>([
     contactPhone: '(555) 123-4567',
     wmsVersion: 'V1',
     availableVersions: ['V1'],
-    loading: false
+    loading: false,
+    enableFulfillment: true,
+    enableInventorySync: true
   },
   {
     rank: 7,
@@ -184,7 +226,9 @@ const warehouseList = ref<Warehouse[]>([
     contactEmail: 'sarah.j@fontana.com',
     contactPhone: '(555) 234-5678',
     wmsVersion: 'V2',
-    availableVersions: ['V1', 'V2']
+    availableVersions: ['V1', 'V2'],
+    enableFulfillment: false,
+    enableInventorySync: true
   },
   {
     rank: 8,
@@ -348,6 +392,9 @@ const handleWmsChange = async (row: Warehouse) => {
     await new Promise(resolve => setTimeout(resolve, 1000))
     
     if (row.wmsVersion === null) {
+      // Reset fulfillment and inventory sync when WMS is unassigned
+      row.enableFulfillment = false
+      row.enableInventorySync = false
       ElMessage.success(`Successfully unassigned WMS version from ${row.warehouse}`)
       return
     }
@@ -362,6 +409,9 @@ const handleWmsChange = async (row: Warehouse) => {
     ElMessage.error(error instanceof Error ? error.message : 'Failed to update WMS version')
     // Revert to previous version or unassigned
     row.wmsVersion = null
+    // Reset fulfillment and inventory sync on error
+    row.enableFulfillment = false
+    row.enableInventorySync = false
   } finally {
     row.loading = false
   }
@@ -418,6 +468,50 @@ const handleBatchConfig = async () => {
     ElMessage.error('Failed to apply batch configuration')
   } finally {
     batchConfigLoading.value = false
+  }
+}
+
+const handleFulfillmentChange = async (row: Warehouse) => {
+  // If no WMS version, ensure switch is off and return
+  if (!row.wmsVersion) {
+    row.enableFulfillment = false
+    ElMessage.warning('Please specify WMS version first')
+    return
+  }
+
+  row.loading = true
+  try {
+    // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 500))
+    ElMessage.success(`${row.warehouse} order fulfillment has been ${row.enableFulfillment ? 'enabled' : 'disabled'}`)
+  } catch (error) {
+    ElMessage.error('Failed to update order fulfillment status')
+    // Revert to previous state
+    row.enableFulfillment = !row.enableFulfillment
+  } finally {
+    row.loading = false
+  }
+}
+
+const handleInventorySyncChange = async (row: Warehouse) => {
+  // If no WMS version, ensure switch is off and return
+  if (!row.wmsVersion) {
+    row.enableInventorySync = false
+    ElMessage.warning('Please specify WMS version first')
+    return
+  }
+
+  row.loading = true
+  try {
+    // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 500))
+    ElMessage.success(`${row.warehouse} inventory sync has been ${row.enableInventorySync ? 'enabled' : 'disabled'}`)
+  } catch (error) {
+    ElMessage.error('Failed to update inventory sync status')
+    // Revert to previous state
+    row.enableInventorySync = !row.enableInventorySync
+  } finally {
+    row.loading = false
   }
 }
 </script>
