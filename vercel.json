@@ -42,6 +42,5 @@
           "cache-control": "public, max-age=0, must-revalidate"
         }
       }
-    ],
-    "nodejs": "18.x"
+    ]
 } 
