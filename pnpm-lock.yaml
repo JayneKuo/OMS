@@ -47,6 +47,9 @@ importers:
       path:
         specifier: ^0.12.7
         version: 0.12.7
+      pinia:
+        specifier: ^2.1.7
+        version: 2.3.1(typescript@4.9.5)(vue@3.5.13(typescript@4.9.5))
       sortablejs:
         specifier: ^1.15.0
         version: 1.15.6
@@ -54,7 +57,7 @@ importers:
         specifier: ^11.1.0
         version: 11.1.0
       vue:
-        specifier: ^3.3.4
+        specifier: ^3.4.21
         version: 3.5.13(typescript@4.9.5)
       vue-echarts:
         specifier: ^7.0.3
@@ -1122,6 +1125,15 @@ packages:
   picomatch@2.3.1:
     resolution: {integrity: sha512-JU3teHTNjmE2VCGFzuY8EXzCDVwEqB2a8fsIvwaStHhAWJEeVd1o1QD80CU6+ZdEXXSLbSsuLwJjkCBWqRQUVA==}
     engines: {node: '>=8.6'}
+
+  pinia@2.3.1:
+    resolution: {integrity: sha512-khUlZSwt9xXCaTbbxFYBKDc/bWAGWJjOgvxETwkTN7KRm66EeT1ZdZj6i2ceh9sP2Pzqsbc704r2yngBrxBVug==}
+    peerDependencies:
+      typescript: '>=4.4.4'
+      vue: ^2.7.0 || ^3.5.11
+    peerDependenciesMeta:
+      typescript:
+        optional: true
 
   postcss@8.5.3:
     resolution: {integrity: sha512-dle9A3yYxlBSrt8Fu+IpjGT8SY8hN0mlaA6GY8t0P5PjIOZemULz/E2Bnm/2dcUOena75OTNkHI76uZBNUUq3A==}
@@ -2580,6 +2592,16 @@ snapshots:
 
   picomatch@2.3.1:
     optional: true
+
+  pinia@2.3.1(typescript@4.9.5)(vue@3.5.13(typescript@4.9.5)):
+    dependencies:
+      '@vue/devtools-api': 6.6.4
+      vue: 3.5.13(typescript@4.9.5)
+      vue-demi: 0.14.10(vue@3.5.13(typescript@4.9.5))
+    optionalDependencies:
+      typescript: 4.9.5
+    transitivePeerDependencies:
+      - '@vue/composition-api'
 
   postcss@8.5.3:
     dependencies:

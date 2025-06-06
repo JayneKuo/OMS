@@ -1,7 +1,8 @@
 {
     "framework": "vite",
-    "installCommand": "pnpm install",
+    "installCommand": "pnpm install --no-frozen-lockfile",
     "buildCommand": "pnpm run build",
+    "devCommand": "pnpm run dev",
     "outputDirectory": "dist",
     "env": {
       "NODE_ENV": "production",
@@ -41,5 +42,6 @@
           "cache-control": "public, max-age=0, must-revalidate"
         }
       }
-    ]
+    ],
+    "nodejs": "18.x"
 } 
