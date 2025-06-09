@@ -121,81 +121,692 @@
           />
         </div>
 
-        <!-- 商品列表 -->
-        <div class="products-section">
+        <!-- 订单详情Tab区域 -->
+        <div class="order-details-section">
           <div class="section-header">
-            <h3>商品信息</h3>
-            <div class="actions" v-if="isEditing">
+            <h3>订单详情</h3>
+            <div class="actions" v-if="isEditing && activeTab === 'items'">
               <el-button type="primary" link @click="handleAddProduct">
                 <el-icon><Plus /></el-icon>
                 添加商品
               </el-button>
         </div>
           </div>
-          <el-table :data="products" style="width: 100%">
-            <el-table-column label="" width="80">
+          
+          <el-tabs v-model="activeTab" type="border-card" class="order-tabs">
+            <!-- Items Tab -->
+            <el-tab-pane label="Items" name="items">
+              <div class="tab-content">
+                <div class="table-container">
+                  <el-table 
+                    :data="enhancedProducts" 
+                    style="width: 100%; min-width: 1400px;"
+                    :expand-row-keys="expandedProducts"
+                    row-key="id"
+                  >
+                    <!-- 展开行显示操作历史 -->
+                    <el-table-column type="expand" width="50">
               <template #default="{ row }">
-                <div class="product-image" :style="{ backgroundColor: row.color }"></div>
+                        <div class="expanded-items-section">
+                          <div class="items-title">
+                            <el-icon><Box /></el-icon>
+                            <span>操作历史 (共{{ row.history.length }}条记录)</span>
+                          </div>
+                          <div class="items-table-container">
+                            <el-table :data="row.history" size="small" style="width: 100%;">
+                              <el-table-column label="操作类型" width="100" align="center">
+                                <template #default="{ row: record }">
+                                  <el-tag :type="getOperationTagType(record.type)" size="small">
+                                    {{ getOperationLabel(record.type) }}
+                                  </el-tag>
               </template>
             </el-table-column>
-            <el-table-column label="Item" min-width="200">
-              <template #default="{ row }">
-                <template v-if="isEditing">
-                  <el-input v-model="row.name" placeholder="商品名称" />
-                  <el-input v-model="row.category" placeholder="商品类别" class="mt-2" />
+                              <el-table-column label="操作描述" min-width="200">
+                                <template #default="{ row: record }">
+                                  <span class="operation-action">{{ record.action }}</span>
                 </template>
-                <template v-else>
-                  <div class="item-name">{{ row.name }}</div>
-                  <div class="item-category">{{ row.category }}</div>
+                              </el-table-column>
+                              <el-table-column label="数量变化" width="120" align="center">
+                                <template #default="{ row: record }">
+                                  <span class="quantity-change">{{ record.beforeQuantity }} → {{ record.afterQuantity }}</span>
                 </template>
+                              </el-table-column>
+                              <el-table-column label="操作原因" min-width="250">
+                                <template #default="{ row: record }">
+                                  <span class="operation-reason">{{ record.reason }}</span>
               </template>
             </el-table-column>
-            <el-table-column label="Status" width="120">
-              <template #default="{ row }">
-                <el-tag :type="row.status === 'Ready' ? 'success' : 'info'" size="small">
-                  {{ row.status }}
-                </el-tag>
+                              <el-table-column label="操作时间" width="150" align="center">
+                                <template #default="{ row: record }">
+                                  <span class="operation-time">{{ formatDate(record.time) }}</span>
+                        </template>
+                              </el-table-column>
+                            </el-table>
+                          </div>
+                        </div>
+                        </template>
+                    </el-table-column>
+
+                    <!-- 商品信息 -->
+                    <el-table-column label="商品" min-width="280">
+                      <template #default="{ row }">
+                        <div class="item-info-simple">
+                          <div class="item-name">
+                            {{ row.name }}
+                            <el-tag v-if="row.isExchangeProduct" size="small" type="warning" class="exchange-tag">
+                              换货商品
+                            </el-tag>
+                          </div>
+                          <div class="item-meta">{{ row.category }}</div>
+                          <div class="item-sku">{{ row.snCode }}</div>
+                          <div v-if="row.isExchangeProduct" class="exchange-info">
+                            <el-icon class="exchange-icon"><SwitchButton /></el-icon>
+                            <span>原商品ID: {{ row.originalProductId }}</span>
+                          </div>
+                        </div>
               </template>
             </el-table-column>
-            <el-table-column label="Quantity" width="120" align="center">
+
+                    <!-- 购买数量 -->
+                    <el-table-column label="购买数量" width="100" align="center">
               <template #default="{ row }">
-                <template v-if="isEditing">
+                        <div class="quantity-info">
+                          <span class="original-quantity">{{ row.originalQuantity }}</span>
+                          <span class="quantity-unit">{{ row.uom }}</span>
+                        </div>
+                      </template>
+                    </el-table-column>
+
+                    <!-- 应发货数量 -->
+                    <el-table-column label="应发货数量" width="100" align="center">
+                      <template #default="{ row }">
+                        <template v-if="isEditing && isProductEditable(row)">
                   <el-input-number 
-                    v-model="row.quantity" 
-                    :min="1" 
-                    :max="999"
+                            v-model="row.shouldDispatchQuantity" 
+                            :min="0" 
+                            :max="row.originalQuantity"
                     controls-position="right"
-                    @change="(value: number) => handleQuantityChange(row, value)"
+                            size="small"
+                            @change="(value: number) => handleShouldDispatchQuantityChange(row, value)"
                   />
                 </template>
                 <template v-else>
-                  {{ row.quantity }}
+                          <div class="should-dispatch-quantity" :class="{ 
+                            'zero': row.shouldDispatchQuantity === 0,
+                            'partial': row.shouldDispatchQuantity < row.originalQuantity,
+                            'full': row.shouldDispatchQuantity === row.originalQuantity
+                          }">
+                            {{ row.shouldDispatchQuantity }}
+                          </div>
                 </template>
               </template>
             </el-table-column>
-            <el-table-column label="Price" width="120" align="right">
+
+                    <!-- 已下发数量 -->
+                    <el-table-column label="已下发数量" width="100" align="center">
               <template #default="{ row }">
-                ${{ row.price.toFixed(2) }}
+                        <div class="dispatched-quantity" :class="{ 
+                          'zero': row.dispatchedQuantity === 0,
+                          'partial': row.dispatchedQuantity < row.shouldDispatchQuantity,
+                          'full': row.dispatchedQuantity === row.shouldDispatchQuantity,
+                          'over': row.dispatchedQuantity > row.shouldDispatchQuantity
+                        }">
+                          {{ row.dispatchedQuantity }}
+                          <span v-if="row.shouldDispatchQuantity > 0" class="dispatch-ratio">
+                            /{{ row.shouldDispatchQuantity }}
+                          </span>
+                        </div>
               </template>
             </el-table-column>
-            <el-table-column label="Tax" width="120" align="right">
+
+                    <!-- 商品状态 -->
+                    <el-table-column label="商品状态" width="100" align="center">
               <template #default="{ row }">
-                ${{ row.tax.toFixed(2) }}
+                        <el-tag :type="getProductStatusType(row.productStatus)" size="small">
+                          {{ row.productStatus }}
+                        </el-tag>
               </template>
             </el-table-column>
-            <el-table-column label="Amount" width="120" align="right">
+
+                    <!-- 履约状态 -->
+                    <el-table-column label="履约状态" width="100" align="center">
               <template #default="{ row }">
-                ${{ row.amount.toFixed(2) }}
+                        <el-tag :type="getFulfillmentStatusType(row.fulfillmentStatus)" size="small">
+                          {{ row.fulfillmentStatus }}
+                        </el-tag>
+                        </template>
+                    </el-table-column>
+
+                    <!-- 单价 -->
+                    <el-table-column label="单价" width="100" align="right">
+                      <template #default="{ row }">
+                          <div class="price-display">${{ row.price.toFixed(2) }}</div>
+                        </template>
+                    </el-table-column>
+
+                    <!-- 折扣 -->
+                    <el-table-column label="折扣" width="80" align="right">
+                      <template #default="{ row }">
+                        <div class="discount-display">
+                          <span v-if="row.discount > 0" class="discount-amount">
+                            -${{ row.discount.toFixed(2) }}
+                          </span>
+                          <span v-else class="no-discount">-</span>
+                        </div>
+                      </template>
+                    </el-table-column>
+
+                    <!-- 税费 -->
+                    <el-table-column label="税费" width="80" align="right">
+                      <template #default="{ row }">
+                        <div class="tax-display">
+                          <span v-if="row.tax > 0" class="tax-amount">
+                            ${{ row.tax.toFixed(2) }}
+                          </span>
+                          <span v-else class="no-tax">-</span>
+                        </div>
+                      </template>
+                    </el-table-column>
+
+                    <!-- 履约金额 -->
+                    <el-table-column label="履约金额" width="140" align="right">
+                      <template #default="{ row }">
+                        <div class="fulfillment-amount">
+                          <div class="current-amount">
+                            ${{ calculateLineTotal(row, row.shouldDispatchQuantity).toFixed(2) }}
+                          </div>
+                          <div v-if="row.shouldDispatchQuantity < row.originalQuantity" class="original-amount">
+                            原: ${{ calculateLineTotal(row, row.originalQuantity).toFixed(2) }}
+                          </div>
+                          <div class="amount-breakdown">
+                            <span class="breakdown-text">
+                              {{ row.shouldDispatchQuantity }} × ${{ row.price.toFixed(2) }}
+                              <span v-if="row.discount > 0">- ${{ (row.discount * row.shouldDispatchQuantity / row.originalQuantity).toFixed(2) }}</span>
+                              <span v-if="row.tax > 0">+ ${{ (row.tax * row.shouldDispatchQuantity / row.originalQuantity).toFixed(2) }}</span>
+                            </span>
+                          </div>
+                        </div>
+                      </template>
+                    </el-table-column>
+
+                    <!-- 操作汇总 -->
+                    <el-table-column label="操作汇总" min-width="180">
+                      <template #default="{ row }">
+                        <div class="operations-summary">
+                          <el-tag v-if="row.cancelledQuantity > 0" size="small" type="danger">
+                            取消{{ row.cancelledQuantity }}个
+                          </el-tag>
+                          <el-tag v-if="row.returnedQuantity > 0" size="small" type="warning">
+                            退货{{ row.returnedQuantity }}个
+                          </el-tag>
+                          <el-tag v-if="row.exchangedQuantity > 0" size="small" type="info">
+                            换货{{ row.exchangedQuantity }}个
+                          </el-tag>
+                          <span v-if="!row.hasOperations" class="no-operations">无操作</span>
+                        </div>
+                      </template>
+                    </el-table-column>
+
+                    <!-- 编辑操作 -->
+                    <el-table-column v-if="isEditing" label="操作" width="80" align="center">
+                      <template #default="{ row, $index }">
+                        <el-button 
+                          v-if="isProductEditable(row)"
+                          type="danger" 
+                          link 
+                          @click="handleDeleteProduct($index)"
+                            size="small"
+                        >
+                          <el-icon><Delete /></el-icon>
+                        </el-button>
+                        <el-tooltip 
+                          v-else
+                          content="已dispatch的商品无法删除" 
+                          placement="top"
+                        >
+                          <el-icon class="edit-disabled-icon">
+                            <Lock />
+                          </el-icon>
+                        </el-tooltip>
+                        </template>
+                    </el-table-column>
+                  </el-table>
+                </div>
+
+                <!-- 取消商品列表 -->
+                <div v-if="cancelledProducts.length > 0" class="status-products-section">
+                  <div class="status-section-header">
+                    <div class="header-content">
+                      <el-icon class="status-icon cancelled"><CircleClose /></el-icon>
+                      <h4>已取消商品</h4>
+                      <el-tag type="danger" size="small">{{ cancelledProducts.length }}件商品</el-tag>
+                    </div>
+                    <div class="status-summary">
+                      总金额: <span class="amount-highlight">-${{ getCancelledTotalAmount() }}</span>
+                    </div>
+                  </div>
+                  <div class="status-table-container">
+                    <el-table :data="cancelledProducts" size="small" style="width: 100%;">
+                      <el-table-column label="" width="50">
+                        <template #default="{ row }">
+                          <div class="product-image-small" :style="{ backgroundColor: row.color }"></div>
+                        </template>
+                      </el-table-column>
+                      <el-table-column label="商品信息" min-width="250">
+                        <template #default="{ row }">
+                          <div class="item-info">
+                            <div class="item-name">{{ row.name }}</div>
+                            <div class="item-category">{{ row.category }}</div>
+                            <div class="item-sku">SKU: {{ row.snCode }}</div>
+                          </div>
+                      </template>
+                    </el-table-column>
+                      <el-table-column label="数量" width="80" align="center">
+                      <template #default="{ row }">
+                          <span class="quantity-cancelled">{{ row.quantity }}</span>
+                      </template>
+                    </el-table-column>
+                      <el-table-column label="取消原因" min-width="200">
+                      <template #default="{ row }">
+                          <span class="cancel-reason">{{ row.cancelReason }}</span>
+                      </template>
+                    </el-table-column>
+                      <el-table-column label="取消时间" width="130" align="center">
+                      <template #default="{ row }">
+                          <span class="cancel-time">{{ formatDate(row.cancelTime) }}</span>
+                        </template>
+                      </el-table-column>
+                      <el-table-column label="金额" width="100" align="right">
+                        <template #default="{ row }">
+                          <span class="amount-cancelled">-${{ (row.price * row.quantity).toFixed(2) }}</span>
+                        </template>
+                      </el-table-column>
+                    </el-table>
+                  </div>
+                </div>
+
+                <!-- 退货商品列表 -->
+                <div v-if="returnedProducts.length > 0" class="status-products-section">
+                  <div class="status-section-header">
+                    <div class="header-content">
+                      <el-icon class="status-icon returned"><ArrowLeft /></el-icon>
+                      <h4>已退货商品</h4>
+                      <el-tag type="warning" size="small">{{ returnedProducts.length }}件商品</el-tag>
+                    </div>
+                    <div class="status-summary">
+                      退款金额: <span class="amount-highlight">-${{ getReturnedTotalAmount() }}</span>
+                    </div>
+                  </div>
+                  <div class="status-table-container">
+                    <el-table :data="returnedProducts" size="small" style="width: 100%;">
+                      <el-table-column label="" width="50">
+                        <template #default="{ row }">
+                          <div class="product-image-small" :style="{ backgroundColor: row.color }"></div>
               </template>
             </el-table-column>
-            <el-table-column v-if="isEditing" label="操作" width="100" align="center">
-              <template #default="{ row, $index }">
-                <el-button type="danger" link @click="handleDeleteProduct($index)">
-                  <el-icon><Delete /></el-icon>
-                </el-button>
+                      <el-table-column label="商品信息" min-width="250">
+                        <template #default="{ row }">
+                          <div class="item-info">
+                            <div class="item-name">{{ row.name }}</div>
+                            <div class="item-category">{{ row.category }}</div>
+                            <div class="item-sku">SKU: {{ row.snCode }}</div>
+                          </div>
+                        </template>
+                      </el-table-column>
+                      <el-table-column label="退货数量" width="90" align="center">
+                        <template #default="{ row }">
+                          <span class="quantity-returned">{{ row.returnQuantity }}</span>
+                        </template>
+                      </el-table-column>
+                      <el-table-column label="退货原因" min-width="200">
+                        <template #default="{ row }">
+                          <span class="return-reason">{{ row.returnReason }}</span>
+                        </template>
+                      </el-table-column>
+                      <el-table-column label="退货状态" width="120" align="center">
+                        <template #default="{ row }">
+                          <el-tag :type="getReturnStatusType(row.returnStatus)" size="small">
+                            {{ row.returnStatus }}
+                          </el-tag>
+                        </template>
+                      </el-table-column>
+                      <el-table-column label="退货时间" width="130" align="center">
+                        <template #default="{ row }">
+                          <span class="return-time">{{ formatDate(row.returnTime) }}</span>
+                        </template>
+                      </el-table-column>
+                      <el-table-column label="退款金额" width="100" align="right">
+                        <template #default="{ row }">
+                          <span class="amount-returned">-${{ (row.price * row.returnQuantity).toFixed(2) }}</span>
               </template>
             </el-table-column>
           </el-table>
+                  </div>
+                </div>
+
+                <!-- 换货商品列表 -->
+                <div v-if="exchangedProducts.length > 0" class="status-products-section">
+                  <div class="status-section-header">
+                    <div class="header-content">
+                      <el-icon class="status-icon exchanged"><SwitchButton /></el-icon>
+                      <h4>换货商品</h4>
+                      <el-tag type="info" size="small">{{ exchangedProducts.length }}件换货</el-tag>
+                    </div>
+                    <div class="status-summary">
+                      价差: <span class="amount-highlight">${{ getExchangeTotalDifference() }}</span>
+                    </div>
+                  </div>
+                  <div class="status-table-container">
+                    <el-table :data="exchangedProducts" size="small" style="width: 100%;">
+                      <el-table-column type="expand" width="40">
+                        <template #default="{ row }">
+                          <div class="exchange-details">
+                            <div class="exchange-item">
+                              <div class="exchange-label">原商品</div>
+                              <div class="exchange-product">
+                                <div class="product-image-tiny" :style="{ backgroundColor: row.originalProduct.color }"></div>
+                                <div class="product-details">
+                                  <div class="name">{{ row.originalProduct.name }}</div>
+                                  <div class="meta">{{ row.originalProduct.category }} | {{ row.originalProduct.snCode }}</div>
+                                  <div class="price">数量: {{ row.originalProduct.quantity }} | 单价: ${{ row.originalProduct.price }}</div>
+                                </div>
+                              </div>
+                            </div>
+                            <div class="exchange-arrow">
+                              <el-icon><ArrowRight /></el-icon>
+                            </div>
+                            <div class="exchange-item">
+                              <div class="exchange-label">新商品</div>
+                              <div class="exchange-product">
+                                <div class="product-image-tiny" :style="{ backgroundColor: row.newProduct.color }"></div>
+                                <div class="product-details">
+                                  <div class="name">{{ row.newProduct.name }}</div>
+                                  <div class="meta">{{ row.newProduct.category }} | {{ row.newProduct.snCode }}</div>
+                                  <div class="price">数量: {{ row.newProduct.quantity }} | 单价: ${{ row.newProduct.price }}</div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </template>
+                      </el-table-column>
+                      <el-table-column label="" width="50">
+                        <template #default="{ row }">
+                          <div class="product-image-small" :style="{ backgroundColor: row.originalProduct.color }"></div>
+                        </template>
+                      </el-table-column>
+                      <el-table-column label="换货信息" min-width="300">
+                        <template #default="{ row }">
+                          <div class="exchange-info">
+                            <div class="exchange-summary">
+                              <span class="original-name">{{ row.originalProduct.name }}</span>
+                              <el-icon class="exchange-icon"><ArrowRight /></el-icon>
+                              <span class="new-name">{{ row.newProduct.name }}</span>
+                            </div>
+                            <div class="exchange-meta">{{ row.originalProduct.snCode }} → {{ row.newProduct.snCode }}</div>
+                          </div>
+                        </template>
+                      </el-table-column>
+                      <el-table-column label="换货原因" min-width="150">
+                        <template #default="{ row }">
+                          <span class="exchange-reason">{{ row.exchangeReason }}</span>
+                        </template>
+                      </el-table-column>
+                      <el-table-column label="换货状态" width="120" align="center">
+                        <template #default="{ row }">
+                          <el-tag :type="getExchangeStatusType(row.exchangeStatus)" size="small">
+                            {{ row.exchangeStatus }}
+                          </el-tag>
+                        </template>
+                      </el-table-column>
+                      <el-table-column label="换货时间" width="130" align="center">
+                        <template #default="{ row }">
+                          <span class="exchange-time">{{ formatDate(row.exchangeTime) }}</span>
+                        </template>
+                      </el-table-column>
+                      <el-table-column label="价差" width="100" align="right">
+                        <template #default="{ row }">
+                          <span class="price-difference" :class="{ 
+                            'positive': row.priceDifference > 0, 
+                            'negative': row.priceDifference < 0,
+                            'zero': row.priceDifference === 0
+                          }">
+                            {{ row.priceDifference > 0 ? '+' : '' }}${{ row.priceDifference.toFixed(2) }}
+                          </span>
+                        </template>
+                      </el-table-column>
+                    </el-table>
+                  </div>
+                </div>
+              </div>
+            </el-tab-pane>
+
+            <!-- Dispatched Details Tab -->
+            <el-tab-pane label="Dispatched Details" name="dispatched">
+              <div class="tab-content">
+                <div class="table-container">
+                  <el-table 
+                    :data="dispatchedDetails" 
+                    style="width: 100%; min-width: 1200px;"
+                    :expand-row-keys="expandedDispatches"
+                    row-key="dispatchId"
+                  >
+                    <el-table-column type="expand" width="50">
+                      <template #default="{ row }">
+                        <div class="expanded-items-section">
+                          <div class="items-title">
+                            <el-icon><Box /></el-icon>
+                            <span>商品明细 (共{{ row.items.length }}个商品，{{ row.items.reduce((sum, item) => sum + item.quantity, 0) }}件)</span>
+                          </div>
+                          <div class="items-table-container">
+                            <el-table :data="row.items" size="small" style="width: 100%;">
+                              <el-table-column label="SKU" width="120" align="center">
+                                <template #default="{ row: item }">
+                                  <span>{{ item.sku }}</span>
+                                </template>
+                              </el-table-column>
+                              <el-table-column label="商品名称" min-width="200">
+                                <template #default="{ row: item }">
+                                  <span class="item-name">{{ item.name || 'Product Name' }}</span>
+                                </template>
+                              </el-table-column>
+                              <el-table-column label="SN NO." width="130" align="center">
+                                <template #default="{ row: item }">
+                                  <span class="number-highlight">{{ item.snCode || 'SN' + Math.random().toString().substr(2,8) }}</span>
+                                </template>
+                              </el-table-column>
+                              <el-table-column label="Lot NO." width="120" align="center">
+                                <template #default="{ row: item }">
+                                  <span class="number-highlight">{{ item.lotNo || 'LOT' + Math.random().toString().substr(2,6) }}</span>
+                                </template>
+                              </el-table-column>
+                              <el-table-column label="数量" width="80" align="center">
+                                <template #default="{ row: item }">
+                                  <span class="item-quantity">{{ item.quantity }}</span>
+                                </template>
+                              </el-table-column>
+                              <el-table-column label="单位" width="80" align="center">
+                                <template #default="{ row: item }">
+                                  <span class="item-uom">{{ item.uom || 'PCS' }}</span>
+                                </template>
+                              </el-table-column>
+                            </el-table>
+                          </div>
+                        </div>
+                      </template>
+                    </el-table-column>
+                    <el-table-column label="Dispatch NO." width="120" align="center">
+                      <template #default="{ row }">
+                        <span class="number-highlight">{{ row.dispatchId }}</span>
+                      </template>
+                    </el-table-column>
+                    <el-table-column label="Warehouse" width="180" align="center">
+                      <template #default="{ row }">
+                        <span class="warehouse-info">{{ row.warehouse }} ({{ row.warehouseCode }})</span>
+                      </template>
+                    </el-table-column>
+                    <el-table-column label="Status" width="100" align="center">
+                      <template #default="{ row }">
+                        <el-tag :type="getDispatchStatusType(row.status)" size="small">
+                          {{ row.status }}
+                        </el-tag>
+                      </template>
+                    </el-table-column>
+                    <el-table-column label="Carrier" width="120" align="center">
+                      <template #default="{ row }">
+                        <span class="carrier-info">{{ row.carrier }}</span>
+                      </template>
+                    </el-table-column>
+                    <el-table-column label="Shipment NO." width="150" align="center">
+                      <template #default="{ row }">
+                        <el-link 
+                          v-if="row.trackingNumber"
+                          type="primary" 
+                          @click="handleTrackingClick(row.trackingNumber)"
+                          class="tracking-link number-highlight"
+                          size="small"
+                        >
+                          {{ row.trackingNumber }}
+                        </el-link>
+                        <span v-else class="no-tracking">-</span>
+                      </template>
+                    </el-table-column>
+                    <el-table-column label="Ship Date" width="130" align="center">
+                      <template #default="{ row }">
+                        <span class="date-info">{{ formatDate(row.shipDate) }}</span>
+                      </template>
+                    </el-table-column>
+                    <el-table-column label="Est. Delivery" width="130" align="center">
+                      <template #default="{ row }">
+                        <span class="date-info">{{ formatDate(row.estimatedDelivery) }}</span>
+                      </template>
+                    </el-table-column>
+                    <el-table-column label="Items Summary" min-width="250">
+                      <template #default="{ row }">
+                        <div class="items-summary">
+                          <el-tag size="small" type="primary">{{ row.items.length }}个商品</el-tag>
+                          <span class="total-qty">共{{ row.items.reduce((sum, item) => sum + item.quantity, 0) }}件</span>
+                          <span class="quick-preview">{{ row.items[0].sku }}{{ row.items.length > 1 ? ' 等' : '' }}</span>
+                        </div>
+                      </template>
+                    </el-table-column>
+                  </el-table>
+                </div>
+              </div>
+            </el-tab-pane>
+
+            <!-- Packages Tab -->
+            <el-tab-pane label="Packages" name="packages">
+              <div class="tab-content">
+                <div class="table-container">
+                  <el-table 
+                    :data="packages" 
+                    style="width: 100%;"
+                    :expand-row-keys="expandedPackages"
+                    row-key="packageId"
+                  >
+                    <el-table-column type="expand" width="50">
+                      <template #default="{ row }">
+                        <div class="expanded-items-section">
+                          <div class="items-title">
+                            <el-icon><Box /></el-icon>
+                            <span>商品明细 (共{{ row.items.length }}个商品，{{ row.items.reduce((sum, item) => sum + item.quantity, 0) }}件)</span>
+                          </div>
+                          <div class="items-table-container">
+                            <el-table :data="row.items" size="small" style="width: 100%;">
+                              <el-table-column label="SKU" width="120" align="center">
+                                <template #default="{ row: item }">
+                                  <span>{{ item.sku }}</span>
+                                </template>
+                              </el-table-column>
+                              <el-table-column label="商品名称" min-width="200">
+                                <template #default="{ row: item }">
+                                  <span class="item-name">{{ item.name || 'Product Name' }}</span>
+                                </template>
+                              </el-table-column>
+                              <el-table-column label="SN NO." width="130" align="center">
+                                <template #default="{ row: item }">
+                                  <span class="number-highlight">{{ item.snCode || 'SN' + Math.random().toString().substr(2,8) }}</span>
+                                </template>
+                              </el-table-column>
+                              <el-table-column label="Lot NO." width="120" align="center">
+                                <template #default="{ row: item }">
+                                  <span class="number-highlight">{{ item.lotNo || 'LOT' + Math.random().toString().substr(2,6) }}</span>
+                                </template>
+                              </el-table-column>
+                              <el-table-column label="数量" width="80" align="center">
+                                <template #default="{ row: item }">
+                                  <span class="item-quantity">{{ item.quantity }}</span>
+                                </template>
+                              </el-table-column>
+                              <el-table-column label="单位" width="80" align="center">
+                                <template #default="{ row: item }">
+                                  <span class="item-uom">{{ item.uom || 'PCS' }}</span>
+                                </template>
+                              </el-table-column>
+                            </el-table>
+                          </div>
+                        </div>
+                      </template>
+                    </el-table-column>
+                    <!-- 按照指定顺序排列的列 -->
+                    <el-table-column label="Shipment NO." width="160" align="center">
+                      <template #default="{ row }">
+                        <span class="number-highlight">{{ row.shipmentNo }}</span>
+                      </template>
+                    </el-table-column>
+                    <el-table-column label="Pallet NO." width="140" align="center">
+                      <template #default="{ row }">
+                        <span>{{ row.palletNo }}</span>
+                      </template>
+                    </el-table-column>
+                    <el-table-column label="Package NO." width="150" align="center">
+                      <template #default="{ row }">
+                        <span>{{ row.packageId }}</span>
+                      </template>
+                    </el-table-column>
+                    <el-table-column label="Master Tracking NO." width="180" align="center">
+                      <template #default="{ row }">
+                        <span>{{ row.masterTrackingNumber }}</span>
+                      </template>
+                    </el-table-column>
+                    <el-table-column label="Tracking NO." width="160" align="center">
+                      <template #default="{ row }">
+                        <el-link 
+                          v-if="row.trackingNumber"
+                          type="primary" 
+                          @click="handleTrackingClick(row.trackingNumber)"
+                          class="tracking-link number-highlight"
+                        >
+                          {{ row.trackingNumber }}
+                        </el-link>
+                        <span v-else class="no-tracking">-</span>
+                      </template>
+                    </el-table-column>
+                    <el-table-column label="Carrier" width="130" align="center">
+                      <template #default="{ row }">
+                        <span>{{ row.carrier }}</span>
+                      </template>
+                    </el-table-column>
+                    <el-table-column label="Service" width="150" align="center">
+                      <template #default="{ row }">
+                        <span>{{ row.service }}</span>
+                      </template>
+                    </el-table-column>
+                    <el-table-column label="Weight" width="110" align="center">
+                      <template #default="{ row }">
+                        <span class="weight-display">{{ row.weight }}</span>
+                      </template>
+                    </el-table-column>
+                    <el-table-column label="Dimensions" width="150" align="center">
+                      <template #default="{ row }">
+                        <span class="dimensions-display">{{ row.dimensions }}</span>
+                      </template>
+                    </el-table-column>
+                  </el-table>
+                </div>
+              </div>
+            </el-tab-pane>
+          </el-tabs>
         </div>
 
         <!-- 订单时间线 -->
@@ -209,15 +820,105 @@
             </div>
           </div>
           
+          <!-- 动态分类Tab -->
+          <div class="timeline-filters">
+            <el-tabs v-model="activeTimelineTab" type="card" class="timeline-tabs">
+              <el-tab-pane label="全部" name="all">
+                <template #label>
+                  <span class="tab-label">
+                    <el-icon><List /></el-icon>
+                    全部
+                    <el-badge :value="activities.length" class="tab-badge" />
+                  </span>
+                </template>
+              </el-tab-pane>
+              <el-tab-pane label="Dispatch" name="dispatch">
+                <template #label>
+                  <span class="tab-label">
+                    <el-icon><Van /></el-icon>
+                    Dispatch
+                    <el-badge :value="getFilteredActivities('dispatch').length" class="tab-badge" />
+                  </span>
+                </template>
+              </el-tab-pane>
+              <el-tab-pane label="Update" name="update">
+                <template #label>
+                  <span class="tab-label">
+                    <el-icon><EditPen /></el-icon>
+                    Update
+                    <el-badge :value="getFilteredActivities('update').length" class="tab-badge" />
+                  </span>
+                </template>
+              </el-tab-pane>
+              <el-tab-pane label="WMS" name="wms">
+                <template #label>
+                  <span class="tab-label">
+                    <el-icon><Box /></el-icon>
+                    WMS
+                    <el-badge :value="getFilteredActivities('wms').length" class="tab-badge" />
+                  </span>
+                </template>
+              </el-tab-pane>
+              <el-tab-pane label="物流" name="logistics">
+                <template #label>
+                  <span class="tab-label">
+                    <el-icon><Van /></el-icon>
+                    物流
+                    <el-badge :value="getFilteredActivities('logistics').length" class="tab-badge" />
+                  </span>
+                </template>
+              </el-tab-pane>
+              <el-tab-pane label="客户" name="customer">
+                <template #label>
+                  <span class="tab-label">
+                    <el-icon><User /></el-icon>
+                    客户
+                    <el-badge :value="getFilteredActivities('customer').length" class="tab-badge" />
+                  </span>
+                </template>
+              </el-tab-pane>
+            </el-tabs>
+            
+            <!-- 高级筛选 -->
+            <div class="advanced-filters">
+              <el-button-group class="filter-buttons">
+                <el-button 
+                  v-for="filter in quickFilters" 
+                  :key="filter.key"
+                  :type="selectedFilters.includes(filter.key) ? 'primary' : ''"
+                  :plain="!selectedFilters.includes(filter.key)"
+                  size="small"
+                  @click="toggleFilter(filter.key)"
+                >
+                  <el-icon><component :is="filter.icon" /></el-icon>
+                  {{ filter.label }}
+                  <el-badge :value="getFilterCount(filter.key)" class="filter-badge" />
+                </el-button>
+              </el-button-group>
+              
+              <el-button 
+                v-if="selectedFilters.length > 0"
+                type="danger" 
+                link 
+                size="small"
+                @click="clearFilters"
+              >
+                <el-icon><RefreshLeft /></el-icon>
+                清除筛选
+              </el-button>
+            </div>
+          </div>
+          
           <!-- 分页后的时间轴 -->
-          <el-timeline>
-            <el-timeline-item
-              v-for="(activity, index) in paginatedActivities"
-              :key="activity.timestamp + index"
-              :timestamp="formatTimelineDate(activity.timestamp)"
-              :type="activity.type"
-              :icon="getTimelineIcon(activity.icon)"
-            >
+          <div v-if="filteredPaginatedActivities.length > 0" class="timeline-content">
+            <el-timeline>
+              <el-timeline-item
+                v-for="(activity, index) in filteredPaginatedActivities"
+                :key="activity.timestamp + index"
+                :timestamp="formatTimelineDate(activity.timestamp)"
+                :type="activity.type"
+                :icon="getTimelineIcon(activity.icon)"
+              >
               <div class="timeline-item-content">
                 <!-- 紧凑的头部信息 -->
                 <div class="timeline-header">
@@ -285,19 +986,25 @@
                 </div>
               </div>
             </el-timeline-item>
-          </el-timeline>
+            </el-timeline>
+          </div>
+          
+          <!-- 无数据提示 -->
+          <div v-else class="no-timeline-data">
+            <el-empty description="当前筛选条件下暂无动态记录" />
+          </div>
           
           <!-- 分页控件 -->
-          <div v-if="!showFullTimeline" class="timeline-pagination">
-            <el-pagination
-              background
-              layout="prev, pager, next"
-              :total="activities.length"
-              :page-size="pageSize"
-              :current-page="currentPage"
-              @current-change="handlePageChange"
-              small
-            />
+          <div v-if="!showFullTimeline && filteredActivities.length > pageSize" class="timeline-pagination">
+                          <el-pagination
+                background
+                layout="prev, pager, next"
+                :total="filteredActivities.length"
+                :page-size="pageSize"
+                :current-page="currentPage"
+                @current-change="handlePageChange"
+                small
+              />
           </div>
         </div>
       </div>
@@ -498,8 +1205,7 @@
                           </div>
                           <el-link 
                             type="primary" 
-                            :href="tracking.carrierTrackingUrl + '/' + tracking.trackingNumber"
-                            target="_blank"
+                            @click="showTrackingDetails(tracking)"
                             class="tracking-number"
                           >
                             {{ tracking.trackingNumber }}
@@ -628,6 +1334,88 @@
               </div>
             </el-tab-pane>
 
+            <el-tab-pane label="订单备注">
+              <div class="tab-content">
+                <div class="info-section">
+                  <div class="section-title">
+                    <div class="title-content">
+                      <h4>订单备注</h4>
+                      <el-button 
+                        v-if="!isEditingNotes" 
+                        type="primary" 
+                        link 
+                        class="edit-btn"
+                        @click="startEditNotes"
+                      >
+                        <el-icon><EditPen /></el-icon>
+                        编辑
+                      </el-button>
+                    </div>
+                  </div>
+
+                  <!-- 内部备注 -->
+                  <div class="notes-section">
+                    <div class="notes-header">
+                      <h5>内部备注</h5>
+                      <span class="notes-desc">仅内部可见</span>
+                    </div>
+                    <div class="notes-content">
+                      <template v-if="isEditingNotes">
+                        <el-input 
+                          v-model="orderNotes.internal"
+                          type="textarea"
+                          :rows="4"
+                          placeholder="添加内部备注..."
+                          class="notes-textarea"
+                        />
+                      </template>
+                      <template v-else>
+                        <p v-if="orderNotes.internal" class="notes-text">{{ orderNotes.internal }}</p>
+                        <p v-else class="empty-notes">暂无内部备注</p>
+                      </template>
+                    </div>
+                  </div>
+
+                  <!-- 客户备注 -->
+                  <div class="notes-section">
+                    <div class="notes-header">
+                      <h5>客户备注</h5>
+                      <span class="notes-desc">客户可见</span>
+                    </div>
+                    <div class="notes-content">
+                      <template v-if="isEditingNotes">
+                        <el-input 
+                          v-model="orderNotes.customer"
+                          type="textarea"
+                          :rows="3"
+                          placeholder="添加客户备注..."
+                          class="notes-textarea"
+                        />
+                      </template>
+                      <template v-else>
+                        <p v-if="orderNotes.customer" class="notes-text">{{ orderNotes.customer }}</p>
+                        <p v-else class="empty-notes">暂无客户备注</p>
+                      </template>
+                    </div>
+                  </div>
+
+
+
+                  <!-- 编辑按钮 -->
+                  <div v-if="isEditingNotes" class="notes-actions">
+                    <el-button 
+                      type="primary" 
+                      @click="saveNotes"
+                    >
+                      <el-icon><Check /></el-icon>
+                      保存
+                    </el-button>
+                    <el-button @click="cancelEditNotes">取消</el-button>
+                  </div>
+                </div>
+              </div>
+            </el-tab-pane>
+
             <el-tab-pane v-if="returnInfo.isReturn" label="退货信息">
               <div class="tab-content">
                 <div class="section-title">
@@ -659,6 +1447,79 @@
       </div>
     </div>
   </div>
+
+  <!-- 物流跟踪详情弹窗 -->
+  <el-dialog
+    v-model="trackingDialogVisible"
+    :title="`物流跟踪详情 - ${selectedTracking.trackingNumber}`"
+    width="800px"
+    class="tracking-dialog"
+  >
+    <div class="tracking-detail-content">
+      <!-- 基本信息 -->
+      <div class="tracking-header">
+        <div class="tracking-info">
+          <div class="info-row">
+            <span class="label">运单号:</span>
+            <span class="value">{{ selectedTracking.trackingNumber }}</span>
+          </div>
+          <div class="info-row">
+            <span class="label">承运商:</span>
+            <span class="value">{{ selectedTracking.carrier }}</span>
+          </div>
+          <div class="info-row">
+            <span class="label">子单号:</span>
+            <span class="value">{{ selectedTracking.subOrderNo }}</span>
+          </div>
+          <div class="info-row">
+            <span class="label">当前状态:</span>
+            <el-tag :type="getTrackingStatusType(selectedTracking.currentStatus)" size="small">
+              {{ selectedTracking.currentStatus }}
+            </el-tag>
+          </div>
+        </div>
+      </div>
+
+      <!-- 物流时间轴 -->
+      <div class="tracking-timeline">
+        <h4>物流轨迹</h4>
+        <el-timeline>
+          <el-timeline-item
+            v-for="(event, index) in selectedTracking.trackingEvents"
+            :key="index"
+            :timestamp="`${event.date} ${event.time}`"
+            :type="getTimelineEventType(event.status)"
+            :icon="getTimelineEventIcon(event.status)"
+            :color="getTimelineEventColor(event.status)"
+          >
+            <div class="timeline-event">
+              <div class="event-header">
+                <h5 class="event-status">{{ event.status }}</h5>
+                <span class="event-location">{{ event.location }}</span>
+              </div>
+              <p class="event-description">{{ event.description }}</p>
+              <div class="event-meta" v-if="event.facility">
+                <span class="facility">设施: {{ event.facility }}</span>
+              </div>
+            </div>
+          </el-timeline-item>
+        </el-timeline>
+      </div>
+    </div>
+
+    <template #footer>
+      <div class="dialog-footer">
+        <el-button 
+          type="primary" 
+          @click="openCarrierTracking(selectedTracking)"
+        >
+          <el-icon><Link /></el-icon>
+          查看承运商官网
+        </el-button>
+        <el-button @click="trackingDialogVisible = false">关闭</el-button>
+  </div>
+    </template>
+  </el-dialog>
 </template>
 
 <script setup lang="ts">
@@ -692,14 +1553,25 @@ import {
   Refresh,
   Timer,
   User,
-  Truck,
   Box,
   Shield,
   DataBoard,
   CreditCard,
-  Calculator,
   Map,
-  InfoFilled
+  InfoFilled,
+  Lock,
+  Calendar,
+  Tools,
+  CollectionTag,
+  PhoneFilled,
+  RemoveFilled,
+  Operation,
+  Select,
+  Upload,
+  Position,
+  RefreshLeft,
+  Back,
+  CircleCheck
 } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { OrderAction, STATUS_CONFIG } from './types'
@@ -793,15 +1665,44 @@ interface Product {
   category: string;
   status: string;
   quantity: number;
+  uom: string; // 计量单位
   price: number;
+  discount: number; // 折扣
   tax: number;
   amount: number;
+  snCode: string; // SN编码
+  remarks: string; // 商品备注
   color: string;
+}
+
+// 先定义customerInfo的类型
+interface CustomerInfo {
+  name: string;
+  email: string;
+  phone: string;
+  shippingAddress: {
+    line1: string;
+    line2: string;
+    city: string;
+    state: string;
+    country: string;
+    zipCode: string;
+    phone: string;
+  };
+  billingAddress: {
+    line1: string;
+    line2: string;
+    city: string;
+    state: string;
+    country: string;
+    zipCode: string;
+    phone: string;
+  };
 }
 
 interface BackupData {
   products: Product[] | null;
-  customerInfo: typeof customerInfo.value | null;
+  customerInfo: CustomerInfo | null;
 }
 
 const products = ref<Product[]>([
@@ -811,9 +1712,13 @@ const products = ref<Product[]>([
     category: '{{category}} {{type}} {{size}}',
     status: 'Ready',
     quantity: 1,
+    uom: 'PCS',
     price: 20.00,
+    discount: 0.00,
     tax: 3.00,
     amount: 60.00,
+    snCode: 'SN001234567',
+    remarks: '备注信息1',
     color: 'linear-gradient(45deg, #FF6B6B, #4ECDC4)'
   },
   {
@@ -822,10 +1727,489 @@ const products = ref<Product[]>([
     category: '{{category}} {{type}} {{size}}',
     status: 'Packaging',
     quantity: 5,
+    uom: 'PCS',
     price: 20.00,
+    discount: 2.00,
     tax: 3.00,
     amount: 20.00,
+    snCode: 'SN001234568',
+    remarks: '备注信息2',
     color: 'linear-gradient(45deg, #FFE66D, #4ECDC4)'
+  }
+])
+
+// 增强商品数据结构
+interface EnhancedProduct {
+  id: string;
+  name: string;
+  category: string;
+  snCode: string;
+  uom: string;
+  price: number;
+  discount: number; // 折扣金额
+  tax: number; // 税费
+  color: string;
+  originalQuantity: number; // 原始购买数量
+  shouldDispatchQuantity: number; // 应发货数量
+  dispatchedQuantity: number; // 已下发数量
+  fulfillmentQuantity: number; // 当前需要履约的数量
+  cancelledQuantity: number; // 已取消数量
+  returnedQuantity: number; // 已退货数量
+  exchangedQuantity: number; // 已换货数量
+  refundedQuantity: number; // 已退款数量
+  productStatus: string; // 商品状态：待发货、已取消、已退款、已退货
+  fulfillmentStatus: string; // 履约状态：已下发、未下发、部分下发
+  hasOperations: boolean; // 是否有操作历史
+  operationTypes: string[]; // 操作类型列表
+  history: ProductHistoryRecord[]; // 操作历史
+  isExchangeProduct?: boolean; // 是否为换货商品
+  originalProductId?: string; // 原商品ID（换货商品使用）
+}
+
+// 商品操作历史记录
+interface ProductHistoryRecord {
+  type: string; // cancel, return, exchange, refund
+  action: string; // 操作描述
+  beforeQuantity: number; // 操作前数量
+  afterQuantity: number; // 操作后数量
+  reason: string; // 操作原因
+  time: string; // 操作时间
+}
+
+// 展开的商品列表
+const expandedProducts = ref<string[]>([])
+
+// 增强商品数据
+const enhancedProducts = computed<EnhancedProduct[]>(() => {
+  return [
+    {
+      id: 'P001',
+      name: '蓝色连衣裙',
+      category: '女装 | 连衣裙 | M码',
+      snCode: 'SN001234567',
+      uom: 'PCS',
+      price: 89.99,
+      discount: 5.00, // 折扣金额
+      tax: 8.10, // 税费
+      color: 'linear-gradient(45deg, #3B82F6, #1E40AF)',
+      originalQuantity: 3, // 购买数量
+      cancelledQuantity: 1, // 取消数量
+      returnedQuantity: 0, // 退货数量
+      exchangedQuantity: 0, // 换货数量（退回的数量）
+      refundedQuantity: 0, // 退款数量
+      dispatchedQuantity: 1, // 已下发数量
+      // 应发货数量 = 购买数量 - 取消数量 - 退款数量 - 退货数量 - 换货数量
+      shouldDispatchQuantity: 3 - 1 - 0 - 0 - 0, // = 2
+      fulfillmentQuantity: 2,
+      productStatus: '待发货',
+      fulfillmentStatus: '部分下发',
+      hasOperations: true,
+      operationTypes: ['cancel'],
+      history: [
+        {
+          type: 'cancel',
+          action: '客户取消部分数量',
+          beforeQuantity: 3,
+          afterQuantity: 2,
+          reason: '客户主动取消，不需要此商品',
+          time: '2024-02-16 14:30:00'
+        }
+      ]
+    },
+    {
+      id: 'P002',
+      name: '红色T恤',
+      category: '男装 | T恤 | L码',
+      snCode: 'SN001234568',
+      uom: 'PCS',
+      price: 29.99,
+      discount: 0.00, // 无折扣
+      tax: 2.70, // 税费
+      color: 'linear-gradient(45deg, #EF4444, #DC2626)',
+      originalQuantity: 5, // 购买数量
+      cancelledQuantity: 0, // 取消数量
+      returnedQuantity: 2, // 退货数量
+      exchangedQuantity: 0, // 换货数量（退回的数量）
+      refundedQuantity: 0, // 退款数量
+      dispatchedQuantity: 3, // 已下发数量
+      // 应发货数量 = 购买数量 - 取消数量 - 退款数量 - 退货数量 - 换货数量
+      shouldDispatchQuantity: 5 - 0 - 0 - 2 - 0, // = 3
+      fulfillmentQuantity: 3,
+      productStatus: '已退货',
+      fulfillmentStatus: '已下发',
+      hasOperations: true,
+      operationTypes: ['return'],
+      history: [
+        {
+          type: 'return',
+          action: '客户申请退货',
+          beforeQuantity: 5,
+          afterQuantity: 3,
+          reason: '商品存在质量问题，线头较多',
+          time: '2024-02-18 10:15:00'
+        }
+      ]
+    },
+    {
+      id: 'P003',
+      name: '黑色运动鞋',
+      category: '鞋类 | 运动鞋 | 42码',
+      snCode: 'SN001234569',
+      uom: 'PAIR',
+      price: 199.99,
+      discount: 20.00, // 折扣金额
+      tax: 18.00, // 税费
+      color: 'linear-gradient(45deg, #374151, #111827)',
+      originalQuantity: 2, // 购买数量
+      cancelledQuantity: 0, // 取消数量
+      returnedQuantity: 0, // 退货数量
+      exchangedQuantity: 1, // 换货数量（退回的数量）
+      refundedQuantity: 0, // 退款数量
+      dispatchedQuantity: 1, // 已下发数量
+      // 应发货数量 = 购买数量 - 取消数量 - 退款数量 - 退货数量 - 换货数量
+      shouldDispatchQuantity: 2 - 0 - 0 - 0 - 1, // = 1
+      fulfillmentQuantity: 1,
+      productStatus: '待发货',
+      fulfillmentStatus: '已下发',
+      hasOperations: true,
+      operationTypes: ['exchange'],
+      history: [
+        {
+          type: 'exchange',
+          action: '客户申请换货',
+          beforeQuantity: 2,
+          afterQuantity: 1,
+          reason: '尺码不合适，需要换大一码（原商品退回）',
+          time: '2024-02-17 16:20:00'
+        }
+      ]
+    },
+    {
+      id: 'P003-EX', // 换货商品ID
+      name: '黑色运动鞋',
+      category: '鞋类 | 运动鞋 | 43码', // 换大一码
+      snCode: 'SN001234569-EX',
+      uom: 'PAIR',
+      price: 199.99,
+      discount: 20.00, // 折扣金额（继承原商品）
+      tax: 18.00, // 税费（继承原商品）
+      color: 'linear-gradient(45deg, #374151, #111827)',
+      originalQuantity: 1, // 换货新增数量
+      cancelledQuantity: 0, // 取消数量
+      returnedQuantity: 0, // 退货数量
+      exchangedQuantity: 0, // 换货数量（退回的数量）
+      refundedQuantity: 0, // 退款数量
+      dispatchedQuantity: 0, // 已下发数量
+      // 应发货数量 = 购买数量 - 取消数量 - 退款数量 - 退货数量 - 换货数量
+      shouldDispatchQuantity: 1 - 0 - 0 - 0 - 0, // = 1
+      fulfillmentQuantity: 1,
+      productStatus: '待发货',
+      fulfillmentStatus: '未下发',
+      hasOperations: true,
+      operationTypes: ['exchange_new'],
+      isExchangeProduct: true, // 标记为换货商品
+      originalProductId: 'P003', // 关联原商品ID
+      history: [
+        {
+          type: 'exchange_new',
+          action: '换货新商品生成',
+          beforeQuantity: 0,
+          afterQuantity: 1,
+          reason: '客户换货：42码换43码',
+          time: '2024-02-17 16:20:00'
+        }
+      ]
+    },
+    {
+      id: 'P004',
+      name: '白色衬衫',
+      category: '男装 | 衬衫 | XL码',
+      snCode: 'SN001234570',
+      uom: 'PCS',
+      price: 79.99,
+      discount: 10.00, // 折扣金额
+      tax: 7.20, // 税费
+      color: 'linear-gradient(45deg, #F8FAFC, #E2E8F0)',
+      originalQuantity: 2, // 购买数量
+      cancelledQuantity: 0, // 取消数量
+      returnedQuantity: 0, // 退货数量
+      exchangedQuantity: 0, // 换货数量（退回的数量）
+      refundedQuantity: 0, // 退款数量
+      dispatchedQuantity: 0, // 已下发数量
+      // 应发货数量 = 购买数量 - 取消数量 - 退款数量 - 退货数量 - 换货数量
+      shouldDispatchQuantity: 2 - 0 - 0 - 0 - 0, // = 2
+      fulfillmentQuantity: 2,
+      productStatus: '待发货',
+      fulfillmentStatus: '未下发',
+      hasOperations: false,
+      operationTypes: [],
+      history: []
+    }
+  ]
+})
+
+// 取消商品数据结构
+interface CancelledProduct extends Product {
+  cancelReason: string;
+  cancelTime: string;
+}
+
+// 退货商品数据结构
+interface ReturnedProduct extends Product {
+  returnQuantity: number;
+  returnReason: string;
+  returnStatus: string;
+  returnTime: string;
+}
+
+// 换货商品数据结构
+interface ExchangedProduct {
+  id: string;
+  originalProduct: Product;
+  newProduct: Product;
+  exchangeReason: string;
+  exchangeStatus: string;
+  exchangeTime: string;
+  priceDifference: number;
+}
+
+// 取消商品列表
+const cancelledProducts = ref<CancelledProduct[]>([
+  {
+    id: 'CP001',
+    name: '蓝色连衣裙',
+    category: '女装 | 连衣裙 | M码',
+    status: 'Cancelled',
+    quantity: 2,
+    uom: 'PCS',
+    price: 89.99,
+    discount: 5.00,
+    tax: 8.10,
+    amount: 179.98,
+    snCode: 'SN001234569',
+    remarks: '客户要求取消',
+    color: 'linear-gradient(45deg, #3B82F6, #1E40AF)',
+    cancelReason: '客户主动取消，不需要此商品',
+    cancelTime: '2024-02-16 14:30:00'
+  }
+])
+
+// 退货商品列表
+const returnedProducts = ref<ReturnedProduct[]>([
+  {
+    id: 'RP001',
+    name: '红色T恤',
+    category: '男装 | T恤 | L码',
+    status: 'Returned',
+    quantity: 3,
+    uom: 'PCS',
+    price: 29.99,
+    discount: 0.00,
+    tax: 2.70,
+    amount: 89.97,
+    snCode: 'SN001234570',
+    remarks: '质量问题退货',
+    color: 'linear-gradient(45deg, #EF4444, #DC2626)',
+    returnQuantity: 1,
+    returnReason: '商品存在质量问题，线头较多',
+    returnStatus: '退款完成',
+    returnTime: '2024-02-18 10:15:00'
+  }
+])
+
+// 换货商品列表
+const exchangedProducts = ref<ExchangedProduct[]>([
+  {
+    id: 'EP001',
+    originalProduct: {
+      id: 'OP001',
+      name: '黑色运动鞋',
+      category: '鞋类 | 运动鞋 | 42码',
+      status: 'Exchanged',
+      quantity: 1,
+      uom: 'PAIR',
+      price: 199.99,
+      discount: 20.00,
+      tax: 18.00,
+      amount: 179.99,
+      snCode: 'SN001234571',
+      remarks: '换码',
+      color: 'linear-gradient(45deg, #374151, #111827)'
+    },
+    newProduct: {
+      id: 'NP001',
+      name: '黑色运动鞋',
+      category: '鞋类 | 运动鞋 | 43码',
+      status: 'Ready',
+      quantity: 1,
+      uom: 'PAIR',
+      price: 199.99,
+      discount: 20.00,
+      tax: 18.00,
+      amount: 179.99,
+      snCode: 'SN001234572',
+      remarks: '换大一码',
+      color: 'linear-gradient(45deg, #374151, #111827)'
+    },
+    exchangeReason: '尺码不合适，需要换大一码',
+    exchangeStatus: '换货完成',
+    exchangeTime: '2024-02-17 16:20:00',
+    priceDifference: 0.00
+  }
+])
+
+// Dispatched Details 数据
+interface DispatchedDetail {
+  dispatchId: string;
+  warehouse: string;
+  warehouseCode: string;
+  status: string;
+  carrier: string;
+  trackingNumber?: string;
+  trackingUrl?: string;
+  shipDate?: string;
+  estimatedDelivery?: string;
+  items: {
+    sku: string;
+    quantity: number;
+  }[];
+}
+
+const dispatchedDetails = ref<DispatchedDetail[]>([
+  {
+    dispatchId: 'D789',
+    warehouse: 'WMS-上海仓',
+    warehouseCode: 'SH001',
+    status: 'Shipped',
+    carrier: '顺丰快递',
+    trackingNumber: 'SF7234567890',
+    trackingUrl: 'https://www.sf-express.com/tracking',
+    shipDate: '2024-02-17 14:30:00',
+    estimatedDelivery: '2024-02-18 16:00:00',
+    items: [
+      { sku: 'SKU-001', quantity: 2 },
+      { sku: 'SKU-002', quantity: 1 },
+      { sku: 'SKU-003', quantity: 3 }
+    ]
+  },
+  {
+    dispatchId: 'D456',
+    warehouse: 'WMS-北京仓',
+    warehouseCode: 'BJ001',
+    status: 'Processing',
+    carrier: '中通快递',
+    trackingNumber: 'ZTO8876543210',
+    trackingUrl: 'https://www.zto.com/tracking',
+    shipDate: '2024-02-17 15:45:00',
+    estimatedDelivery: '2024-02-19 16:00:00',
+    items: [
+      { sku: 'SKU-004', quantity: 1 },
+      { sku: 'SKU-005', quantity: 2 }
+    ]
+  },
+  {
+    dispatchId: 'D321',
+    warehouse: 'WMS-广州仓',
+    warehouseCode: 'GZ001',
+    status: 'Delivered',
+    carrier: '申通快递',
+    trackingNumber: 'STO5544332211',
+    trackingUrl: 'https://www.sto.cn/tracking',
+    shipDate: '2024-02-16 10:20:00',
+    estimatedDelivery: '2024-02-17 18:00:00',
+    items: [
+      { sku: 'SKU-006', quantity: 4 }
+    ]
+  }
+])
+
+// Packages 数据
+interface Package {
+  packageId: string;
+  dispatchId: string;
+  status: string;
+  weight: string;
+  dimensions: string;
+  trackingNumber?: string;
+  trackingUrl?: string;
+  lastUpdate: string;
+  items: {
+    sku?: string;
+    name: string;
+    quantity: number;
+  }[];
+}
+
+const packages = ref<Package[]>([
+  {
+    packageId: 'PKG789-01',
+    dispatchId: 'D789',
+    shipmentNo: 'SHP2024021801',
+    palletNo: 'PLT-SH-001',
+    carrier: '顺丰速运',
+    service: 'SF Standard',
+    masterTrackingNumber: 'MST7234567890',
+    weight: '2.3kg',
+    dimensions: '35×25×15cm',
+    trackingNumber: 'SF7234567890',
+    trackingUrl: 'https://www.sf-express.com/tracking',
+    lastUpdate: '2024-02-18 14:30:00',
+    items: [
+      { sku: 'SKU-001', name: '蓝色连衣裙', quantity: 2 },
+      { sku: 'SKU-002', name: '红色T恤', quantity: 1 }
+    ]
+  },
+  {
+    packageId: 'PKG789-02',
+    dispatchId: 'D789',
+    shipmentNo: 'SHP2024021802',
+    palletNo: 'PLT-SH-001',
+    carrier: '顺丰速运',
+    service: 'SF Standard',
+    masterTrackingNumber: 'MST7234567890',
+    weight: '1.8kg',
+    dimensions: '25×20×12cm',
+    trackingNumber: 'SF7234567891',
+    trackingUrl: 'https://www.sf-express.com/tracking',
+    lastUpdate: '2024-02-18 14:30:00',
+    items: [
+      { sku: 'SKU-003', name: '黑色牛仔裤', quantity: 3 }
+    ]
+  },
+  {
+    packageId: 'PKG456-01',
+    dispatchId: 'D456',
+    shipmentNo: 'SHP2024021703',
+    palletNo: 'PLT-BJ-002',
+    carrier: '中通快递',
+    service: 'ZTO Express',
+    masterTrackingNumber: 'MST8876543210',
+    weight: '1.5kg',
+    dimensions: '30×25×10cm',
+    trackingNumber: 'ZTO8876543210',
+    trackingUrl: 'https://www.zto.com/tracking',
+    lastUpdate: '2024-02-18 10:00:00',
+    items: [
+      { sku: 'SKU-004', name: '白色衬衫', quantity: 1 },
+      { sku: 'SKU-005', name: '灰色西装', quantity: 2 }
+    ]
+  },
+  {
+    packageId: 'PKG321-01',
+    dispatchId: 'D321',
+    shipmentNo: 'SHP2024021604',
+    palletNo: 'PLT-GZ-003',
+    carrier: '申通快递',
+    service: 'STO Standard',
+    masterTrackingNumber: 'MST5544332211',
+    weight: '3.2kg',
+    dimensions: '40×30×20cm',
+    trackingNumber: 'STO5544332211',
+    trackingUrl: 'https://www.sto.cn/tracking',
+    lastUpdate: '2024-02-17 16:45:00',
+    items: [
+      { sku: 'SKU-006', name: '运动鞋套装', quantity: 4 }
+    ]
   }
 ])
 
@@ -1129,7 +2513,7 @@ const activities = ref([
       warehouse: 'WMS-上海仓',
       outboundOrder: 'OUT-2024021700789',
       items: [
-        { sku: 'SKU-003', name: '高端手表', quantity: 1, location: 'A-05-12' }
+              { sku: 'SKU-003', name: '高端手表', quantity: 1, uom: 'PCS', location: 'A-05-12' }
       ],
       estimatedPackTime: '2024-02-17 10:00:00'
     },
@@ -1151,7 +2535,7 @@ const activities = ref([
       warehouse: 'WMS-北京仓',
       outboundOrder: 'OUT-2024021700456',
       items: [
-        { sku: 'SKU-001', name: '蓝色连衣裙', quantity: 1, location: 'B-03-08' }
+              { sku: 'SKU-001', name: '蓝色连衣裙', quantity: 1, uom: 'PCS', location: 'B-03-08' }
       ],
       estimatedPackTime: '2024-02-17 09:00:00'
     },
@@ -1338,7 +2722,111 @@ const showFullTimeline = ref(false)
 const currentPage = ref(1)
 const pageSize = ref(4)
 
+// 时间线筛选相关
+const activeTimelineTab = ref('all')
+const selectedFilters = ref([])
+
+// 快速筛选选项
+const quickFilters = ref([
+  { key: 'today', label: '今天', icon: 'Calendar' },
+  { key: 'error', label: '异常', icon: 'Warning' },
+  { key: 'important', label: '重要', icon: 'Star' },
+  { key: 'manual', label: '人工操作', icon: 'User' }
+])
+
+// 根据Tab筛选活动数据
+const getFilteredActivities = (tabType) => {
+  if (tabType === 'all') {
+    return activities.value
+  }
+  
+  return activities.value.filter(activity => {
+    switch (tabType) {
+      case 'dispatch':
+        return activity.actionType?.toLowerCase().includes('dispatch') || 
+               activity.content?.toLowerCase().includes('dispatch') ||
+               activity.actionType === 'Shipped' ||
+               activity.actionType === 'Loading' ||
+               activity.actionType === 'Packed'
+      case 'update':
+        return activity.actionType === 'Update' ||
+               activity.actionType === 'Modify' ||
+               activity.title?.includes('修改') ||
+               activity.title?.includes('更新')
+      case 'wms':
+        return activity.actor?.includes('WMS') ||
+               activity.actionType === 'WMS Confirm' ||
+               activity.actionType === 'Allocate' ||
+               activity.actionType === 'Packed' ||
+               activity.actionType === 'Loading'
+      case 'logistics':
+        return activity.actionType === 'Shipped' ||
+               activity.actionType === 'In Transit' ||
+               activity.actionType === 'DC Arrival' ||
+               activity.actionType === 'Delivered' ||
+               activity.actor?.includes('快递') ||
+               activity.actor?.includes('物流')
+      case 'customer':
+        return activity.actionType === 'Complete' ||
+               activity.actionType === 'Create' ||
+               activity.title?.includes('客户') ||
+               activity.title?.includes('签收')
+      default:
+        return true
+    }
+  })
+}
+
+// 当前活跃Tab的筛选数据
+const filteredActivities = computed(() => {
+  let filtered = getFilteredActivities(activeTimelineTab.value)
+  
+  // 应用快速筛选
+  if (selectedFilters.value.length > 0) {
+    filtered = filtered.filter(activity => {
+      return selectedFilters.value.some(filter => {
+        switch (filter) {
+          case 'today':
+            const today = new Date().toDateString()
+            const activityDate = new Date(activity.timestamp).toDateString()
+            return today === activityDate
+          case 'error':
+            return activity.type === 'danger' || 
+                   activity.actionType === 'Exception' ||
+                   activity.title?.includes('异常') ||
+                   activity.title?.includes('错误')
+          case 'important':
+            return activity.actionType === 'Complete' ||
+                   activity.actionType === 'Shipped' ||
+                   activity.actionType === 'Create'
+          case 'manual':
+            return activity.actor?.includes('操作员') ||
+                   activity.actor?.includes('客服') ||
+                   activity.actor?.includes('管理员') ||
+                   !activity.actor?.includes('系统') && 
+                   !activity.actor?.includes('API') &&
+                   !activity.actor?.includes('自动')
+          default:
+            return false
+        }
+      })
+    })
+  }
+  
+  return filtered
+})
+
 // 分页后的活动数据
+const filteredPaginatedActivities = computed(() => {
+  if (showFullTimeline.value) {
+    return filteredActivities.value
+  }
+  const start = (currentPage.value - 1) * pageSize.value
+  const end = start + pageSize.value
+  return filteredActivities.value.slice(start, end)
+})
+
+// 保留原有的分页逻辑用于兼容
 const paginatedActivities = computed(() => {
   if (showFullTimeline.value) {
     return activities.value
@@ -1354,6 +2842,60 @@ const handlePageChange = (page) => {
   // 清空展开项
   expandedItems.value = []
 }
+
+// 切换快速筛选
+const toggleFilter = (filterKey) => {
+  const index = selectedFilters.value.indexOf(filterKey)
+  if (index > -1) {
+    selectedFilters.value.splice(index, 1)
+  } else {
+    selectedFilters.value.push(filterKey)
+  }
+  // 重置分页
+  currentPage.value = 1
+}
+
+// 清除所有筛选
+const clearFilters = () => {
+  selectedFilters.value = []
+  currentPage.value = 1
+}
+
+// 获取筛选计数
+const getFilterCount = (filterKey) => {
+  return activities.value.filter(activity => {
+    switch (filterKey) {
+      case 'today':
+        const today = new Date().toDateString()
+        const activityDate = new Date(activity.timestamp).toDateString()
+        return today === activityDate
+      case 'error':
+        return activity.type === 'danger' || 
+               activity.actionType === 'Exception' ||
+               activity.title?.includes('异常') ||
+               activity.title?.includes('错误')
+      case 'important':
+        return activity.actionType === 'Complete' ||
+               activity.actionType === 'Shipped' ||
+               activity.actionType === 'Create'
+      case 'manual':
+        return activity.actor?.includes('操作员') ||
+               activity.actor?.includes('客服') ||
+               activity.actor?.includes('管理员') ||
+               !activity.actor?.includes('系统') && 
+               !activity.actor?.includes('API') &&
+               !activity.actor?.includes('自动')
+      default:
+        return false
+    }
+  }).length
+}
+
+// 监听tab变化，重置分页
+watch(activeTimelineTab, () => {
+  currentPage.value = 1
+  expandedItems.value = []
+})
 
 // 格式化时间轴日期
 const formatTimelineDate = (dateStr) => {
@@ -1379,7 +2921,7 @@ const getTimelineIcon = (iconName) => {
     'wms-confirm': 'Select',          // 仓库接单
     'packed': 'Box',                  // 打包
     'loading': 'Upload',              // 装车
-    'shipped': 'Truck',               // 发货
+    'shipped': 'Van',                 // 发货
     'in-transit': 'Van',              // 运输中
     'dc-arrival': 'Position',         // DC到货
     'delivered': 'Check',             // 已送达
@@ -1390,7 +2932,7 @@ const getTimelineIcon = (iconName) => {
     'complete': 'CircleCheck',        // 完成
     
     // 兼容旧图标
-    'truck': 'Truck',
+    'truck': 'Van',
     'box': 'Box', 
     'check-circle': 'Check',
     'clock': 'Clock',
@@ -1404,7 +2946,7 @@ const getTimelineIcon = (iconName) => {
     'package': 'Box',
     'plus-circle': 'Plus',
     'user': 'User',
-    'calculator': 'Calculator'
+    'calculator': 'DataBoard'
   }
   return iconMap[iconName] || 'InfoFilled'
 }
@@ -1637,7 +3179,7 @@ const shippingTimeline = ref({
   shipDate: '2024-02-18 16:30:00'
 })
 
-const customerInfo = ref({
+const customerInfo = ref<CustomerInfo>({
   name: 'Dunder Mufflin LTD.',
   email: 'hello@dundermufflin.com',
   phone: '(724) 234-848-9434',
@@ -1885,9 +3427,13 @@ const handleAddProduct = () => {
     category: '',
     status: 'Ready',
     quantity: 1,
+    uom: 'PCS',
     price: 0,
+    discount: 0,
     tax: 0,
     amount: 0,
+    snCode: '',
+    remarks: '',
     color: 'linear-gradient(45deg, #FF6B6B, #4ECDC4)'
   }
   products.value.push(newProduct)
@@ -1977,18 +3523,145 @@ const getStatusLabel = (status: OrderStatus): string => {
 
 // 格式化日期
 const formatDate = (date: string): string => {
-  return new Date(date).toLocaleString('en-US', {
+  if (!date) return '-'
+  return new Date(date).toLocaleString('zh-CN', {
     year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-    hour: 'numeric',
-    minute: 'numeric',
-    hour12: true
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit'
   })
+}
+
+// 获取承运商简称
+const getCarrierShort = (carrier: string): string => {
+  const carrierMap: Record<string, string> = {
+    '顺丰速运': '顺丰',
+    '中通快递': '中通',
+    '申通快递': '申通',
+    'FedEx': 'FedEx',
+    'DHL': 'DHL',
+    'UPS': 'UPS'
+  }
+  return carrierMap[carrier] || carrier.slice(0, 4)
+}
+
+// 获取服务类型简称
+const getServiceShort = (service: string): string => {
+  const serviceMap: Record<string, string> = {
+    'SF Standard': 'SF标准',
+    'ZTO Express': 'ZTO快递',
+    'STO Standard': 'STO标准',
+    'FedEx Priority': 'FedEx优先',
+    'DHL Express': 'DHL快递'
+  }
+  return serviceMap[service] || service.replace(/\s+/g, '').slice(0, 6)
+}
+
+// 获取尺寸简称
+const getDimensionsShort = (dimensions: string): string => {
+  // 将 35×25×15cm 转换为更紧凑的格式
+  return dimensions.replace('×', 'x').replace('cm', '')
+}
+
+// 处理跟踪号点击事件
+const handleTrackingClick = (trackingNumber: string) => {
+  // 这里调用之前的跟踪弹窗功能
+  openTracking(trackingNumber)
 }
 
 // 编辑状态控制
 const isEditing = ref(false)
+
+// Tab控制
+const activeTab = ref('items')
+
+// 展开/折叠状态管理
+const expandedDispatches = ref<string[]>([])
+const expandedPackages = ref<string[]>([])
+
+// 物流跟踪弹窗相关
+const trackingDialogVisible = ref(false)
+const selectedTracking = ref<any>({
+  trackingNumber: '',
+  carrier: '',
+  subOrderNo: '',
+  currentStatus: '',
+  trackingEvents: []
+})
+
+// 订单备注相关
+const isEditingNotes = ref(false)
+const orderNotes = ref({
+  internal: '此订单需要特殊包装，客户要求在包装盒上贴上个性化标签。',
+  customer: '请务必小心包装，这是送给朋友的生日礼物。'
+})
+
+// 订单备注的备份数据
+const backupNotes = ref({
+  internal: '',
+  customer: ''
+})
+
+// 切换dispatch商品展开状态
+const toggleDispatchItems = (dispatchId: string) => {
+  const index = expandedDispatches.value.indexOf(dispatchId)
+  if (index > -1) {
+    expandedDispatches.value.splice(index, 1)
+  } else {
+    expandedDispatches.value.push(dispatchId)
+  }
+}
+
+// 切换package商品展开状态
+const togglePackageItems = (packageId: string) => {
+  const index = expandedPackages.value.indexOf(packageId)
+  if (index > -1) {
+    expandedPackages.value.splice(index, 1)
+  } else {
+    expandedPackages.value.push(packageId)
+  }
+}
+
+// Dispatched Details数据接口
+interface DispatchedDetail {
+  dispatchId: string;
+  warehouse: string;
+  warehouseCode: string;
+  status: string;
+  carrier: string;
+  trackingNumber?: string;
+  trackingUrl?: string;
+  shipDate?: string;
+  estimatedDelivery?: string;
+  items: Array<{
+    sku: string;
+    quantity: number;
+  }>;
+}
+
+// Package数据接口
+interface Package {
+  packageId: string;
+  dispatchId: string;
+  shipmentNo: string;
+  palletNo: string;
+  carrier: string;
+  service: string;
+  masterTrackingNumber: string;
+  weight: string;
+  dimensions: string;
+  trackingNumber?: string;
+  trackingUrl?: string;
+  lastUpdate: string;
+  items: Array<{
+    name: string;
+    quantity: number;
+  }>;
+}
+
+
+
 
 // 编辑前的备份数据
 const backupData = ref<BackupData>({
@@ -2031,13 +3704,69 @@ const toggleEdit = () => {
   }
 }
 
+// 判断商品是否可编辑（只有未dispatch的商品可编辑）
+const isProductEditable = (product: Product | EnhancedProduct): boolean => {
+  // 对于增强商品数据，检查履约状态
+  if ('fulfillmentStatus' in product) {
+    return product.fulfillmentStatus === '未下发' && product.productStatus !== '已取消'
+  }
+  // 对于普通商品数据，只有状态为Ready的商品才可以编辑
+  return product.status === 'Ready'
+}
+
 // 处理商品数量变更
 const handleQuantityChange = (row: Product, value: number): void => {
+  // 只有可编辑的商品才能变更数量
+  if (!isProductEditable(row)) {
+    ElMessage.warning('已dispatch的商品不能修改数量')
+    return
+  }
+  
   // 记录变更
   logProductChange('quantity_change', row.id, row.quantity, value)
   row.quantity = value
   // 重新计算金额
   row.amount = row.price * value
+}
+
+// 订单备注相关方法
+const startEditNotes = () => {
+  // 备份当前备注数据
+  backupNotes.value = {
+    internal: orderNotes.value.internal,
+    customer: orderNotes.value.customer
+  }
+  isEditingNotes.value = true
+}
+
+const saveNotes = () => {
+  ElMessageBox.confirm(
+    '确认保存备注修改？',
+    '保存确认',
+    {
+      confirmButtonText: '确认',
+      cancelButtonText: '取消',
+      type: 'warning'
+    }
+  ).then(() => {
+    // TODO: 调用保存备注API
+    ElMessage({
+      type: 'success',
+      message: '备注保存成功'
+    })
+    isEditingNotes.value = false
+  }).catch(() => {})
+}
+
+const cancelEditNotes = () => {
+  // 恢复备份的数据
+  orderNotes.value.internal = backupNotes.value.internal
+  orderNotes.value.customer = backupNotes.value.customer
+  isEditingNotes.value = false
+  ElMessage({
+    type: 'info',
+    message: '已取消编辑'
+  })
 }
 
 defineExpose({
@@ -2126,6 +3855,293 @@ const updateErrorStatus = (error: string | null) => {
   hasError.value = !!error
   errorMessage.value = error || ''
 }
+
+// 计算取消商品总金额
+const getCancelledTotalAmount = (): string => {
+  const total = cancelledProducts.value.reduce((sum, product) => {
+    return sum + (product.price * product.quantity)
+  }, 0)
+  return total.toFixed(2)
+}
+
+// 计算退货商品总金额
+const getReturnedTotalAmount = (): string => {
+  const total = returnedProducts.value.reduce((sum, product) => {
+    return sum + (product.price * product.returnQuantity)
+  }, 0)
+  return total.toFixed(2)
+}
+
+// 计算换货商品总价差
+const getExchangeTotalDifference = (): string => {
+  const total = exchangedProducts.value.reduce((sum, exchange) => {
+    return sum + exchange.priceDifference
+  }, 0)
+  return total >= 0 ? `+${total.toFixed(2)}` : total.toFixed(2)
+}
+
+// 获取退货状态类型
+const getReturnStatusType = (status: string): string => {
+  const types: Record<string, string> = {
+    '退货申请': 'warning',
+    '退货中': 'info',
+    '退款完成': 'success',
+    '退货失败': 'danger'
+  }
+  return types[status] || 'info'
+}
+
+// 获取换货状态类型
+const getExchangeStatusType = (status: string): string => {
+  const types: Record<string, string> = {
+    '换货申请': 'warning',
+    '换货中': 'info',
+    '换货完成': 'success',
+    '换货失败': 'danger'
+  }
+  return types[status] || 'info'
+}
+
+// 获取商品状态类型
+const getProductStatusType = (status: string): string => {
+  const types: Record<string, string> = {
+    '待发货': 'warning',
+    '已发货': 'info',
+    '已送达': 'success',
+    '已取消': 'danger',
+    '已退款': 'info',
+    '已退货': 'warning',
+    '换货中': 'info'
+  }
+  return types[status] || 'info'
+}
+
+// 获取履约状态类型
+const getFulfillmentStatusType = (status: string): string => {
+  const types: Record<string, string> = {
+    '未下发': 'danger',
+    '已下发': 'success',
+    '处理中': 'warning',
+    '已完成': 'info'
+  }
+  return types[status] || 'info'
+}
+
+// 获取操作标签类型
+const getOperationTagType = (operation: string): string => {
+  const types: Record<string, string> = {
+    'cancel': 'danger',
+    'return': 'warning',
+    'exchange': 'info',
+    'exchange_new': 'warning',
+    'refund': 'info'
+  }
+  return types[operation] || 'info'
+}
+
+// 获取操作标签文本
+const getOperationLabel = (operation: string): string => {
+  const labels: Record<string, string> = {
+    'cancel': '已取消',
+    'return': '已退货',
+    'exchange': '已换货',
+    'exchange_new': '换货新品',
+    'refund': '已退款'
+  }
+  return labels[operation] || operation
+}
+
+// 计算商品行总金额
+const calculateLineTotal = (product: EnhancedProduct, quantity: number): number => {
+  const subtotal = product.price * quantity
+  const discountRatio = quantity / product.originalQuantity
+  const discountAmount = product.discount * discountRatio
+  const taxAmount = product.tax * discountRatio
+  
+  return subtotal - discountAmount + taxAmount
+}
+
+// 处理应发货数量变更
+const handleShouldDispatchQuantityChange = (row: EnhancedProduct, value: number): void => {
+  // 只有可编辑的商品才能变更数量
+  if (!isProductEditable(row)) {
+    ElMessage.warning('已dispatch的商品不能修改数量')
+    return
+  }
+  
+  // 验证数量范围
+  if (value < 0 || value > row.originalQuantity) {
+    ElMessage.warning(`应发货数量必须在0到${row.originalQuantity}之间`)
+    return
+  }
+  
+  // 记录变更
+  logProductChange('should_dispatch_quantity_change', row.id, row.shouldDispatchQuantity, value)
+  row.shouldDispatchQuantity = value
+  
+  // 同时更新履约数量
+  row.fulfillmentQuantity = value
+}
+
+// 显示物流跟踪详情
+const showTrackingDetails = (tracking: any) => {
+  // 模拟详细的物流跟踪数据
+  selectedTracking.value = {
+    ...tracking,
+    currentStatus: 'Delivered',
+    trackingEvents: [
+      {
+        date: 'Monday, 5/19/25',
+        time: '10:08 AM',
+        status: 'Delivered',
+        location: 'Houston, TX',
+        description: '包裹已成功投递',
+        facility: null
+      },
+      {
+        date: 'Monday, 5/19/25',
+        time: '5:15 AM',
+        status: 'On FedEx vehicle for delivery',
+        location: 'HOUSTON, TX',
+        description: '包裹已装车，正在配送途中',
+        facility: 'Houston Distribution Center'
+      },
+      {
+        date: 'Monday, 5/19/25',
+        time: '5:01 AM',
+        status: 'At local FedEx facility',
+        location: 'HOUSTON, TX',
+        description: '包裹已到达本地配送站点',
+        facility: 'Houston Local Facility'
+      },
+      {
+        date: 'Sunday, 5/18/25',
+        time: '7:30 PM',
+        status: 'On the way',
+        location: 'HOUSTON, TX',
+        description: '包裹运输中',
+        facility: null
+      },
+      {
+        date: 'Saturday, 5/17/25',
+        time: '10:41 PM',
+        status: 'On the way',
+        location: 'HOUSTON, TX',
+        description: '包裹运输中',
+        facility: null
+      },
+      {
+        date: 'Saturday, 5/17/25',
+        time: '10:40 AM',
+        status: 'On the way',
+        location: 'HOUSTON, TX',
+        description: '包裹运输中',
+        facility: null
+      },
+      {
+        date: 'Friday, 5/16/25',
+        time: '9:40 PM',
+        status: 'Departed FedEx location',
+        location: 'CYPRESS, TX',
+        description: '包裹已离开FedEx站点',
+        facility: 'Cypress Sorting Center'
+      },
+      {
+        date: 'Friday, 5/16/25',
+        time: '6:33 PM',
+        status: 'Arrived at FedEx location',
+        location: 'CYPRESS, TX',
+        description: '包裹已到达FedEx站点',
+        facility: 'Cypress Sorting Center'
+      },
+      {
+        date: 'Friday, 5/16/25',
+        time: '11:00 AM',
+        status: 'On the way',
+        location: 'OKOLONA, AR',
+        description: '包裹运输中',
+        facility: null
+      },
+      {
+        date: 'Thursday, 5/15/25',
+        time: '11:52 PM',
+        status: 'Left FedEx origin facility',
+        location: 'LOUISVILLE, KY',
+        description: '包裹已离开FedEx起始站点',
+        facility: 'Louisville Origin Facility'
+      },
+      {
+        date: 'Thursday, 5/15/25',
+        time: '7:42 PM',
+        status: 'Shipment arriving On-Time',
+        location: 'LOUISVILLE, KY',
+        description: '包裹按时到达',
+        facility: 'Louisville Hub'
+      },
+      {
+        date: 'Thursday, 5/15/25',
+        time: '7:40 PM',
+        status: 'Arrived at FedEx location',
+        location: 'LOUISVILLE, KY',
+        description: '包裹已到达FedEx站点',
+        facility: 'Louisville Hub'
+      }
+    ]
+  }
+  trackingDialogVisible.value = true
+}
+
+// 获取跟踪状态类型
+const getTrackingStatusType = (status: string) => {
+  if (status === 'Delivered') return 'success'
+  if (status.includes('On the way') || status.includes('vehicle')) return 'warning'
+  return 'info'
+}
+
+// 获取时间轴事件类型
+const getTimelineEventType = (status: string) => {
+  if (status === 'Delivered') return 'success'
+  if (status.includes('On the way') || status.includes('vehicle')) return 'warning'
+  return 'primary'
+}
+
+// 获取时间轴事件图标
+const getTimelineEventIcon = (status: string) => {
+  if (status === 'Delivered') return 'Check'
+  if (status.includes('vehicle')) return 'Van'
+  if (status.includes('Arrived')) return 'Location'
+  if (status.includes('Departed') || status.includes('Left')) return 'Right'
+  return 'Clock'
+}
+
+// 获取时间轴事件颜色
+const getTimelineEventColor = (status: string) => {
+  if (status === 'Delivered') return '#67C23A'
+  if (status.includes('On the way') || status.includes('vehicle')) return '#E6A23C'
+  if (status.includes('Arrived')) return '#409EFF'
+  if (status.includes('Departed') || status.includes('Left')) return '#909399'
+  return '#909399'
+}
+
+// 打开承运商官网跟踪
+const openCarrierTracking = (tracking: any) => {
+  const url = `${tracking.carrierTrackingUrl}/${tracking.trackingNumber}`
+  window.open(url, '_blank')
+}
+
+// 获取Dispatch状态类型
+const getDispatchStatusType = (status: string): string => {
+  const statusMap: Record<string, string> = {
+    'Shipped': 'success',
+    'Processing': 'warning',
+    'Delivered': 'success',
+    'Cancelled': 'danger',
+    'Exception': 'danger'
+  }
+  return statusMap[status] || 'info'
+}
+
+
 
 // 添加自定义样式
 const styleContent = `
@@ -2994,7 +5010,7 @@ const statusHistory = ref<StatusHistory[]>([
         }
       }
 
-      .products-section {
+      .order-details-section {
         background: linear-gradient(135deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.02));
         border-radius: 32px;
         padding: 32px 24px;
@@ -3048,6 +5064,90 @@ const statusHistory = ref<StatusHistory[]>([
           }
         }
 
+        .table-container {
+          overflow-x: auto;
+          border-radius: 12px;
+          border: 1px solid rgba(255, 255, 255, 0.04);
+          
+          &::-webkit-scrollbar {
+            height: 6px;
+          }
+          
+          &::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 3px;
+          }
+          
+          &::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 3px;
+            
+            &:hover {
+              background: rgba(255, 255, 255, 0.3);
+            }
+          }
+        }
+
+        .order-tabs {
+          background: transparent;
+          border: none;
+          margin-top: 16px;
+
+          :deep(.el-tabs__header) {
+            background: transparent;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            margin: 0 0 24px 0;
+            
+            .el-tabs__nav {
+              border: none;
+              
+              .el-tabs__item {
+                background: transparent;
+                border: none;
+                color: rgba(255, 255, 255, 0.5);
+                height: 48px;
+                line-height: 48px;
+                font-size: 14px;
+                font-weight: 500;
+                padding: 0 24px;
+                transition: all 0.3s ease;
+                position: relative;
+                
+                &:hover {
+                  color: rgba(255, 255, 255, 0.8);
+                }
+
+                &.is-active {
+                  color: #34C759;
+                  font-weight: 600;
+                  
+                  &::after {
+                    content: '';
+                    position: absolute;
+                    bottom: 0;
+                    left: 50%;
+                    transform: translateX(-50%);
+                    width: 80%;
+                    height: 3px;
+                    background: linear-gradient(90deg, #34C759, #30D158);
+                    border-radius: 2px;
+                    box-shadow: 0 2px 8px rgba(52, 199, 89, 0.3);
+                  }
+                }
+              }
+            }
+          }
+
+          :deep(.el-tabs__content) {
+            background: transparent;
+            padding: 0;
+          }
+
+          .tab-content {
+            padding: 0;
+          }
+        }
+
         :deep(.el-table) {
           background: transparent;
           
@@ -3060,10 +5160,17 @@ const statusHistory = ref<StatusHistory[]>([
             th {
               background: rgba(255, 255, 255, 0.02) !important;
               border-bottom: 1px solid rgba(255, 255, 255, 0.04);
-              color: rgba(255, 255, 255, 0.4);
-              font-weight: 500;
-              padding: 12px 16px;
-              font-size: 13px;
+              color: rgba(255, 255, 255, 0.6);
+              font-weight: 600;
+              padding: 10px 8px;
+              font-size: 12px;
+              white-space: nowrap;
+              text-transform: uppercase;
+              letter-spacing: 0.5px;
+              
+              .cell {
+                color: rgba(255, 255, 255, 0.6);
+              }
             }
           }
           
@@ -3074,7 +5181,8 @@ const statusHistory = ref<StatusHistory[]>([
               background: transparent;
               border-bottom: 1px solid rgba(255, 255, 255, 0.04);
               color: rgba(255, 255, 255, 0.9);
-              padding: 12px 16px;
+              padding: 8px 12px;
+              font-size: 13px;
             }
           }
 
@@ -3109,6 +5217,181 @@ const statusHistory = ref<StatusHistory[]>([
           color: rgba(255, 255, 255, 0.4);
           letter-spacing: 0.2px;
         }
+
+        .sn-code {
+          font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
+          font-size: 11px;
+          background: rgba(99, 102, 241, 0.1);
+          border: 1px solid rgba(99, 102, 241, 0.2);
+          padding: 4px 8px;
+          border-radius: 6px;
+          color: #6366F1;
+          letter-spacing: 0.5px;
+          font-weight: 500;
+          display: inline-block;
+        }
+
+        .quantity-display {
+          font-size: 14px;
+          font-weight: 600;
+          color: rgba(255, 255, 255, 0.9);
+          text-align: center;
+        }
+
+        .uom-tag {
+          font-size: 11px;
+          background: rgba(255, 255, 255, 0.1);
+          padding: 2px 6px;
+          border-radius: 4px;
+          color: rgba(255, 255, 255, 0.7);
+          font-weight: 500;
+          text-transform: uppercase;
+        }
+
+        .price-display {
+          font-size: 14px;
+          font-weight: 500;
+          color: rgba(255, 255, 255, 0.9);
+        }
+
+        .discount-display {
+          .discount-amount {
+            font-size: 13px;
+            font-weight: 600;
+            color: #10B981;
+          }
+          
+          .no-discount {
+            font-size: 12px;
+            color: rgba(148, 163, 184, 0.6);
+          }
+        }
+
+        .tax-display {
+          .tax-amount {
+          font-size: 13px;
+            font-weight: 500;
+            color: rgba(251, 191, 36, 0.9);
+          }
+          
+          .no-tax {
+            font-size: 12px;
+            color: rgba(148, 163, 184, 0.6);
+          }
+        }
+
+        .amount-display {
+          font-size: 14px;
+          font-weight: 600;
+          color: #34C759;
+          border-left: 2px solid rgba(52, 199, 89, 0.3);
+          padding-left: 8px;
+        }
+
+        .remarks-text {
+          font-size: 13px;
+          color: rgba(255, 255, 255, 0.7);
+          line-height: 1.4;
+          max-height: 40px;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          display: -webkit-box;
+          -webkit-line-clamp: 2;
+          -webkit-box-orient: vertical;
+        }
+
+        // Dispatched Details Tab 样式
+        .dispatch-id {
+          font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
+          font-size: 11px;
+          background: rgba(52, 199, 89, 0.1);
+          border: 1px solid rgba(52, 199, 89, 0.2);
+          padding: 4px 8px;
+          border-radius: 6px;
+          color: #34C759;
+          font-weight: 500;
+          display: inline-block;
+        }
+
+        .warehouse-info {
+          .warehouse-name {
+            font-size: 14px;
+            font-weight: 500;
+            color: rgba(255, 255, 255, 0.9);
+            margin-bottom: 2px;
+          }
+          
+          .warehouse-code {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.5);
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
+          }
+        }
+
+        .tracking-link {
+          font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
+          font-size: 12px;
+          font-weight: 500;
+        }
+
+        .no-tracking {
+          color: rgba(255, 255, 255, 0.3);
+          font-style: italic;
+        }
+
+        .dispatch-item,
+        .package-item {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 4px 8px;
+          margin-bottom: 4px;
+          background: rgba(255, 255, 255, 0.03);
+          border-radius: 4px;
+          
+          &:last-child {
+            margin-bottom: 0;
+          }
+
+          .item-sku {
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
+            font-size: 12px;
+            font-weight: 600;
+            color: #6366F1;
+          }
+
+          .item-name {
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.8);
+            flex: 1;
+          }
+
+          .item-qty {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.6);
+            font-weight: 500;
+          }
+        }
+
+        // Packages Tab 样式
+        .package-id {
+          font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
+          font-size: 11px;
+          background: rgba(99, 102, 241, 0.1);
+          border: 1px solid rgba(99, 102, 241, 0.2);
+          padding: 4px 8px;
+          border-radius: 6px;
+          color: #6366F1;
+          font-weight: 500;
+          display: inline-block;
+        }
+
+        .weight-display,
+        .dimensions-display {
+          font-size: 13px;
+          color: rgba(255, 255, 255, 0.7);
+          font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
+        }
       }
 
       .timeline-section {
@@ -3117,6 +5400,148 @@ const statusHistory = ref<StatusHistory[]>([
         padding: 40px;
         border: 1px solid rgba(255, 255, 255, 0.04);
         backdrop-filter: blur(24px);
+        
+        // 时间线筛选样式
+        .timeline-filters {
+          margin-bottom: 24px;
+          
+          .timeline-tabs {
+            margin-bottom: 16px;
+            
+            :deep(.el-tabs__header) {
+              background: rgba(255, 255, 255, 0.02);
+              border-radius: 12px;
+              padding: 4px;
+              border: 1px solid rgba(255, 255, 255, 0.06);
+              margin: 0;
+            }
+            
+            :deep(.el-tabs__nav) {
+              border: none;
+            }
+            
+            :deep(.el-tabs__item) {
+              background: transparent;
+              border: none !important;
+              border-radius: 8px !important;
+              margin: 0 2px;
+              padding: 8px 16px;
+              color: rgba(255, 255, 255, 0.7);
+              transition: all 0.3s ease;
+              
+              .tab-label {
+                display: flex;
+                align-items: center;
+                gap: 6px;
+                font-size: 13px;
+                
+                .el-icon {
+                  font-size: 14px;
+                }
+                
+                .tab-badge {
+                  :deep(.el-badge__content) {
+                    background: rgba(99, 102, 241, 0.8);
+                    border: none;
+                    font-size: 10px;
+                    height: 16px;
+                    line-height: 16px;
+                    min-width: 16px;
+                    padding: 0 4px;
+                  }
+                }
+              }
+              
+              &.is-active {
+                background: rgba(99, 102, 241, 0.15);
+                color: #6366F1;
+                
+                .tab-badge {
+                  :deep(.el-badge__content) {
+                    background: #6366F1;
+                    color: white;
+                  }
+                }
+              }
+              
+              &:hover {
+                background: rgba(255, 255, 255, 0.05);
+                color: rgba(255, 255, 255, 0.9);
+              }
+            }
+          }
+          
+          .advanced-filters {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            
+            .filter-buttons {
+              display: flex;
+              gap: 8px;
+              flex-wrap: wrap;
+              
+              .el-button {
+                padding: 6px 12px;
+                border-radius: 8px;
+                font-size: 12px;
+                display: flex;
+                align-items: center;
+                gap: 4px;
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                background: rgba(255, 255, 255, 0.02);
+                color: rgba(255, 255, 255, 0.7);
+                transition: all 0.3s ease;
+                
+                .el-icon {
+                  font-size: 12px;
+                }
+                
+                .filter-badge {
+                  :deep(.el-badge__content) {
+                    background: rgba(148, 163, 184, 0.8);
+                    border: none;
+                    font-size: 9px;
+                    height: 14px;
+                    line-height: 14px;
+                    min-width: 14px;
+                    padding: 0 3px;
+                  }
+                }
+                
+                &.el-button--primary {
+                  background: rgba(99, 102, 241, 0.15);
+                  border-color: rgba(99, 102, 241, 0.3);
+                  color: #6366F1;
+                  
+                  .filter-badge {
+                    :deep(.el-badge__content) {
+                      background: #6366F1;
+                      color: white;
+                    }
+                  }
+                }
+                
+                &:hover {
+                  background: rgba(255, 255, 255, 0.05);
+                  border-color: rgba(255, 255, 255, 0.2);
+                  color: rgba(255, 255, 255, 0.9);
+                }
+              }
+            }
+          }
+        }
+        
+        // 无数据提示样式
+        .no-timeline-data {
+          padding: 40px 20px;
+          text-align: center;
+          
+          :deep(.el-empty__description) {
+            color: rgba(255, 255, 255, 0.6);
+          }
+        }
 
         .section-header {
           display: flex;
@@ -4114,6 +6539,10 @@ const statusHistory = ref<StatusHistory[]>([
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 8px;
     
+    &.el-input-number--small {
+      width: 100px;
+    }
+    
     .el-input__wrapper {
       background: transparent;
       box-shadow: none !important;
@@ -4123,6 +6552,10 @@ const statusHistory = ref<StatusHistory[]>([
       color: rgba(255, 255, 255, 0.9);
       height: 36px;
       text-align: center;
+      
+      &.el-input--small .el-input__inner {
+        height: 32px;
+      }
     }
     
     .el-input-number__decrease,
@@ -4143,6 +6576,31 @@ const statusHistory = ref<StatusHistory[]>([
     &.is-focus {
       border-color: #6366F1;
       box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.1);
+    }
+  }
+
+  :deep(.el-textarea) {
+    .el-textarea__inner {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 6px;
+      color: rgba(255, 255, 255, 0.9);
+      resize: none;
+      min-height: 32px;
+      font-size: 13px;
+      
+      &::placeholder {
+        color: rgba(255, 255, 255, 0.3);
+      }
+      
+      &:hover {
+        border-color: rgba(99, 102, 241, 0.3);
+      }
+      
+      &:focus {
+        border-color: #6366F1;
+        box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.1);
+      }
     }
   }
 }
@@ -4699,6 +7157,658 @@ const statusHistory = ref<StatusHistory[]>([
   margin-bottom: 24px;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
+
+// Dispatch卡片列表样式
+.dispatch-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  
+  .dispatch-card {
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    overflow: hidden;
+    transition: all 0.3s ease;
+    
+    &:hover {
+      border-color: rgba(255, 255, 255, 0.12);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+      transform: translateY(-2px);
+    }
+    
+    .dispatch-main-info {
+      padding: 16px 20px;
+      background: rgba(255, 255, 255, 0.01);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+      
+      .dispatch-header {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        flex-wrap: wrap;
+        
+        .dispatch-id {
+          font-size: 14px;
+          font-weight: 700;
+          color: #10B981;
+          background: rgba(16, 185, 129, 0.15);
+          padding: 6px 12px;
+          border-radius: 6px;
+          border: 1px solid rgba(16, 185, 129, 0.3);
+          font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+        }
+        
+        .warehouse-info {
+          font-size: 13px;
+          color: rgba(255, 255, 255, 0.8);
+          background: rgba(255, 255, 255, 0.05);
+          padding: 6px 10px;
+          border-radius: 5px;
+          border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .carrier-info {
+          font-size: 13px;
+          color: rgba(255, 255, 255, 0.7);
+          background: rgba(255, 255, 255, 0.03);
+          padding: 6px 10px;
+          border-radius: 5px;
+          border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        
+        .tracking-link {
+          font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+          font-size: 12px;
+          background: rgba(99, 102, 241, 0.1);
+          padding: 6px 10px;
+          border-radius: 5px;
+          border: 1px solid rgba(99, 102, 241, 0.3);
+          text-decoration: none;
+          
+          &:hover {
+            background: rgba(99, 102, 241, 0.2);
+          }
+        }
+        
+        .date-info {
+          font-size: 12px;
+          color: rgba(255, 255, 255, 0.6);
+          background: rgba(255, 255, 255, 0.02);
+          padding: 6px 8px;
+          border-radius: 4px;
+          border: 1px solid rgba(255, 255, 255, 0.06);
+        }
+      }
+    }
+    
+    .dispatch-items-section {
+      padding: 12px 20px 16px;
+      
+      .items-header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        cursor: pointer;
+        padding: 8px 12px;
+        border-radius: 6px;
+        transition: all 0.2s ease;
+        
+        &:hover {
+          background: rgba(255, 255, 255, 0.03);
+        }
+        
+        .items-label {
+          font-size: 13px;
+          color: rgba(255, 255, 255, 0.5);
+          font-weight: 500;
+          min-width: 60px;
+        }
+        
+        .items-preview {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          flex: 1;
+          
+          .first-item {
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.8);
+            background: rgba(99, 102, 241, 0.1);
+            padding: 4px 8px;
+            border-radius: 4px;
+            border: 1px solid rgba(99, 102, 241, 0.2);
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+          }
+          
+          .more-items {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.6);
+            background: rgba(255, 255, 255, 0.05);
+            padding: 4px 8px;
+            border-radius: 4px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+          }
+        }
+        
+        .expand-icon {
+          font-size: 12px;
+          color: rgba(255, 255, 255, 0.4);
+          transition: all 0.3s ease;
+          
+          &.expanded {
+            transform: rotate(180deg);
+            color: rgba(255, 255, 255, 0.6);
+          }
+        }
+      }
+      
+      .items-detail-expanded {
+        margin-top: 8px;
+        padding: 12px;
+        background: rgba(255, 255, 255, 0.01);
+        border-radius: 6px;
+        border: 1px solid rgba(255, 255, 255, 0.04);
+        border-left: 3px solid rgba(99, 102, 241, 0.3);
+        
+        .items-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+          gap: 8px;
+        }
+        
+        .dispatch-item-card {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          padding: 8px 10px;
+          background: rgba(255, 255, 255, 0.02);
+          border-radius: 6px;
+          border: 1px solid rgba(255, 255, 255, 0.06);
+          transition: all 0.2s ease;
+          
+          &:hover {
+            background: rgba(255, 255, 255, 0.04);
+            border-color: rgba(99, 102, 241, 0.3);
+            transform: translateY(-1px);
+          }
+          
+          .item-sku {
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 11px;
+            color: #6366F1;
+            background: rgba(99, 102, 241, 0.15);
+            padding: 4px 8px;
+            border-radius: 4px;
+            border: 1px solid rgba(99, 102, 241, 0.3);
+            font-weight: 600;
+            text-align: center;
+            margin-bottom: 6px;
+          }
+          
+          .item-qty {
+            font-size: 12px;
+            color: #10B981;
+            font-weight: 700;
+            background: rgba(16, 185, 129, 0.15);
+            padding: 4px 8px;
+            border-radius: 8px;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+          }
+        }
+      }
+    }
+  }
+}
+
+// Tab区域商品列表样式
+.order-tabs {
+  .items-container {
+    .items-summary-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 12px;
+      background: rgba(255, 255, 255, 0.03);
+      border-radius: 6px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      
+      &:hover {
+        background: rgba(255, 255, 255, 0.06);
+        border-color: rgba(255, 255, 255, 0.12);
+        transform: translateY(-1px);
+      }
+      
+      .summary-info {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        
+        .total-qty {
+          font-size: 11px;
+          color: rgba(255, 255, 255, 0.7);
+          background: rgba(255, 255, 255, 0.08);
+          padding: 3px 8px;
+          border-radius: 4px;
+          border: 1px solid rgba(255, 255, 255, 0.12);
+        }
+      }
+      
+      .expand-icon {
+        font-size: 14px;
+        color: rgba(255, 255, 255, 0.6);
+        transition: all 0.3s ease;
+        
+        &.expanded {
+          transform: rotate(180deg);
+          color: rgba(255, 255, 255, 0.8);
+        }
+      }
+    }
+    
+    .items-detail-expanded {
+      margin-top: 8px;
+      padding: 12px;
+      background: rgba(255, 255, 255, 0.01);
+      border-radius: 6px;
+      border: 1px solid rgba(255, 255, 255, 0.04);
+      border-top: 2px solid rgba(99, 102, 241, 0.3);
+      
+      .items-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        gap: 8px;
+      }
+      
+      .dispatch-item-card {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 8px 12px;
+        background: rgba(255, 255, 255, 0.02);
+        border-radius: 6px;
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        transition: all 0.2s ease;
+        position: relative;
+        
+        &:hover {
+          background: rgba(255, 255, 255, 0.04);
+          border-color: rgba(99, 102, 241, 0.3);
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+        
+        .item-sku {
+          font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+          font-size: 11px;
+          color: #6366F1;
+          background: rgba(99, 102, 241, 0.15);
+          padding: 4px 8px;
+          border-radius: 4px;
+          border: 1px solid rgba(99, 102, 241, 0.3);
+          font-weight: 600;
+          text-align: center;
+          margin-bottom: 6px;
+        }
+        
+        .item-qty {
+          font-size: 12px;
+          color: #10B981;
+          font-weight: 700;
+          background: rgba(16, 185, 129, 0.15);
+          padding: 4px 10px;
+          border-radius: 12px;
+          border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+      }
+      
+      .package-item-card {
+        display: flex;
+        flex-direction: column;
+        padding: 10px 12px;
+        background: rgba(255, 255, 255, 0.02);
+        border-radius: 6px;
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        transition: all 0.2s ease;
+        
+        &:hover {
+          background: rgba(255, 255, 255, 0.04);
+          border-color: rgba(139, 92, 246, 0.3);
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+        
+        .item-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 6px;
+          
+          .item-name {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.9);
+            font-weight: 500;
+            line-height: 1.3;
+            flex: 1;
+            margin-right: 8px;
+          }
+          
+          .item-qty {
+            font-size: 11px;
+            color: #10B981;
+            font-weight: 700;
+            background: rgba(16, 185, 129, 0.15);
+            padding: 3px 8px;
+            border-radius: 10px;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            white-space: nowrap;
+          }
+        }
+        
+        .item-sku {
+          font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+          font-size: 10px;
+          color: #8B5CF6;
+          background: rgba(139, 92, 246, 0.15);
+          padding: 3px 6px;
+          border-radius: 3px;
+          border: 1px solid rgba(139, 92, 246, 0.3);
+          align-self: flex-start;
+        }
+      }
+    }
+  }
+
+  // 新的展开式商品明细样式
+  .expanded-items-section {
+    padding: 16px 24px;
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.03), rgba(139, 92, 246, 0.02));
+    border-radius: 8px;
+    border: 1px solid rgba(99, 102, 241, 0.1);
+    margin: 8px 0;
+    
+    .items-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 12px;
+      font-size: 14px;
+      color: rgba(255, 255, 255, 0.9);
+      font-weight: 600;
+      
+      .el-icon {
+        color: #6366F1;
+        font-size: 16px;
+      }
+    }
+    
+    .items-table-container {
+      margin-top: 8px;
+      border-radius: 6px;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      
+      .el-table {
+        background: transparent !important;
+        
+        .el-table__header {
+          background: rgba(255, 255, 255, 0.02) !important;
+          
+          th {
+            background: transparent !important;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+            color: rgba(255, 255, 255, 0.8) !important;
+            font-size: 12px !important;
+            font-weight: 600 !important;
+            padding: 8px !important;
+          }
+        }
+        
+        .el-table__body {
+          tr {
+            background: transparent !important;
+            
+            &:hover {
+              background: rgba(255, 255, 255, 0.02) !important;
+            }
+            
+            td {
+              background: transparent !important;
+              border-bottom: 1px solid rgba(255, 255, 255, 0.04) !important;
+              padding: 8px !important;
+            }
+          }
+        }
+      }
+      
+      .item-sku {
+        font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+        font-size: 11px;
+        color: #6366F1;
+        background: rgba(99, 102, 241, 0.15);
+        padding: 3px 6px;
+        border-radius: 3px;
+        border: 1px solid rgba(99, 102, 241, 0.3);
+        font-weight: 600;
+      }
+      
+      .item-name {
+        font-size: 12px;
+        color: rgba(255, 255, 255, 0.9);
+        font-weight: 500;
+      }
+      
+      .item-quantity {
+        font-size: 12px;
+        color: #10B981;
+        font-weight: 700;
+        background: rgba(16, 185, 129, 0.15);
+        padding: 3px 8px;
+        border-radius: 10px;
+        border: 1px solid rgba(16, 185, 129, 0.3);
+      }
+      
+      .item-sn {
+        font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+        font-size: 11px;
+        color: #8B5CF6;
+        background: rgba(139, 92, 246, 0.15);
+        padding: 3px 6px;
+        border-radius: 3px;
+        border: 1px solid rgba(139, 92, 246, 0.3);
+        font-weight: 600;
+      }
+      
+      .item-lot {
+        font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+        font-size: 11px;
+        color: #F59E0B;
+        background: rgba(245, 158, 11, 0.15);
+        padding: 3px 6px;
+        border-radius: 3px;
+        border: 1px solid rgba(245, 158, 11, 0.3);
+        font-weight: 600;
+      }
+      
+      .item-uom {
+        font-size: 11px;
+        color: rgba(255, 255, 255, 0.7);
+        background: rgba(255, 255, 255, 0.08);
+        padding: 2px 6px;
+        border-radius: 3px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        white-space: nowrap;
+        display: inline-block;
+      }
+    }
+  }
+
+  // Items Summary 列样式
+  .items-summary {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    
+    .total-qty {
+      font-size: 11px;
+      color: rgba(255, 255, 255, 0.7);
+      background: rgba(255, 255, 255, 0.08);
+      padding: 3px 6px;
+      border-radius: 4px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+    }
+    
+    .quick-preview {
+      font-size: 11px;
+      color: rgba(255, 255, 255, 0.6);
+      font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+      background: rgba(255, 255, 255, 0.04);
+      padding: 3px 6px;
+      border-radius: 3px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+  }
+
+  // 物流跟踪弹窗样式
+  :deep(.tracking-dialog) {
+    .el-dialog__header {
+      background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(139, 92, 246, 0.05));
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      
+      .el-dialog__title {
+        color: rgba(255, 255, 255, 0.9);
+        font-weight: 600;
+        font-size: 16px;
+      }
+    }
+    
+    .el-dialog__body {
+      padding: 0;
+    }
+    
+    .el-dialog__footer {
+      background: rgba(255, 255, 255, 0.02);
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+    }
+  }
+
+  .tracking-detail-content {
+    .tracking-header {
+      padding: 20px 24px;
+      background: linear-gradient(135deg, rgba(99, 102, 241, 0.05), rgba(139, 92, 246, 0.02));
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      
+      .tracking-info {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+        
+        .info-row {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          
+          .label {
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.6);
+            min-width: 60px;
+          }
+          
+          .value {
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.9);
+            font-weight: 500;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+          }
+        }
+      }
+    }
+    
+    .tracking-timeline {
+      padding: 24px;
+      
+      h4 {
+        margin: 0 0 20px 0;
+        color: rgba(255, 255, 255, 0.9);
+        font-size: 16px;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        
+        &:before {
+          content: '📦';
+          font-size: 18px;
+        }
+      }
+      
+      .el-timeline {
+        padding-left: 0;
+        
+        .el-timeline-item {
+          .el-timeline-item__timestamp {
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 12px;
+            font-weight: 500;
+            margin-bottom: 4px;
+          }
+          
+          .timeline-event {
+            .event-header {
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              margin-bottom: 8px;
+              
+              .event-status {
+                margin: 0;
+                font-size: 14px;
+                color: rgba(255, 255, 255, 0.9);
+                font-weight: 600;
+              }
+              
+              .event-location {
+                font-size: 12px;
+                color: rgba(255, 255, 255, 0.6);
+                background: rgba(255, 255, 255, 0.05);
+                padding: 2px 8px;
+                border-radius: 4px;
+                border: 1px solid rgba(255, 255, 255, 0.1);
+              }
+            }
+            
+            .event-description {
+              margin: 0 0 8px 0;
+              font-size: 13px;
+              color: rgba(255, 255, 255, 0.7);
+              line-height: 1.4;
+            }
+            
+            .event-meta {
+              .facility {
+                font-size: 11px;
+                color: rgba(255, 255, 255, 0.5);
+                background: rgba(255, 255, 255, 0.03);
+                padding: 2px 6px;
+                border-radius: 3px;
+                border: 1px solid rgba(255, 255, 255, 0.08);
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  .dialog-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 24px;
+  }
+}
 </style> 
 
 <style lang="scss">
@@ -4755,5 +7865,719 @@ const statusHistory = ref<StatusHistory[]>([
   }
 }
 
-// ... 原有的样式 ...
+// 代码列表样式
+.shipment-no {
+  font-family: 'Courier New', monospace;
+  background: #f0f9ff;
+  color: #0ea5e9;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+// 单号高亮样式
+.number-highlight {
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(139, 92, 246, 0.1));
+  color: #6366f1;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid rgba(99, 102, 241, 0.2);
+  letter-spacing: 0.5px;
+  transition: all 0.2s ease;
+  
+  &:hover {
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.25), rgba(139, 92, 246, 0.15));
+    border-color: rgba(99, 102, 241, 0.4);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(99, 102, 241, 0.2);
+  }
+  
+  // 紧凑模式
+  &.compact {
+    padding: 2px 4px;
+    font-size: 11px;
+    border-radius: 4px;
+    letter-spacing: 0.2px;
+  }
+}
+
+// 紧凑文本样式
+.compact-text {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.8);
+  cursor: help;
+  
+  &:hover {
+    color: rgba(255, 255, 255, 1);
+  }
+}
+
+// 重写其他显示组件的紧凑模式
+.weight-display.compact,
+.dimensions-display.compact {
+  font-size: 11px;
+  padding: 1px 4px;
+}
+
+// 承运商徽章样式
+.carrier-badge {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.9);
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  padding: 2px 6px;
+  border-radius: 4px;
+  cursor: help;
+  transition: all 0.2s ease;
+  
+  &:hover {
+    background: rgba(16, 185, 129, 0.2);
+    border-color: rgba(16, 185, 129, 0.5);
+    transform: translateY(-1px);
+  }
+  
+  &.full {
+    font-size: 12px;
+    padding: 4px 8px;
+    font-weight: 500;
+  }
+}
+
+// 服务类型徽章样式
+.service-badge {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.8);
+  background: rgba(139, 92, 246, 0.1);
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  padding: 2px 5px;
+  border-radius: 3px;
+  cursor: help;
+  transition: all 0.2s ease;
+  
+  &:hover {
+    background: rgba(139, 92, 246, 0.2);
+    border-color: rgba(139, 92, 246, 0.5);
+    transform: translateY(-1px);
+  }
+  
+  &.full {
+    font-size: 11px;
+    padding: 4px 8px;
+    font-weight: 500;
+  }
+}
+
+// 订单备注样式
+.notes-section {
+  margin-bottom: 24px;
+  
+  .notes-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+    
+    h5 {
+      margin: 0;
+      color: rgba(255, 255, 255, 0.9);
+      font-size: 14px;
+      font-weight: 600;
+    }
+    
+    .notes-desc {
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.5);
+      background: rgba(255, 255, 255, 0.05);
+      padding: 2px 8px;
+      border-radius: 4px;
+    }
+  }
+  
+  .notes-content {
+    .notes-text {
+      color: rgba(255, 255, 255, 0.8);
+      line-height: 1.6;
+      padding: 12px;
+      background: rgba(255, 255, 255, 0.03);
+      border-radius: 6px;
+      border-left: 3px solid rgba(99, 102, 241, 0.3);
+      margin: 0;
+    }
+    
+    .empty-notes {
+      color: rgba(255, 255, 255, 0.4);
+      font-style: italic;
+      padding: 12px;
+      text-align: center;
+      margin: 0;
+    }
+    
+    .notes-textarea {
+      :deep(.el-textarea__inner) {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        color: rgba(255, 255, 255, 0.9);
+        
+        &:focus {
+          border-color: rgba(99, 102, 241, 0.5);
+        }
+        
+        &::placeholder {
+          color: rgba(255, 255, 255, 0.4);
+        }
+      }
+    }
+  }
+  
+
+}
+
+.notes-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+// 商品编辑限制相关样式
+.edit-note {
+  font-size: 11px;
+  color: rgba(52, 199, 89, 0.8);
+  background: rgba(52, 199, 89, 0.1);
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-top: 4px;
+  border: 1px solid rgba(52, 199, 89, 0.2);
+  display: inline-block;
+}
+
+.dispatch-lock {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 4px;
+  font-size: 11px;
+  color: rgba(248, 113, 113, 0.8);
+  background: rgba(248, 113, 113, 0.1);
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid rgba(248, 113, 113, 0.2);
+  
+  .el-icon {
+    font-size: 10px;
+  }
+}
+
+.edit-disabled-icon {
+  color: rgba(148, 163, 184, 0.6);
+  font-size: 14px;
+  margin-left: 4px;
+  cursor: help;
+  
+  &:hover {
+    color: rgba(148, 163, 184, 0.8);
+  }
+}
+
+.quantity-display {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+// 商品状态列表样式
+.status-products-section {
+  margin-top: 32px;
+  padding: 20px;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  
+  .status-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    
+    .header-content {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      
+      .status-icon {
+        font-size: 20px;
+        
+        &.cancelled {
+          color: #F87171;
+        }
+        
+        &.returned {
+          color: #FBBF24;
+        }
+        
+        &.exchanged {
+          color: #60A5FA;
+        }
+      }
+      
+      h4 {
+        margin: 0;
+        color: rgba(255, 255, 255, 0.9);
+        font-size: 16px;
+        font-weight: 600;
+      }
+    }
+    
+    .status-summary {
+      color: rgba(255, 255, 255, 0.7);
+      font-size: 14px;
+      
+      .amount-highlight {
+        color: #FBBF24;
+        font-weight: 600;
+        font-size: 16px;
+      }
+    }
+  }
+  
+  .status-table-container {
+    .el-table {
+      background: transparent;
+      
+      :deep(.el-table__header) {
+        background: rgba(255, 255, 255, 0.05);
+        
+        th {
+          background: transparent;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+          color: rgba(255, 255, 255, 0.8);
+        }
+      }
+      
+      :deep(.el-table__body) {
+        tr {
+          background: transparent;
+          
+          &:hover {
+            background: rgba(255, 255, 255, 0.03);
+          }
+          
+          td {
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            color: rgba(255, 255, 255, 0.8);
+          }
+        }
+      }
+    }
+  }
+}
+
+// 小尺寸商品图片
+.product-image-small {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: linear-gradient(45deg, #6366F1, #8B5CF6);
+  flex-shrink: 0;
+}
+
+.product-image-tiny {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  background: linear-gradient(45deg, #6366F1, #8B5CF6);
+  flex-shrink: 0;
+}
+
+// 商品信息样式
+.item-info {
+  .item-name {
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 14px;
+    font-weight: 500;
+    margin-bottom: 4px;
+  }
+  
+  .item-category {
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 12px;
+    margin-bottom: 2px;
+  }
+  
+  .item-sku {
+    color: rgba(99, 102, 241, 0.8);
+    font-size: 11px;
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    background: rgba(99, 102, 241, 0.1);
+    padding: 2px 6px;
+    border-radius: 4px;
+    display: inline-block;
+  }
+}
+
+// 数量样式
+.quantity-cancelled,
+.quantity-returned {
+  color: rgba(248, 113, 113, 0.9);
+  font-weight: 600;
+  background: rgba(248, 113, 113, 0.1);
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 13px;
+}
+
+// 原因样式
+.cancel-reason,
+.return-reason,
+.exchange-reason {
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+// 时间样式
+.cancel-time,
+.return-time,
+.exchange-time {
+  color: rgba(148, 163, 184, 0.9);
+  font-size: 12px;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+}
+
+// 金额样式
+.amount-cancelled,
+.amount-returned {
+  color: #F87171;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+// 换货详情样式
+.exchange-details {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 8px;
+  margin: 8px 0;
+  
+  .exchange-item {
+    flex: 1;
+    
+    .exchange-label {
+      color: rgba(255, 255, 255, 0.6);
+      font-size: 12px;
+      margin-bottom: 8px;
+      font-weight: 500;
+    }
+    
+    .exchange-product {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      
+      .product-details {
+        .name {
+          color: rgba(255, 255, 255, 0.9);
+          font-size: 14px;
+          font-weight: 500;
+          margin-bottom: 4px;
+        }
+        
+        .meta {
+          color: rgba(255, 255, 255, 0.6);
+          font-size: 12px;
+          margin-bottom: 2px;
+        }
+        
+        .price {
+          color: rgba(99, 102, 241, 0.8);
+          font-size: 11px;
+        }
+      }
+    }
+  }
+  
+  .exchange-arrow {
+    color: rgba(99, 102, 241, 0.8);
+    font-size: 20px;
+    
+    .el-icon {
+      font-size: 20px;
+    }
+  }
+}
+
+// 换货信息样式
+.exchange-info {
+  .exchange-summary {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 4px;
+    
+    .original-name {
+      color: rgba(255, 255, 255, 0.8);
+      font-size: 13px;
+    }
+    
+    .exchange-icon {
+      color: rgba(99, 102, 241, 0.8);
+      font-size: 14px;
+    }
+    
+    .new-name {
+      color: rgba(52, 199, 89, 0.9);
+      font-size: 13px;
+      font-weight: 500;
+    }
+  }
+  
+  .exchange-meta {
+    color: rgba(99, 102, 241, 0.8);
+    font-size: 11px;
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  }
+}
+
+// 价差样式
+.price-difference {
+  font-weight: 600;
+  font-size: 14px;
+  
+  &.positive {
+    color: #34C759;
+  }
+  
+  &.negative {
+    color: #F87171;
+  }
+  
+  &.zero {
+    color: rgba(148, 163, 184, 0.8);
+  }
+}
+
+// 简化商品信息样式
+.item-info-simple {
+  .item-name {
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 14px;
+    font-weight: 500;
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    
+    .exchange-tag {
+      font-size: 10px;
+      padding: 1px 4px;
+      border-radius: 3px;
+    }
+  }
+  
+  .item-meta {
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 12px;
+    margin-bottom: 4px;
+  }
+  
+  .item-sku {
+    color: rgba(99, 102, 241, 0.8);
+    font-size: 11px;
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    background: rgba(99, 102, 241, 0.1);
+    padding: 2px 6px;
+    border-radius: 4px;
+    display: inline-block;
+    margin-bottom: 4px;
+  }
+  
+  .exchange-info {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    color: rgba(251, 191, 36, 0.8);
+    font-size: 11px;
+    background: rgba(251, 191, 36, 0.1);
+    padding: 2px 6px;
+    border-radius: 4px;
+    
+    .exchange-icon {
+      font-size: 10px;
+    }
+  }
+}
+
+.quantity-info {
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  
+  .original-quantity {
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 14px;
+    font-weight: 600;
+  }
+  
+  .quantity-unit {
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 11px;
+  }
+}
+
+// 应发货数量样式
+.should-dispatch-quantity {
+  text-align: center;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-weight: 600;
+  
+  &.zero {
+    background: rgba(248, 113, 113, 0.1);
+    color: #F87171;
+  }
+  
+  &.partial {
+    background: rgba(251, 191, 36, 0.1);
+    color: #FBBF24;
+  }
+  
+  &.full {
+    background: rgba(52, 199, 89, 0.1);
+    color: #34C759;
+  }
+}
+
+// 已下发数量样式
+.dispatched-quantity {
+  text-align: center;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-weight: 600;
+  position: relative;
+  
+  &.zero {
+    background: rgba(148, 163, 184, 0.1);
+    color: rgba(148, 163, 184, 0.8);
+  }
+  
+  &.partial {
+    background: rgba(251, 191, 36, 0.1);
+    color: #FBBF24;
+  }
+  
+  &.full {
+    background: rgba(52, 199, 89, 0.1);
+    color: #34C759;
+  }
+  
+  &.over {
+    background: rgba(248, 113, 113, 0.1);
+    color: #F87171;
+  }
+  
+  .dispatch-ratio {
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 11px;
+    margin-left: 2px;
+  }
+}
+
+.fulfillment-amount {
+  text-align: right;
+  
+  .current-amount {
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 2px;
+  }
+  
+  .original-amount {
+    color: rgba(148, 163, 184, 0.8);
+    font-size: 11px;
+    text-decoration: line-through;
+    margin-bottom: 4px;
+  }
+  
+  .amount-breakdown {
+    .breakdown-text {
+      color: rgba(148, 163, 184, 0.8);
+      font-size: 10px;
+      line-height: 1.2;
+      font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+      
+      span {
+        display: inline-block;
+        margin: 0 2px;
+        
+        &:first-child {
+          margin-left: 0;
+        }
+      }
+    }
+  }
+}
+
+.operations-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  
+  .el-tag {
+    font-size: 11px;
+    padding: 2px 6px;
+    border-radius: 4px;
+  }
+  
+  .no-operations {
+    color: rgba(148, 163, 184, 0.6);
+    font-size: 11px;
+  }
+}
+
+// 操作历史表格样式
+.operation-action {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 13px;
+}
+
+.operation-reason {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.quantity-change {
+  color: rgba(99, 102, 241, 0.8);
+  font-size: 12px;
+  font-weight: 500;
+  background: rgba(99, 102, 241, 0.1);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+}
+
+.operation-time {
+  color: rgba(148, 163, 184, 0.8);
+  font-size: 11px;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+}
+
+
 </style> 
