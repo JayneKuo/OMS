@@ -178,6 +178,8 @@
         <el-radio-button label="cancelled">Cancelled({{ getTotalByStatus(OrderStatus.Cancelled) }})</el-radio-button>
         <el-radio-button label="warehouse_processing">Warehouse Processing({{ getTotalByStatus(OrderStatus.WarehouseProcessing) }})</el-radio-button>
         <el-radio-button label="shipped">Shipped({{ getTotalByStatus(OrderStatus.Shipped) }})</el-radio-button>
+        <el-radio-button label="intransit">InTransit({{ getTotalByStatus(OrderStatus.InTransit) }})</el-radio-button>
+        <el-radio-button label="delivered">Delivered({{ getTotalByStatus(OrderStatus.Delivered) }})</el-radio-button>
         <el-radio-button label="completed">Completed({{ getTotalByStatus(OrderStatus.Completed) }})</el-radio-button>
       </el-radio-group>
     </div>
@@ -482,7 +484,7 @@ const tableData = ref<OrderItem[]>([])
 // 分页
 const currentPage = ref(1)
 const pageSize = ref(10)
-const total = ref(74)
+const total = ref(76) // 更新总数，包含新增的2条记录
 
 // 引用操作对话框组件
 const actionDialogsRef = ref()
@@ -669,7 +671,7 @@ const mockTableData: OrderItem[] = [
     channelName: 'test-store-1',
     orderNo: 'SO00184662',
     channelOrderNo: '113',
-    status: OrderStatus.Completed,
+    status: OrderStatus.InTransit,
     recipient: 'David Miller',
     country: 'US',
     purchaseOrderId: 'abc41',
@@ -679,6 +681,44 @@ const mockTableData: OrderItem[] = [
     grandTotal: 129.99,
     shipDate: '2024-03-12T09:30:00',
     product: 'Product J',
+    fulfillmentMode: FulfillmentMode.Manual,
+    subOrders: []
+  },
+  {
+    id: '11',
+    channel: 'AMAZON',
+    channelName: 'amazon-store',
+    orderNo: 'SO00184663',
+    channelOrderNo: 'AMZ-126',
+    status: OrderStatus.Delivered,
+    recipient: 'Jennifer Wilson',
+    country: 'UK',
+    purchaseOrderId: 'PO-126',
+    referenceNo: 'REF-126',
+    carrier: 'UPS',
+    orderDate: '2024-03-10T10:15:00',
+    grandTotal: 75.50,
+    shipDate: '2024-03-11T14:20:00',
+    product: 'Product K',
+    fulfillmentMode: FulfillmentMode.Manual,
+    subOrders: []
+  },
+  {
+    id: '12',
+    channel: 'EBAY',
+    channelName: 'ebay-store',
+    orderNo: 'SO00184664',
+    channelOrderNo: 'EB-458',
+    status: OrderStatus.Completed,
+    recipient: 'Thomas Johnson',
+    country: 'CA',
+    purchaseOrderId: 'PO-458',
+    referenceNo: 'REF-458',
+    carrier: 'FEDEX',
+    orderDate: '2024-03-09T08:30:00',
+    grandTotal: 98.25,
+    shipDate: '2024-03-10T11:45:00',
+    product: 'Product L',
     fulfillmentMode: FulfillmentMode.Manual,
     subOrders: []
   }
@@ -698,6 +738,8 @@ const getStatusType = (status: string) => {
     [OrderStatus.Cancelled]: 'danger',
     [OrderStatus.WarehouseProcessing]: 'primary',
     [OrderStatus.Shipped]: 'success',
+    [OrderStatus.InTransit]: 'primary',
+    [OrderStatus.Delivered]: 'success',
     [OrderStatus.Completed]: 'success'
   }
   return types[status] || 'info'
@@ -753,7 +795,8 @@ const getActionLabel = (action: OrderAction) => {
     [OrderAction.Dispatch]: 'Dispatch',
     [OrderAction.Reopen]: 'Reopen',
     [OrderAction.Split]: 'Split',
-    [OrderAction.Merge]: 'Merge'
+    [OrderAction.Merge]: 'Merge',
+    [OrderAction.SyncLogistics]: 'Sync Logistics'
   }
   return labels[action]
 }
@@ -793,6 +836,9 @@ const handleAction = (action: OrderAction | string) => {
       break
     case OrderAction.Reopen:
       actionDialogsRef.value?.openReopenDialog()
+      break
+    case OrderAction.SyncLogistics:
+      handleSyncLogistics()
       break
   }
 }
@@ -838,6 +884,16 @@ const handleDeallocate = (data: any) => {
   console.log('Deallocate:', data)
   // TODO: 调用解除分仓 API
   ElMessage.success('Order deallocated successfully')
+  // 刷新列表
+  fetchData()
+}
+
+// 处理同步物流信息
+const handleSyncLogistics = () => {
+  if (!selectedRows.value.length) return
+  console.log('Sync logistics for orders:', selectedRows.value.map(row => row.orderNo))
+  // TODO: 调用同步物流信息 API
+  ElMessage.success('Logistics information synchronized successfully')
   // 刷新列表
   fetchData()
 }
@@ -892,6 +948,9 @@ const handleBatchAction = (action: OrderAction) => {
       break
     case OrderAction.Edit:
       handleEdit()
+      break
+    case OrderAction.SyncLogistics:
+      handleSyncLogistics()
       break
   }
 }

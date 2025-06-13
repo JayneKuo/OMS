@@ -48,7 +48,7 @@
             @click="cancelEdit"
           >
             <el-icon><Close /></el-icon>
-            取消
+            Cancel
           </el-button>
           <el-button 
             class="edit-button"
@@ -56,7 +56,7 @@
             @click="toggleEdit"
           >
             <el-icon><Check /></el-icon>
-            保存
+            Save
           </el-button>
         </template>
         <template v-else>
@@ -65,7 +65,7 @@
             @click="toggleEdit"
           >
             <el-icon><EditPen /></el-icon>
-            编辑
+            Edit
           </el-button>
         </template>
         <el-dropdown @command="handleAction">
@@ -112,23 +112,16 @@
     <div class="detail-content">
       <!-- 左侧主要内容 -->
       <div class="main-section">
-        <!-- 订单状态进度条 -->
-        <div class="order-status-section">
-          <OrderStatusProgress 
-            :current-status="currentOrderStatus" 
-            :status-times="statusTimes"
-            :dynamic-nodes="dynamicNodes"
-          />
-        </div>
+
 
         <!-- 订单详情Tab区域 -->
         <div class="order-details-section">
           <div class="section-header">
-            <h3>订单详情</h3>
+            <h3>Order Details</h3>
             <div class="actions" v-if="isEditing && activeTab === 'items'">
               <el-button type="primary" link @click="handleAddProduct">
                 <el-icon><Plus /></el-icon>
-                添加商品
+                Add Product
               </el-button>
         </div>
           </div>
@@ -140,7 +133,7 @@
                 <div class="table-container">
                   <el-table 
                     :data="enhancedProducts" 
-                    style="width: 100%; min-width: 1400px;"
+                    style="width: 100%;"
                     :expand-row-keys="expandedProducts"
                     row-key="id"
                   >
@@ -150,33 +143,33 @@
                         <div class="expanded-items-section">
                           <div class="items-title">
                             <el-icon><Box /></el-icon>
-                            <span>操作历史 (共{{ row.history.length }}条记录)</span>
+                            <span>Operation History ({{ row.history.length }} records)</span>
                           </div>
                           <div class="items-table-container">
                             <el-table :data="row.history" size="small" style="width: 100%;">
-                              <el-table-column label="操作类型" width="100" align="center">
+                              <el-table-column label="Operation Type" width="100" align="center">
                                 <template #default="{ row: record }">
                                   <el-tag :type="getOperationTagType(record.type)" size="small">
                                     {{ getOperationLabel(record.type) }}
                                   </el-tag>
               </template>
             </el-table-column>
-                              <el-table-column label="操作描述" min-width="200">
+                              <el-table-column label="Operation Description" min-width="200">
                                 <template #default="{ row: record }">
                                   <span class="operation-action">{{ record.action }}</span>
                 </template>
                               </el-table-column>
-                              <el-table-column label="数量变化" width="120" align="center">
+                              <el-table-column label="Quantity Change" width="120" align="center">
                                 <template #default="{ row: record }">
                                   <span class="quantity-change">{{ record.beforeQuantity }} → {{ record.afterQuantity }}</span>
                 </template>
                               </el-table-column>
-                              <el-table-column label="操作原因" min-width="250">
+                              <el-table-column label="Operation Reason" min-width="250">
                                 <template #default="{ row: record }">
                                   <span class="operation-reason">{{ record.reason }}</span>
               </template>
             </el-table-column>
-                              <el-table-column label="操作时间" width="150" align="center">
+                              <el-table-column label="Operation Time" width="150" align="center">
                                 <template #default="{ row: record }">
                                   <span class="operation-time">{{ formatDate(record.time) }}</span>
                         </template>
@@ -188,27 +181,38 @@
                     </el-table-column>
 
                     <!-- 商品信息 -->
-                    <el-table-column label="商品" min-width="280">
+                    <el-table-column label="Product" min-width="220">
                       <template #default="{ row }">
                         <div class="item-info-simple">
                           <div class="item-name">
                             {{ row.name }}
                             <el-tag v-if="row.isExchangeProduct" size="small" type="warning" class="exchange-tag">
-                              换货商品
+                              Exchange Product
                             </el-tag>
                           </div>
-                          <div class="item-meta">{{ row.category }}</div>
                           <div class="item-sku">{{ row.snCode }}</div>
                           <div v-if="row.isExchangeProduct" class="exchange-info">
                             <el-icon class="exchange-icon"><SwitchButton /></el-icon>
-                            <span>原商品ID: {{ row.originalProductId }}</span>
+                            <span>Original Product ID: {{ row.originalProductId }}</span>
+                          </div>
+                          <!-- 操作汇总标签 -->
+                          <div class="operations-summary">
+                            <el-tag v-if="row.cancelledQuantity > 0" size="small" type="danger">
+                              Cancelled {{ row.cancelledQuantity }}
+                            </el-tag>
+                            <el-tag v-if="row.returnedQuantity > 0" size="small" type="warning">
+                              Returned {{ row.returnedQuantity }}
+                            </el-tag>
+                            <el-tag v-if="row.exchangedQuantity > 0" size="small" type="info">
+                              Exchanged {{ row.exchangedQuantity }}
+                            </el-tag>
                           </div>
                         </div>
               </template>
             </el-table-column>
 
                     <!-- 购买数量 -->
-                    <el-table-column label="购买数量" width="100" align="center">
+                    <el-table-column label="Ordered Qty" width="80" align="center">
               <template #default="{ row }">
                         <div class="quantity-info">
                           <span class="original-quantity">{{ row.originalQuantity }}</span>
@@ -218,7 +222,7 @@
                     </el-table-column>
 
                     <!-- 应发货数量 -->
-                    <el-table-column label="应发货数量" width="100" align="center">
+                    <el-table-column label="To Fulfill Qty" width="90" align="center">
                       <template #default="{ row }">
                         <template v-if="isEditing && isProductEditable(row)">
                   <el-input-number 
@@ -243,7 +247,7 @@
             </el-table-column>
 
                     <!-- 已下发数量 -->
-                    <el-table-column label="已下发数量" width="100" align="center">
+                    <el-table-column label="Dispatched Qty" width="90" align="center">
               <template #default="{ row }">
                         <div class="dispatched-quantity" :class="{ 
                           'zero': row.dispatchedQuantity === 0,
@@ -259,33 +263,43 @@
               </template>
             </el-table-column>
 
-                    <!-- 商品状态 -->
-                    <el-table-column label="商品状态" width="100" align="center">
+                    <!-- 已shipped数量 -->
+                    <el-table-column label="Shipped Qty" width="90" align="center">
               <template #default="{ row }">
-                        <el-tag :type="getProductStatusType(row.productStatus)" size="small">
-                          {{ row.productStatus }}
-                        </el-tag>
+                        <div class="shipped-quantity" :class="{ 
+                          'zero': row.shippedQuantity === 0,
+                          'partial': row.shippedQuantity < row.dispatchedQuantity,
+                          'full': row.shippedQuantity === row.dispatchedQuantity,
+                          'over': row.shippedQuantity > row.dispatchedQuantity
+                        }">
+                          {{ row.shippedQuantity }}
+                          <span v-if="row.dispatchedQuantity > 0" class="shipped-ratio">
+                            /{{ row.dispatchedQuantity }}
+                          </span>
+                        </div>
               </template>
             </el-table-column>
 
+
+
                     <!-- 履约状态 -->
-                    <el-table-column label="履约状态" width="100" align="center">
+                    <el-table-column label="Fulfillment Status" width="80" align="center">
               <template #default="{ row }">
                         <el-tag :type="getFulfillmentStatusType(row.fulfillmentStatus)" size="small">
-                          {{ row.fulfillmentStatus }}
+                          {{ getFulfillmentStatusLabel(row.fulfillmentStatus) }}
                         </el-tag>
                         </template>
                     </el-table-column>
 
                     <!-- 单价 -->
-                    <el-table-column label="单价" width="100" align="right">
+                    <el-table-column label="Unit Price" width="80" align="right">
                       <template #default="{ row }">
                           <div class="price-display">${{ row.price.toFixed(2) }}</div>
                         </template>
                     </el-table-column>
 
                     <!-- 折扣 -->
-                    <el-table-column label="折扣" width="80" align="right">
+                    <el-table-column label="Discount" width="80" align="right">
                       <template #default="{ row }">
                         <div class="discount-display">
                           <span v-if="row.discount > 0" class="discount-amount">
@@ -297,7 +311,7 @@
                     </el-table-column>
 
                     <!-- 税费 -->
-                    <el-table-column label="税费" width="80" align="right">
+                    <el-table-column label="Tax" width="80" align="right">
                       <template #default="{ row }">
                         <div class="tax-display">
                           <span v-if="row.tax > 0" class="tax-amount">
@@ -309,14 +323,18 @@
                     </el-table-column>
 
                     <!-- 履约金额 -->
-                    <el-table-column label="履约金额" width="140" align="right">
+                    <el-table-column label="Fulfillment Amount" width="160" align="right">
                       <template #default="{ row }">
                         <div class="fulfillment-amount">
                           <div class="current-amount">
                             ${{ calculateLineTotal(row, row.shouldDispatchQuantity).toFixed(2) }}
                           </div>
                           <div v-if="row.shouldDispatchQuantity < row.originalQuantity" class="original-amount">
-                            原: ${{ calculateLineTotal(row, row.originalQuantity).toFixed(2) }}
+                            Original: ${{ calculateLineTotal(row, row.originalQuantity).toFixed(2) }}
+                          </div>
+                          <!-- 退款金额 -->
+                          <div v-if="calculateRefundAmount(row) > 0" class="refund-amount">
+                            Refund: -${{ calculateRefundAmount(row).toFixed(2) }}
                           </div>
                           <div class="amount-breakdown">
                             <span class="breakdown-text">
@@ -329,26 +347,10 @@
                       </template>
                     </el-table-column>
 
-                    <!-- 操作汇总 -->
-                    <el-table-column label="操作汇总" min-width="180">
-                      <template #default="{ row }">
-                        <div class="operations-summary">
-                          <el-tag v-if="row.cancelledQuantity > 0" size="small" type="danger">
-                            取消{{ row.cancelledQuantity }}个
-                          </el-tag>
-                          <el-tag v-if="row.returnedQuantity > 0" size="small" type="warning">
-                            退货{{ row.returnedQuantity }}个
-                          </el-tag>
-                          <el-tag v-if="row.exchangedQuantity > 0" size="small" type="info">
-                            换货{{ row.exchangedQuantity }}个
-                          </el-tag>
-                          <span v-if="!row.hasOperations" class="no-operations">无操作</span>
-                        </div>
-                      </template>
-                    </el-table-column>
+
 
                     <!-- 编辑操作 -->
-                    <el-table-column v-if="isEditing" label="操作" width="80" align="center">
+                    <el-table-column v-if="isEditing" label="Actions" width="80" align="center">
                       <template #default="{ row, $index }">
                         <el-button 
                           v-if="isProductEditable(row)"
@@ -361,7 +363,7 @@
                         </el-button>
                         <el-tooltip 
                           v-else
-                          content="已dispatch的商品无法删除" 
+                          content="Dispatched products cannot be deleted" 
                           placement="top"
                         >
                           <el-icon class="edit-disabled-icon">
@@ -378,11 +380,11 @@
                   <div class="status-section-header">
                     <div class="header-content">
                       <el-icon class="status-icon cancelled"><CircleClose /></el-icon>
-                      <h4>已取消商品</h4>
-                      <el-tag type="danger" size="small">{{ cancelledProducts.length }}件商品</el-tag>
+                      <h4>Cancelled Products</h4>
+                      <el-tag type="danger" size="small">{{ cancelledProducts.length }} products</el-tag>
                     </div>
                     <div class="status-summary">
-                      总金额: <span class="amount-highlight">-${{ getCancelledTotalAmount() }}</span>
+                      Total Amount: <span class="amount-highlight">-${{ getCancelledTotalAmount() }}</span>
                     </div>
                   </div>
                   <div class="status-table-container">
@@ -392,7 +394,7 @@
                           <div class="product-image-small" :style="{ backgroundColor: row.color }"></div>
                         </template>
                       </el-table-column>
-                      <el-table-column label="商品信息" min-width="250">
+                      <el-table-column label="Product Info" min-width="250">
                         <template #default="{ row }">
                           <div class="item-info">
                             <div class="item-name">{{ row.name }}</div>
@@ -401,22 +403,22 @@
                           </div>
                       </template>
                     </el-table-column>
-                      <el-table-column label="数量" width="80" align="center">
+                      <el-table-column label="Quantity" width="80" align="center">
                       <template #default="{ row }">
                           <span class="quantity-cancelled">{{ row.quantity }}</span>
                       </template>
                     </el-table-column>
-                      <el-table-column label="取消原因" min-width="200">
+                      <el-table-column label="Cancel Reason" min-width="200">
                       <template #default="{ row }">
                           <span class="cancel-reason">{{ row.cancelReason }}</span>
                       </template>
                     </el-table-column>
-                      <el-table-column label="取消时间" width="130" align="center">
+                      <el-table-column label="Cancel Time" width="130" align="center">
                       <template #default="{ row }">
                           <span class="cancel-time">{{ formatDate(row.cancelTime) }}</span>
                         </template>
                       </el-table-column>
-                      <el-table-column label="金额" width="100" align="right">
+                      <el-table-column label="Amount" width="100" align="right">
                         <template #default="{ row }">
                           <span class="amount-cancelled">-${{ (row.price * row.quantity).toFixed(2) }}</span>
                         </template>
@@ -430,11 +432,11 @@
                   <div class="status-section-header">
                     <div class="header-content">
                       <el-icon class="status-icon returned"><ArrowLeft /></el-icon>
-                      <h4>已退货商品</h4>
-                      <el-tag type="warning" size="small">{{ returnedProducts.length }}件商品</el-tag>
+                                              <h4>Returned Products</h4>
+                                              <el-tag type="warning" size="small">{{ returnedProducts.length }} products</el-tag>
                     </div>
                     <div class="status-summary">
-                      退款金额: <span class="amount-highlight">-${{ getReturnedTotalAmount() }}</span>
+                                              Refund Amount: <span class="amount-highlight">-${{ getReturnedTotalAmount() }}</span>
                     </div>
                   </div>
                   <div class="status-table-container">
@@ -444,7 +446,7 @@
                           <div class="product-image-small" :style="{ backgroundColor: row.color }"></div>
               </template>
             </el-table-column>
-                      <el-table-column label="商品信息" min-width="250">
+                      <el-table-column label="Product Info" min-width="250">
                         <template #default="{ row }">
                           <div class="item-info">
                             <div class="item-name">{{ row.name }}</div>
@@ -453,29 +455,29 @@
                           </div>
                         </template>
                       </el-table-column>
-                      <el-table-column label="退货数量" width="90" align="center">
+                      <el-table-column label="Return Qty" width="90" align="center">
                         <template #default="{ row }">
                           <span class="quantity-returned">{{ row.returnQuantity }}</span>
                         </template>
                       </el-table-column>
-                      <el-table-column label="退货原因" min-width="200">
+                                              <el-table-column label="Return Reason" min-width="200">
                         <template #default="{ row }">
                           <span class="return-reason">{{ row.returnReason }}</span>
                         </template>
                       </el-table-column>
-                      <el-table-column label="退货状态" width="120" align="center">
+                                              <el-table-column label="Return Status" width="120" align="center">
                         <template #default="{ row }">
                           <el-tag :type="getReturnStatusType(row.returnStatus)" size="small">
                             {{ row.returnStatus }}
                           </el-tag>
                         </template>
                       </el-table-column>
-                      <el-table-column label="退货时间" width="130" align="center">
+                                              <el-table-column label="Return Time" width="130" align="center">
                         <template #default="{ row }">
                           <span class="return-time">{{ formatDate(row.returnTime) }}</span>
                         </template>
                       </el-table-column>
-                      <el-table-column label="退款金额" width="100" align="right">
+                                              <el-table-column label="Refund Amount" width="100" align="right">
                         <template #default="{ row }">
                           <span class="amount-returned">-${{ (row.price * row.returnQuantity).toFixed(2) }}</span>
               </template>
@@ -489,11 +491,11 @@
                   <div class="status-section-header">
                     <div class="header-content">
                       <el-icon class="status-icon exchanged"><SwitchButton /></el-icon>
-                      <h4>换货商品</h4>
-                      <el-tag type="info" size="small">{{ exchangedProducts.length }}件换货</el-tag>
+                                              <h4>Exchange Products</h4>
+                                              <el-tag type="info" size="small">{{ exchangedProducts.length }} exchanges</el-tag>
                     </div>
                     <div class="status-summary">
-                      价差: <span class="amount-highlight">${{ getExchangeTotalDifference() }}</span>
+                                              Price Difference: <span class="amount-highlight">${{ getExchangeTotalDifference() }}</span>
                     </div>
                   </div>
                   <div class="status-table-container">
@@ -502,13 +504,13 @@
                         <template #default="{ row }">
                           <div class="exchange-details">
                             <div class="exchange-item">
-                              <div class="exchange-label">原商品</div>
+                              <div class="exchange-label">Original Product</div>
                               <div class="exchange-product">
                                 <div class="product-image-tiny" :style="{ backgroundColor: row.originalProduct.color }"></div>
                                 <div class="product-details">
                                   <div class="name">{{ row.originalProduct.name }}</div>
                                   <div class="meta">{{ row.originalProduct.category }} | {{ row.originalProduct.snCode }}</div>
-                                  <div class="price">数量: {{ row.originalProduct.quantity }} | 单价: ${{ row.originalProduct.price }}</div>
+                                  <div class="price">Qty: {{ row.originalProduct.quantity }} | Price: ${{ row.originalProduct.price }}</div>
                                 </div>
                               </div>
                             </div>
@@ -516,13 +518,13 @@
                               <el-icon><ArrowRight /></el-icon>
                             </div>
                             <div class="exchange-item">
-                              <div class="exchange-label">新商品</div>
+                              <div class="exchange-label">New Product</div>
                               <div class="exchange-product">
                                 <div class="product-image-tiny" :style="{ backgroundColor: row.newProduct.color }"></div>
                                 <div class="product-details">
                                   <div class="name">{{ row.newProduct.name }}</div>
                                   <div class="meta">{{ row.newProduct.category }} | {{ row.newProduct.snCode }}</div>
-                                  <div class="price">数量: {{ row.newProduct.quantity }} | 单价: ${{ row.newProduct.price }}</div>
+                                  <div class="price">Qty: {{ row.newProduct.quantity }} | Price: ${{ row.newProduct.price }}</div>
                                 </div>
                               </div>
                             </div>
@@ -534,7 +536,7 @@
                           <div class="product-image-small" :style="{ backgroundColor: row.originalProduct.color }"></div>
                         </template>
                       </el-table-column>
-                      <el-table-column label="换货信息" min-width="300">
+                                              <el-table-column label="Exchange Info" min-width="300">
                         <template #default="{ row }">
                           <div class="exchange-info">
                             <div class="exchange-summary">
@@ -546,24 +548,24 @@
                           </div>
                         </template>
                       </el-table-column>
-                      <el-table-column label="换货原因" min-width="150">
+                                              <el-table-column label="Exchange Reason" min-width="150">
                         <template #default="{ row }">
                           <span class="exchange-reason">{{ row.exchangeReason }}</span>
                         </template>
                       </el-table-column>
-                      <el-table-column label="换货状态" width="120" align="center">
+                                              <el-table-column label="Exchange Status" width="120" align="center">
                         <template #default="{ row }">
                           <el-tag :type="getExchangeStatusType(row.exchangeStatus)" size="small">
                             {{ row.exchangeStatus }}
                           </el-tag>
                         </template>
                       </el-table-column>
-                      <el-table-column label="换货时间" width="130" align="center">
+                                              <el-table-column label="Exchange Time" width="130" align="center">
                         <template #default="{ row }">
                           <span class="exchange-time">{{ formatDate(row.exchangeTime) }}</span>
                         </template>
                       </el-table-column>
-                      <el-table-column label="价差" width="100" align="right">
+                                              <el-table-column label="Price Diff" width="100" align="right">
                         <template #default="{ row }">
                           <span class="price-difference" :class="{ 
                             'positive': row.priceDifference > 0, 
@@ -683,9 +685,9 @@
                     <el-table-column label="Items Summary" min-width="250">
                       <template #default="{ row }">
                         <div class="items-summary">
-                          <el-tag size="small" type="primary">{{ row.items.length }}个商品</el-tag>
-                          <span class="total-qty">共{{ row.items.reduce((sum, item) => sum + item.quantity, 0) }}件</span>
-                          <span class="quick-preview">{{ row.items[0].sku }}{{ row.items.length > 1 ? ' 等' : '' }}</span>
+                          <el-tag size="small" type="primary">{{ row.items.length }} products</el-tag>
+                                                      <span class="total-qty">Total {{ row.items.reduce((sum, item) => sum + item.quantity, 0) }} items</span>
+                                                      <span class="quick-preview">{{ row.items[0].sku }}{{ row.items.length > 1 ? ' etc.' : '' }}</span>
                         </div>
                       </template>
                     </el-table-column>
@@ -812,10 +814,10 @@
         <!-- 订单时间线 -->
         <div class="timeline-section">
           <div class="section-header">
-            <h3>订单动态</h3>
+                            <h3>Order Timeline</h3>
             <div class="actions">
               <el-button link type="primary" @click="showFullTimeline = !showFullTimeline">
-                {{ showFullTimeline ? '收起' : '查看完整记录' }}
+                {{ showFullTimeline ? 'Collapse' : 'View Full Records' }}
               </el-button>
             </div>
           </div>
@@ -823,11 +825,11 @@
           <!-- 动态分类Tab -->
           <div class="timeline-filters">
             <el-tabs v-model="activeTimelineTab" type="card" class="timeline-tabs">
-              <el-tab-pane label="全部" name="all">
+              <el-tab-pane label="All" name="all">
                 <template #label>
                   <span class="tab-label">
                     <el-icon><List /></el-icon>
-                    全部
+                    All
                     <el-badge :value="activities.length" class="tab-badge" />
                   </span>
                 </template>
@@ -859,20 +861,20 @@
                   </span>
                 </template>
               </el-tab-pane>
-              <el-tab-pane label="物流" name="logistics">
+              <el-tab-pane label="Logistics" name="logistics">
                 <template #label>
                   <span class="tab-label">
                     <el-icon><Van /></el-icon>
-                    物流
+                    Logistics
                     <el-badge :value="getFilteredActivities('logistics').length" class="tab-badge" />
                   </span>
                 </template>
               </el-tab-pane>
-              <el-tab-pane label="客户" name="customer">
+              <el-tab-pane label="Customer" name="customer">
                 <template #label>
                   <span class="tab-label">
                     <el-icon><User /></el-icon>
-                    客户
+                    Customer
                     <el-badge :value="getFilteredActivities('customer').length" class="tab-badge" />
                   </span>
                 </template>
@@ -904,7 +906,7 @@
                 @click="clearFilters"
               >
                 <el-icon><RefreshLeft /></el-icon>
-                清除筛选
+                Clear Filters
               </el-button>
             </div>
           </div>
@@ -959,7 +961,7 @@
                     <el-icon>
                       <component :is="expandedItems.includes(currentPage * pageSize + index) ? 'ArrowUp' : 'More'" />
                     </el-icon>
-                    详情
+                    Details
                   </el-button>
                   
                   <el-collapse-transition>
@@ -991,7 +993,7 @@
           
           <!-- 无数据提示 -->
           <div v-else class="no-timeline-data">
-            <el-empty description="当前筛选条件下暂无动态记录" />
+            <el-empty description="No timeline records found for current filter conditions" />
           </div>
           
           <!-- 分页控件 -->
@@ -1014,7 +1016,7 @@
         <!-- Tab切换的信息卡片 -->
         <div class="info-card tab-card">
           <el-tabs type="border-card" class="custom-tabs">
-            <el-tab-pane label="基础信息">
+            <el-tab-pane label="Basic Info">
               <div class="tab-content">
                 <!-- 客户信息卡片 -->
                 <div class="info-section">
@@ -1576,7 +1578,6 @@ import {
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { OrderAction, STATUS_CONFIG } from './types'
 import { OrderStatus } from '@/types/order'
-import OrderStatusProgress from '@/components/OrderStatusProgress.vue'
 
 const route = useRoute()
   const currentOrderStatus = ref<OrderStatus>(OrderStatus.Pending) // 设置为Pending状态用于测试
@@ -1592,71 +1593,7 @@ onMounted(() => {
   }
 })
 
-// 状态时间记录
-const statusTimes = computed(() => {
-  const times: Record<string, string> = {}
-  // 模拟所有状态的时间
-  times[OrderStatus.Imported] = '02/16 09:00'
-  times[OrderStatus.Allocated] = '02/16 09:30'
-  times[OrderStatus['Warehouse Processing']] = '02/16 10:00'
-  times[OrderStatus.Shipped] = '02/16 11:00'
-  times[OrderStatus.InTransit] = '02/16 12:00'
-  times[OrderStatus.Delivered] = '02/16 15:00'
-  times[OrderStatus.Completed] = '02/16 16:00'
-  return times
-})
 
-// 动态节点配置
-const dynamicNodes = computed(() => {
-  const nodes = []
-  const status = currentOrderStatus.value
-
-  // 根据当前状态添加动态节点
-  switch (status) {
-    case OrderStatus.Pending:
-      nodes.push({
-        status: OrderStatus.Pending,
-        position: 'beforeAllocated',
-        reason: '触发Hold单规则，等待审核',
-        time: '02/16 09:30'
-      })
-      break
-    case OrderStatus.Exception:
-      nodes.push({
-        status: OrderStatus.Exception,
-        position: 'afterAllocated',
-        reason: '异常',
-        time: '02/16 10:00'
-      })
-      break
-    case OrderStatus.Deallocated:
-      nodes.push({
-        status: OrderStatus.Deallocated,
-        position: 'afterAllocated',
-        reason: '已取消分配',
-        time: '02/16 10:30'
-      })
-      break
-    case OrderStatus.Cancelling:
-      nodes.push({
-        status: OrderStatus.Cancelling,
-        position: 'beforeWarehouse',
-        reason: '取消中',
-        time: '02/16 11:00'
-      })
-      break
-    case OrderStatus.Canceled:
-      nodes.push({
-        status: OrderStatus.Canceled,
-        position: 'beforeWarehouse',
-        reason: '已取消',
-        time: '02/16 11:30'
-      })
-      break
-  }
-
-  return nodes
-})
 
 // 商品数据
 interface Product {
@@ -1752,13 +1689,14 @@ interface EnhancedProduct {
   originalQuantity: number; // 原始购买数量
   shouldDispatchQuantity: number; // 应发货数量
   dispatchedQuantity: number; // 已下发数量
+  shippedQuantity: number; // 已shipped数量
   fulfillmentQuantity: number; // 当前需要履约的数量
   cancelledQuantity: number; // 已取消数量
   returnedQuantity: number; // 已退货数量
   exchangedQuantity: number; // 已换货数量
   refundedQuantity: number; // 已退款数量
   productStatus: string; // 商品状态：待发货、已取消、已退款、已退货
-  fulfillmentStatus: string; // 履约状态：已下发、未下发、部分下发
+  fulfillmentStatus: string; // 履约状态：NO_FULFILLMENT|HOLD|TO_BE_DISPATCHED|DISPATCHED|PARTIALLY_DISPATCHED|CANCELED|PARTIALLY_SHIPPED|SHIPPED|SHORT_SHIPPED
   hasOperations: boolean; // 是否有操作历史
   operationTypes: string[]; // 操作类型列表
   history: ProductHistoryRecord[]; // 操作历史
@@ -1798,11 +1736,12 @@ const enhancedProducts = computed<EnhancedProduct[]>(() => {
       exchangedQuantity: 0, // 换货数量（退回的数量）
       refundedQuantity: 0, // 退款数量
       dispatchedQuantity: 1, // 已下发数量
+      shippedQuantity: 1, // 已shipped数量
       // 应发货数量 = 购买数量 - 取消数量 - 退款数量 - 退货数量 - 换货数量
       shouldDispatchQuantity: 3 - 1 - 0 - 0 - 0, // = 2
       fulfillmentQuantity: 2,
       productStatus: '待发货',
-      fulfillmentStatus: '部分下发',
+      fulfillmentStatus: 'PARTIALLY_SHIPPED',
       hasOperations: true,
       operationTypes: ['cancel'],
       history: [
@@ -1832,11 +1771,12 @@ const enhancedProducts = computed<EnhancedProduct[]>(() => {
       exchangedQuantity: 0, // 换货数量（退回的数量）
       refundedQuantity: 0, // 退款数量
       dispatchedQuantity: 3, // 已下发数量
+      shippedQuantity: 2, // 已shipped数量
       // 应发货数量 = 购买数量 - 取消数量 - 退款数量 - 退货数量 - 换货数量
       shouldDispatchQuantity: 5 - 0 - 0 - 2 - 0, // = 3
       fulfillmentQuantity: 3,
       productStatus: '已退货',
-      fulfillmentStatus: '已下发',
+      fulfillmentStatus: 'DISPATCHED',
       hasOperations: true,
       operationTypes: ['return'],
       history: [
@@ -1866,11 +1806,12 @@ const enhancedProducts = computed<EnhancedProduct[]>(() => {
       exchangedQuantity: 1, // 换货数量（退回的数量）
       refundedQuantity: 0, // 退款数量
       dispatchedQuantity: 1, // 已下发数量
+      shippedQuantity: 0, // 已shipped数量
       // 应发货数量 = 购买数量 - 取消数量 - 退款数量 - 退货数量 - 换货数量
       shouldDispatchQuantity: 2 - 0 - 0 - 0 - 1, // = 1
       fulfillmentQuantity: 1,
       productStatus: '待发货',
-      fulfillmentStatus: '已下发',
+      fulfillmentStatus: 'DISPATCHED',
       hasOperations: true,
       operationTypes: ['exchange'],
       history: [
@@ -1900,11 +1841,12 @@ const enhancedProducts = computed<EnhancedProduct[]>(() => {
       exchangedQuantity: 0, // 换货数量（退回的数量）
       refundedQuantity: 0, // 退款数量
       dispatchedQuantity: 0, // 已下发数量
+      shippedQuantity: 0, // 已shipped数量
       // 应发货数量 = 购买数量 - 取消数量 - 退款数量 - 退货数量 - 换货数量
       shouldDispatchQuantity: 1 - 0 - 0 - 0 - 0, // = 1
       fulfillmentQuantity: 1,
       productStatus: '待发货',
-      fulfillmentStatus: '未下发',
+      fulfillmentStatus: 'TO_BE_DISPATCHED',
       hasOperations: true,
       operationTypes: ['exchange_new'],
       isExchangeProduct: true, // 标记为换货商品
@@ -1936,11 +1878,12 @@ const enhancedProducts = computed<EnhancedProduct[]>(() => {
       exchangedQuantity: 0, // 换货数量（退回的数量）
       refundedQuantity: 0, // 退款数量
       dispatchedQuantity: 0, // 已下发数量
+      shippedQuantity: 0, // 已shipped数量
       // 应发货数量 = 购买数量 - 取消数量 - 退款数量 - 退货数量 - 换货数量
       shouldDispatchQuantity: 2 - 0 - 0 - 0 - 0, // = 2
       fulfillmentQuantity: 2,
       productStatus: '待发货',
-      fulfillmentStatus: '未下发',
+      fulfillmentStatus: 'TO_BE_DISPATCHED',
       hasOperations: false,
       operationTypes: [],
       history: []
@@ -3256,7 +3199,8 @@ const getActionLabel = (action: OrderAction): string => {
     [OrderAction.Dispatch]: '发货',
     [OrderAction.Reopen]: '重新打开',
     [OrderAction.Split]: '拆分',
-    [OrderAction.Merge]: '合并'
+    [OrderAction.Merge]: '合并',
+    [OrderAction.SyncLogistics]: '同步物流信息'
   }
   return labels[action] || action
 }
@@ -3272,7 +3216,8 @@ const getActionIcon = (action: OrderAction) => {
     [OrderAction.Dispatch]: Van,
     [OrderAction.Reopen]: SwitchButton,
     [OrderAction.Split]: CirclePlus,
-    [OrderAction.Merge]: Connection
+    [OrderAction.Merge]: Connection,
+    [OrderAction.SyncLogistics]: Refresh
   }
   return icons[action]
 }
@@ -3318,6 +3263,9 @@ const handleAction = (command: OrderAction | 'rawData') => {
     case OrderAction.Merge:
       handleMerge()
       break
+    case OrderAction.SyncLogistics:
+      handleSyncLogistics()
+      break
   }
 }
 
@@ -3356,6 +3304,11 @@ const handleSplit = () => {
 
 const handleMerge = () => {
   ElMessage.info('Merge feature coming soon')
+}
+
+const handleSyncLogistics = () => {
+  ElMessage.success('物流信息同步成功')
+  // TODO: 调用同步物流信息 API
 }
 
 // 商品变更记录
@@ -3707,9 +3660,9 @@ const toggleEdit = () => {
 // 判断商品是否可编辑（只有未dispatch的商品可编辑）
 const isProductEditable = (product: Product | EnhancedProduct): boolean => {
   // 对于增强商品数据，检查履约状态
-  if ('fulfillmentStatus' in product) {
-    return product.fulfillmentStatus === '未下发' && product.productStatus !== '已取消'
-  }
+      if ('fulfillmentStatus' in product) {
+      return product.fulfillmentStatus === 'TO_BE_DISPATCHED' && product.productStatus !== '已取消'
+    }
   // 对于普通商品数据，只有状态为Ready的商品才可以编辑
   return product.status === 'Ready'
 }
@@ -3919,12 +3872,33 @@ const getProductStatusType = (status: string): string => {
 // 获取履约状态类型
 const getFulfillmentStatusType = (status: string): string => {
   const types: Record<string, string> = {
-    '未下发': 'danger',
-    '已下发': 'success',
-    '处理中': 'warning',
-    '已完成': 'info'
+    'NO_FULFILLMENT': 'info',        // 无需履约
+    'HOLD': 'warning',               // 暂停履约  
+    'TO_BE_DISPATCHED': 'danger',    // 待履约
+    'DISPATCHED': 'success',         // 已下发
+    'PARTIALLY_DISPATCHED': 'warning', // 部分下发
+    'CANCELED': 'info',              // 已取消
+    'PARTIALLY_SHIPPED': 'warning',  // 部分发货
+    'SHIPPED': 'success',            // 全部发货
+    'SHORT_SHIPPED': 'danger'        // 缺货发货
   }
   return types[status] || 'info'
+}
+
+// 获取履约状态中文名称
+const getFulfillmentStatusLabel = (status: string): string => {
+  const labels: Record<string, string> = {
+    'NO_FULFILLMENT': '无需履约',
+    'HOLD': '暂停履约',
+    'TO_BE_DISPATCHED': '待履约',
+    'DISPATCHED': '已下发',
+    'PARTIALLY_DISPATCHED': '部分下发',
+    'CANCELED': '已取消',
+    'PARTIALLY_SHIPPED': '部分发货',
+    'SHIPPED': '全部发货',
+    'SHORT_SHIPPED': '缺货发货'
+  }
+  return labels[status] || status
 }
 
 // 获取操作标签类型
@@ -3959,6 +3933,20 @@ const calculateLineTotal = (product: EnhancedProduct, quantity: number): number 
   const taxAmount = product.tax * discountRatio
   
   return subtotal - discountAmount + taxAmount
+}
+
+// 计算商品退款金额
+const calculateRefundAmount = (product: EnhancedProduct): number => {
+  // 计算取消数量的退款金额
+  const cancelAmount = calculateLineTotal(product, product.cancelledQuantity)
+  
+  // 计算退货数量的退款金额  
+  const returnAmount = calculateLineTotal(product, product.returnedQuantity)
+  
+  // 计算退款数量的退款金额
+  const refundAmount = calculateLineTotal(product, product.refundedQuantity)
+  
+  return cancelAmount + returnAmount + refundAmount
 }
 
 // 处理应发货数量变更
@@ -7150,13 +7138,7 @@ const statusHistory = ref<StatusHistory[]>([
   }
 }
 
-.order-status-section {
-  background: var(--card-bg);
-  border-radius: 8px;
-  padding: 24px;
-  margin-bottom: 24px;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-}
+
 
 // Dispatch卡片列表样式
 .dispatch-list {
@@ -8497,6 +8479,41 @@ const statusHistory = ref<StatusHistory[]>([
   }
 }
 
+// 已shipped数量样式
+.shipped-quantity {
+  text-align: center;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-weight: 600;
+  position: relative;
+  
+  &.zero {
+    background: rgba(148, 163, 184, 0.1);
+    color: rgba(148, 163, 184, 0.8);
+  }
+  
+  &.partial {
+    background: rgba(251, 191, 36, 0.1);
+    color: #FBBF24;
+  }
+  
+  &.full {
+    background: rgba(52, 199, 89, 0.1);
+    color: #34C759;
+  }
+  
+  &.over {
+    background: rgba(248, 113, 113, 0.1);
+    color: #F87171;
+  }
+  
+  .shipped-ratio {
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 11px;
+    margin-left: 2px;
+  }
+}
+
 .fulfillment-amount {
   text-align: right;
   
@@ -8512,6 +8529,17 @@ const statusHistory = ref<StatusHistory[]>([
     font-size: 11px;
     text-decoration: line-through;
     margin-bottom: 4px;
+  }
+  
+  .refund-amount {
+    color: #F87171;
+    font-size: 11px;
+    font-weight: 500;
+    margin-bottom: 4px;
+    background: rgba(248, 113, 113, 0.1);
+    padding: 2px 6px;
+    border-radius: 4px;
+    display: inline-block;
   }
   
   .amount-breakdown {
@@ -8536,13 +8564,15 @@ const statusHistory = ref<StatusHistory[]>([
 .operations-summary {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 4px;
   align-items: center;
+  margin-top: 6px;
   
   .el-tag {
-    font-size: 11px;
-    padding: 2px 6px;
-    border-radius: 4px;
+    font-size: 10px;
+    padding: 1px 4px;
+    border-radius: 3px;
+    height: auto;
   }
   
   .no-operations {

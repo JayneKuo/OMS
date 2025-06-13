@@ -1,3 +1,5 @@
+import { ReturnOrderStatus, ReturnType, ReturnReason } from '@/views/return/types'
+
 // 订单状态枚举
 export enum OrderStatus {
   Imported = 'Imported',
@@ -9,6 +11,8 @@ export enum OrderStatus {
   Cancelled = 'Cancelled',
   WarehouseProcessing = 'Warehouse Processing',
   Shipped = 'Shipped',
+  InTransit = 'InTransit',
+  Delivered = 'Delivered',
   Completed = 'Completed'
 }
 
@@ -33,7 +37,8 @@ export enum OrderAction {
   Dispatch = 'dispatch',
   Reopen = 'reopen',
   Split = 'split',
-  Merge = 'merge'
+  Merge = 'merge',
+  SyncLogistics = 'sync_logistics'
 }
 
 export enum FulfillmentMode {
@@ -166,7 +171,21 @@ export const STATUS_CONFIG: Record<OrderStatus, StatusAction> = {
     requireSubOrderCheck: true
   },
   [OrderStatus.Shipped]: {
-    availableActions: [],
+    availableActions: [OrderAction.SyncLogistics],
+    allowSplit: false,
+    allowMerge: false,
+    requireWarehouse: false,
+    requireSubOrderCheck: true
+  },
+  [OrderStatus.InTransit]: {
+    availableActions: [OrderAction.SyncLogistics],
+    allowSplit: false,
+    allowMerge: false,
+    requireWarehouse: false,
+    requireSubOrderCheck: true
+  },
+  [OrderStatus.Delivered]: {
+    availableActions: [OrderAction.SyncLogistics],
     allowSplit: false,
     allowMerge: false,
     requireWarehouse: false,

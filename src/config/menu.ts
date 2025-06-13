@@ -16,7 +16,8 @@ import {
   Search,
   DataLine,
   Timer,
-  Warning
+  Warning,
+  Connection
 } from '@element-plus/icons-vue'
 
 export interface MenuItem {
@@ -63,6 +64,16 @@ export const menuConfig: MenuItem[] = [
         title: 'Sales Order',
         path: '/order/sales',
         icon: Document
+      },
+      {
+        title: 'Shipment',
+        path: '/order/shipment',
+        icon: Ship
+      },
+      {
+        title: 'AI Order Tracking Assistant',
+        path: '/order/ai-tracelink',
+        icon: Connection
       }
     ]
   },

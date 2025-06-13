@@ -88,6 +88,34 @@ const routes: RouteRecordRaw[] = [
             path: 'sales/:id',
             name: 'SalesOrderDetail',
             component: () => import('@/views/order/sales/detail.vue')
+          },
+          {
+            path: 'shipment',
+            name: 'Shipment',
+            component: () => import('@/views/order/shipment/index.vue')
+          },
+          {
+            path: 'shipment/:shipmentNo',
+            name: 'ShipmentDetail',
+            component: () => import('@/views/order/shipment/detail.vue')
+          },
+          {
+            path: 'ai-tracelink',
+            name: 'ai-tracelink',
+            component: () => import('@/views/order/ai-tracelink/index.vue'),
+            meta: {
+              title: 'AI TraceLink',
+              icon: 'Connection'
+            }
+          },
+          {
+            path: 'tracking/:id',
+            name: 'OrderTracking',
+            component: () => import('@/views/order/ai-tracelink/components/TrackingWrapper.vue'),
+            meta: {
+              title: '订单追踪',
+              icon: 'Connection'
+            }
           }
         ]
       },
