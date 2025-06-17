@@ -212,6 +212,11 @@ const routes: RouteRecordRaw[] = [
             path: 'query-tool',
             name: 'QueryTool',
             component: () => import('@/views/foundation-data/QueryTool.vue')
+          },
+          {
+            path: 'order-update-control',
+            name: 'OrderUpdateControl',
+            component: () => import('@/views/foundation-data/OrderUpdateControl.vue')
           }
         ]
       },

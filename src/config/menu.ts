@@ -17,7 +17,8 @@ import {
   DataLine,
   Timer,
   Warning,
-  Connection
+  Connection,
+  Edit
 } from '@element-plus/icons-vue'
 
 export interface MenuItem {
@@ -157,6 +158,11 @@ export const menuConfig: MenuItem[] = [
         title: 'Query Tool',
         path: '/foundation-data/query-tool',
         icon: Search
+      },
+      {
+        title: 'Order Update Settings',
+        path: '/foundation-data/order-update-control',
+        icon: Edit
       }
     ]
   },
