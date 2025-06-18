@@ -18,8 +18,10 @@ import {
   Timer,
   Warning,
   Connection,
-  Edit
+  Edit,
+  Refresh
 } from '@element-plus/icons-vue'
+import { Menu } from '@/types/menu'
 
 export interface MenuItem {
   title: string
@@ -75,6 +77,11 @@ export const menuConfig: MenuItem[] = [
         title: 'AI Order Tracking Assistant',
         path: '/order/ai-tracelink',
         icon: Connection
+      },
+      {
+        title: '更新记录',
+        path: '/order/updates',
+        icon: Refresh
       }
     ]
   },
@@ -205,4 +212,86 @@ export const menuConfig: MenuItem[] = [
       }
     ]
   }
-] 
+]
+
+const menus: Menu[] = [
+  {
+    path: '/order',
+    name: '订单管理',
+    icon: 'ShoppingCart',
+    children: [
+      {
+        path: '/order/sales',
+        name: '订单列表'
+      },
+      {
+        path: '/order/updates',
+        name: '更新记录'
+      }
+    ]
+  },
+  {
+    path: '/return',
+    name: '退货管理',
+    icon: 'RefreshLeft'
+  },
+  {
+    path: '/customs',
+    name: '报关管理',
+    icon: 'Document',
+    children: [
+      {
+        path: '/customs/form3461',
+        name: 'Form 3461'
+      },
+      {
+        path: '/customs/ftze214',
+        name: 'FTZ e214'
+      },
+      {
+        path: '/customs/isf',
+        name: 'ISF'
+      },
+      {
+        path: '/customs/t86',
+        name: 'T86'
+      }
+    ]
+  },
+  {
+    path: '/warehouse',
+    name: '仓库管理',
+    icon: 'House',
+    children: [
+      {
+        path: '/warehouse/list',
+        name: '仓库列表'
+      },
+      {
+        path: '/warehouse/zipcode',
+        name: '邮编范围'
+      }
+    ]
+  },
+  {
+    path: '/settings',
+    name: '系统设置',
+    icon: 'Setting',
+    children: [
+      {
+        path: '/settings/automation',
+        name: '自动化规则'
+      },
+      {
+        path: '/settings/email',
+        name: '邮件配置'
+      },
+      {
+        path: '/settings/logs',
+        name: '邮件日志'
+      }
+    ]
+  }
+]
+
+export default menus 

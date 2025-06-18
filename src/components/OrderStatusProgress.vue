@@ -144,6 +144,49 @@
               </div>
             </template>
             
+            <!-- 更新失败状态特殊显示 -->
+            <template v-if="currentDynamicNode.status === 'UpdateFailed'">
+              <div class="update-failed-alert">
+                <div class="alert-header">
+                  <div class="alert-icon">
+                    <el-icon><Warning /></el-icon>
+                  </div>
+                  <div class="alert-title">订单更新失败</div>
+                </div>
+                
+                <div class="alert-details">
+                  <div class="update-info-item">
+                    <div class="info-label">订单编号：</div>
+                    <div class="info-value">{{ currentDynamicNode.orderId }}</div>
+                  </div>
+                  
+                  <div class="update-info-item">
+                    <div class="info-label">失败原因：</div>
+                    <div class="info-value">{{ currentDynamicNode.reason || '未知错误' }}</div>
+                  </div>
+                  
+                  <div class="update-info-item">
+                    <div class="info-label">更新内容：</div>
+                    <div class="info-value">
+                      <div class="update-content">
+                        {{ currentDynamicNode.updateContent }}
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div class="update-info-item">
+                    <div class="info-label">处理建议：</div>
+                    <div class="info-value">
+                      <ul class="suggestions-list">
+                        <li>检查WMS系统状态</li>
+                        <li>确认更新内容是否合规</li>
+                        <li>联系技术支持处理</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </template>
 
           </div>
         </div>
@@ -329,6 +372,7 @@ const getDynamicNodeClass = (node: { status: OrderStatus }) => {
     case OrderStatus.Pending:
       return 'status-warning'
     case OrderStatus.Exception:
+    case OrderStatus.UpdateFailed:
       return 'status-error'
     case OrderStatus.Deallocated:
     case OrderStatus.Cancelling:
@@ -345,6 +389,7 @@ const getDynamicNodeIcon = (node: { status: OrderStatus }) => {
     case OrderStatus.Pending:
       return Warning
     case OrderStatus.Exception:
+    case OrderStatus.UpdateFailed:
       return CircleClose
     case OrderStatus.Deallocated:
     case OrderStatus.Cancelling:
@@ -749,6 +794,84 @@ const getDynamicNodeIcon = (node: { status: OrderStatus }) => {
                   
                   &:last-child {
                     margin-bottom: 0;
+                  }
+                }
+              }
+            }
+          }
+
+          // 更新失败状态样式
+          .update-failed-alert {
+            padding: 16px;
+            border: 1px solid rgba(244, 63, 94, 0.3);
+            border-radius: 8px;
+            border-left: 4px solid #F43F5E;
+            
+            .alert-header {
+              display: flex;
+              align-items: center;
+              gap: 12px;
+              margin-bottom: 16px;
+              
+              .alert-icon {
+                color: #F43F5E;
+                font-size: 18px;
+                flex-shrink: 0;
+              }
+              
+              .alert-title {
+                color: #F43F5E;
+                font-size: 16px;
+                font-weight: 600;
+              }
+            }
+            
+            .alert-details {
+              .update-info-item {
+                display: flex;
+                margin-bottom: 12px;
+                
+                &:last-child {
+                  margin-bottom: 0;
+                }
+                
+                .info-label {
+                  color: #F43F5E;
+                  font-weight: 600;
+                  font-size: 14px;
+                  width: 120px;
+                  flex-shrink: 0;
+                }
+                
+                .info-value {
+                  color: #F43F5E;
+                  font-size: 14px;
+                  opacity: 0.9;
+                  flex: 1;
+                  
+                  .update-content {
+                    padding: 8px;
+                    background: rgba(244, 63, 94, 0.1);
+                    border-radius: 4px;
+                    font-family: monospace;
+                    margin: 4px 0;
+                  }
+                  
+                  .suggestions-list {
+                    margin: 0;
+                    padding-left: 16px;
+                    
+                    li {
+                      color: #F43F5E;
+                      font-size: 13px;
+                      line-height: 1.5;
+                      margin-bottom: 4px;
+                      opacity: 0.9;
+                      
+                      &:last-child {
+                        margin-bottom: 0;
+                      }
+                    }
                   }
                 }
               }

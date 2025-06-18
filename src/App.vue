@@ -2,7 +2,8 @@
   <router-view />
 </template>
 
-<script lang="ts" setup>
+<script setup lang="ts">
+// App.vue 不需要特殊的setup逻辑
 </script>
 
 <style>
@@ -13,7 +14,7 @@ html, body {
 }
 
 #app {
-  height: 100%;
+  height: 100vh;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
 }
 </style> 

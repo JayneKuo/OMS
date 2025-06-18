@@ -116,6 +116,15 @@ const routes: RouteRecordRaw[] = [
               title: '订单追踪',
               icon: 'Connection'
             }
+          },
+          {
+            path: 'updates',
+            name: 'OrderUpdates',
+            component: () => import('@/views/order/update/UpdateList.vue'),
+            meta: {
+              title: '更新记录',
+              icon: 'Refresh'
+            }
           }
         ]
       },

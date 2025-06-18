@@ -7,12 +7,19 @@ interface StatusHistoryItem {
   reason?: string
 }
 
+interface OrderStatusState {
+  currentStatus: OrderStatus
+  statusHistory: StatusHistoryItem[]
+  lastUpdateTime: number
+  statusTimes: Partial<Record<OrderStatus, string>>
+}
+
 export const useOrderStatusStore = defineStore('orderStatus', {
-  state: () => ({
-    currentStatus: OrderStatus.Imported,
-    statusHistory: [] as StatusHistoryItem[],
+  state: (): OrderStatusState => ({
+    currentStatus: OrderStatus.All,
+    statusHistory: [],
     lastUpdateTime: 0,
-    statusTimes: {} as Record<OrderStatus, string>
+    statusTimes: {}
   }),
 
   getters: {
@@ -101,7 +108,7 @@ export const useOrderStatusStore = defineStore('orderStatus', {
 
     // 重置状态
     resetStatus() {
-      this.currentStatus = OrderStatus.Imported
+      this.currentStatus = OrderStatus.All
       this.statusHistory = []
       this.lastUpdateTime = 0
       this.statusTimes = {}
@@ -125,8 +132,16 @@ export const useOrderStatusStore = defineStore('orderStatus', {
     },
 
     // 批量更新状态时间
-    updateStatusTimes(times: Record<OrderStatus, string>) {
+    updateStatusTimes(times: Partial<Record<OrderStatus, string>>) {
       this.statusTimes = { ...this.statusTimes, ...times }
+    },
+
+    setStatus(status: OrderStatus) {
+      this.currentStatus = status
+    },
+    
+    setStatusTimes(times: Partial<Record<OrderStatus, string>>) {
+      this.statusTimes = times
     }
   }
 }) 

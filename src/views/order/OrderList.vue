@@ -97,6 +97,7 @@ import { useOrderStatusStore } from '@/stores/orderStatus'
 import { OrderStatus } from '@/types/order'
 import OrderStatusTag from '@/components/OrderStatusTag.vue'
 import type { OrderData } from '@/types/queryToolTypes'
+import { ElMessageBox } from 'element-plus'
 
 const router = useRouter()
 const orderStatusStore = useOrderStatusStore()
@@ -121,7 +122,8 @@ const orderStatuses = [
   { value: OrderStatus.Exception, label: '异常' },
   { value: OrderStatus.Deallocated, label: '已取消分配' },
   { value: OrderStatus.Cancelling, label: '取消中' },
-  { value: OrderStatus.Canceled, label: '已取消' }
+  { value: OrderStatus.Canceled, label: '已取消' },
+  { value: OrderStatus.UpdateFailed, label: '更新失败' }
 ]
 
 // 列表数据
@@ -200,7 +202,31 @@ const handleOrderClick = (order: OrderData) => {
 
 // 点击状态标签
 const handleStatusClick = (order: OrderData) => {
-  handleOrderClick(order)
+  // 如果是更新失败状态，显示更新失败详情
+  if (order.status === OrderStatus.UpdateFailed) {
+    ElMessageBox.alert(
+      `<div class="update-failed-info">
+        <p><strong>更新失败原因：</strong>${order.errorReason || '未知错误'}</p>
+        <p><strong>更新内容：</strong>${order.updateContent || '无'}</p>
+        <p><strong>处理建议：</strong></p>
+        <ul>
+          <li>检查WMS系统状态</li>
+          <li>确认更新内容是否合规</li>
+          <li>联系技术支持处理</li>
+        </ul>
+      </div>`,
+      '更新失败详情',
+      {
+        dangerouslyUseHTMLString: true,
+        confirmButtonText: '确定',
+        callback: () => {
+          handleOrderClick(order)
+        }
+      }
+    )
+  } else {
+    handleOrderClick(order)
+  }
 }
 
 // 初始化
@@ -228,6 +254,27 @@ onMounted(() => {
     display: flex;
     justify-content: flex-end;
     padding: 16px 0;
+  }
+}
+
+:deep(.update-failed-info) {
+  p {
+    margin: 8px 0;
+    line-height: 1.5;
+  }
+
+  strong {
+    color: #F43F5E;
+  }
+
+  ul {
+    margin: 4px 0;
+    padding-left: 20px;
+
+    li {
+      margin: 4px 0;
+      color: #666;
+    }
   }
 }
 </style> 
