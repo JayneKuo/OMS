@@ -1,30 +1,67 @@
-// 退货订单状态枚举
+// Channel Types
+export enum ChannelType {
+  AMAZON = 'AMAZON',
+  EBAY = 'EBAY',
+  WALMART = 'WALMART',
+  SHOPIFY = 'SHOPIFY',
+  LAZADA = 'LAZADA',
+  MANUAL = 'MANUAL'
+}
+
+// Status Types
 export enum ReturnOrderStatus {
-  Created = 'Created',           // 已创建
-  Pending = 'Pending',          // 待处理
-  Approved = 'Approved',        // 已批准
-  Processing = 'Processing',    // 处理中
-  Shipped = 'Shipped',         // 已发货
-  Received = 'Received',       // 已收货
-  Refunded = 'Refunded',       // 已退款
-  Completed = 'Completed',     // 已完成
-  Cancelled = 'Cancelled'      // 已取消
+  Created = 'CREATED',
+  Pending = 'PENDING',
+  Processing = 'PROCESSING',
+  Shipped = 'SHIPPED',
+  Received = 'RECEIVED',
+  Completed = 'COMPLETED',
+  Cancelled = 'CANCELLED',
+  OnHold = 'ON_HOLD'
 }
 
-// 退货类型枚举
+// Return Type
 export enum ReturnType {
-  Refund = 'Refund',           // 退款
-  Exchange = 'Exchange'        // 换货
+  Regular = 'Regular Return',
+  ExceptionAuthorized = 'Exception Authorized by Client',
+  InTransit = 'In Transit',
+  Refund = 'Refund',
+  Exchange = 'Exchange'
 }
 
-// 退货原因枚举
+// Return Reason
 export enum ReturnReason {
-  QualityIssue = 'Quality Issue',           // 质量问题
-  WrongItem = 'Wrong Item',                 // 商品错误
-  SizeIssue = 'Size Issue',                 // 尺码问题
-  ColorIssue = 'Color Issue',               // 颜色问题
-  CustomerChangedMind = 'Customer Changed Mind', // 客户改变主意
-  Other = 'Other'                           // 其他原因
+  QualityIssue = 'QUALITY_ISSUE',
+  WrongSize = 'WRONG_SIZE',
+  WrongItem = 'WRONG_ITEM',
+  Defective = 'DEFECTIVE',
+  NotAsDescribed = 'NOT_AS_DESCRIBED',
+  BetterPrice = 'BETTER_PRICE',
+  Other = 'OTHER'
+}
+
+// Return Action
+export enum ReturnAction {
+  View = 'VIEW',
+  Create = 'CREATE',
+  Edit = 'EDIT',
+  Approve = 'APPROVE',
+  Reject = 'REJECT',
+  Ship = 'SHIP',
+  Receive = 'RECEIVE',
+  Refund = 'REFUND',
+  Cancel = 'CANCEL',
+  Hold = 'HOLD',
+  Release = 'RELEASE'
+}
+
+// Return Item Status
+export enum ReturnItemStatus {
+  Pending = 'PENDING',
+  Approved = 'APPROVED',
+  Rejected = 'REJECTED',
+  Received = 'RECEIVED',
+  Refunded = 'REFUNDED'
 }
 
 // 退货商品接口
@@ -34,36 +71,97 @@ export interface ReturnItem {
   productName: string
   sku: string
   quantity: number
+  originalQty: number
   originalPrice: number
   refundPrice: number
   reason: ReturnReason
+  condition?: string
+  status: ReturnItemStatus
   notes?: string
+  images?: string[]
+  locationCode?: string
 }
 
-// 退货订单接口
+// RMS系统映射
+export interface RMSMapping {
+  status: string
+  rmaNo: string
+  facilityId: string
+  notes: string
+  dnNumber?: string
+  closedTime?: string
+}
+
+// WMS系统映射
+export interface WMSMapping {
+  status: string
+  inboundNo: string
+  warehouseId: string
+  notes: string
+  dnNumber?: string
+  receivedDate?: string
+}
+
+// 物流信息
+export interface Shipment {
+  carrier?: string;
+  trackingNumber?: string;
+  bol?: string;
+  eta?: string;
+}
+
+// Channel Information
+export interface ChannelInfo {
+  type: ChannelType
+  storeName: string
+  storeId: string
+  platformOrderNo: string
+  accountId: string
+}
+
+// Channel Information
+export interface Channel {
+  type?: ChannelType
+  storeName: string
+  storeId: string
+  platformOrderNo: string
+  accountId: string
+}
+
+// Return Order interface
 export interface ReturnOrder {
-  id: string
-  returnOrderNo: string
-  originalOrderNo: string
-  status: ReturnOrderStatus
-  returnType: ReturnType
-  reason: ReturnReason
-  customerName: string
-  customerEmail: string
-  customerPhone: string
-  address: string
-  country: string
-  createDate: string
-  approvedDate?: string
-  shipDate?: string
-  receiveDate?: string
-  refundDate?: string
-  items: ReturnItem[]
-  totalAmount: number
-  refundAmount: number
-  trackingNumber?: string
-  carrier?: string
-  notes?: string
+  returnOrderNo?: string;
+  originalOrderNo: string;
+  status: ReturnStatus;
+  returnType?: ReturnType;
+  reason?: ReturnReason;
+  reference?: string;
+  channel: Channel;
+  firstName: string;
+  lastName: string;
+  customerEmail: string;
+  customerPhone: string;
+  streetAddress: string;
+  city: string;
+  state: string;
+  zipCode: string;
+  items: ReturnItem[];
+  facilityId: string;
+  gracePeriod?: number;
+  shipMethod?: ShipMethod;
+  shipments?: Shipment[];
+  rmaClosedTime?: string;
+  originalPO?: string;
+  originalSO?: string;
+  wmsSN?: string;
+  source?: Source;
+  createBy?: string;
+  createdAt?: string;
+  updateBy?: string;
+  updatedAt?: string;
+  dynamicText?: {
+    [key: string]: string;
+  };
 }
 
 // 退货记录接口（用于销售订单中的退货历史）
@@ -84,16 +182,6 @@ export interface ReturnStatusConfig {
   availableActions: ReturnAction[]
 }
 
-// 退货操作枚举
-export enum ReturnAction {
-  Approve = 'approve',
-  Reject = 'reject',
-  Ship = 'ship',
-  Receive = 'receive',
-  Refund = 'refund',
-  Cancel = 'cancel'
-}
-
 // 状态配置
 export const RETURN_STATUS_CONFIG: Record<ReturnOrderStatus, ReturnStatusConfig> = {
   [ReturnOrderStatus.Created]: {
@@ -107,12 +195,6 @@ export const RETURN_STATUS_CONFIG: Record<ReturnOrderStatus, ReturnStatusConfig>
     value: ReturnOrderStatus.Pending,
     color: 'warning',
     availableActions: [ReturnAction.Approve, ReturnAction.Reject]
-  },
-  [ReturnOrderStatus.Approved]: {
-    label: 'Approved',
-    value: ReturnOrderStatus.Approved,
-    color: 'success',
-    availableActions: [ReturnAction.Ship, ReturnAction.Cancel]
   },
   [ReturnOrderStatus.Processing]: {
     label: 'Processing',
@@ -132,12 +214,6 @@ export const RETURN_STATUS_CONFIG: Record<ReturnOrderStatus, ReturnStatusConfig>
     color: 'success',
     availableActions: [ReturnAction.Refund]
   },
-  [ReturnOrderStatus.Refunded]: {
-    label: 'Refunded',
-    value: ReturnOrderStatus.Refunded,
-    color: 'success',
-    availableActions: []
-  },
   [ReturnOrderStatus.Completed]: {
     label: 'Completed',
     value: ReturnOrderStatus.Completed,
@@ -149,6 +225,12 @@ export const RETURN_STATUS_CONFIG: Record<ReturnOrderStatus, ReturnStatusConfig>
     value: ReturnOrderStatus.Cancelled,
     color: 'danger',
     availableActions: []
+  },
+  [ReturnOrderStatus.OnHold]: {
+    label: 'On Hold',
+    value: ReturnOrderStatus.OnHold,
+    color: 'secondary',
+    availableActions: []
   }
 }
 
@@ -156,9 +238,10 @@ export const RETURN_STATUS_CONFIG: Record<ReturnOrderStatus, ReturnStatusConfig>
 export const RETURN_REASONS = [
   { value: ReturnReason.QualityIssue, label: 'Quality Issue' },
   { value: ReturnReason.WrongItem, label: 'Wrong Item' },
-  { value: ReturnReason.SizeIssue, label: 'Size Issue' },
-  { value: ReturnReason.ColorIssue, label: 'Color Issue' },
-  { value: ReturnReason.CustomerChangedMind, label: 'Customer Changed Mind' },
+  { value: ReturnReason.WrongSize, label: 'Wrong Size' },
+  { value: ReturnReason.Defective, label: 'Defective' },
+  { value: ReturnReason.NotAsDescribed, label: 'Not As Described' },
+  { value: ReturnReason.BetterPrice, label: 'Better Price' },
   { value: ReturnReason.Other, label: 'Other' }
 ]
 
@@ -166,4 +249,68 @@ export const RETURN_REASONS = [
 export const RETURN_TYPES = [
   { value: ReturnType.Refund, label: 'Refund' },
   { value: ReturnType.Exchange, label: 'Exchange' }
-] 
+]
+
+// Action Button Type
+export type ButtonType = 'primary' | 'success' | 'warning' | 'danger' | 'info' | 'default'
+
+// Action Button Interface
+export interface ActionButton {
+  action: ReturnAction
+  label: string
+  buttonType: ButtonType
+  disabled?: boolean
+  icon?: string
+}
+
+export interface SearchParams {
+  page: number
+  pageSize: number
+  returnOrderNo?: string
+  originalOrderNo?: string
+  channelOrderNo?: string
+  returnType?: ReturnType
+  channel?: ChannelType
+  status?: ReturnOrderStatus[]
+  dateRange?: [string, string] | null
+  customerName?: string
+}
+
+export enum ReturnStatus {
+  Initiated = 'Initiated',
+  Hold = 'Hold',
+  PartialReceived = 'Partial Received',
+  Received = 'Received',
+  Screening = 'Screening',
+  Screened = 'Screened',
+  ForceClose = 'Force Closed',
+  RMAFinished = 'RMA Finished',
+  SystemClosed = 'System Closed'
+}
+
+export enum ShipMethod {
+  USPSParcel = 'USPS Parcel',
+  FedExUPSLTL = 'FedEx/UPS/LTL',
+  CustomerDropOff = 'Customer Drop-off',
+  Unknown = 'Unknown'
+}
+
+export enum Source {
+  WMS = 'WMS',
+  ClientPortal = 'Client Portal',
+  VoiceASR = 'Voice ASR',
+  WebServiceInquiry = 'Web Service Inquiry',
+  ManualCreate = 'Manual Create',
+  SystemLog = 'System Log'
+}
+
+export interface ReturnHistory {
+  returnOrderNo: string;
+  items: {
+    productId: string;
+    quantity: number;
+    type: ReturnType;
+  }[];
+  status: ReturnStatus;
+  createdAt: string;
+} 

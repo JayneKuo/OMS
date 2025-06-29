@@ -281,10 +281,10 @@
           </div>
 
           <div class="activity-meta">
-            <span>今天大家</span>
-            <span>内部备注</span>
-            <span>导入上传</span>
-            <span>人工操作审</span>
+            <span>Today</span>
+            <span>Internal Notes</span>
+            <span>Import Upload</span>
+            <span>Manual Operation Review</span>
           </div>
         </div>
       </div>
@@ -572,9 +572,9 @@ const formatDateHeader = (dateString: string) => {
   yesterday.setDate(yesterday.getDate() - 1)
   
   if (date.toDateString() === today.toDateString()) {
-    return '今天'
+    return 'Today'
   } else if (date.toDateString() === yesterday.toDateString()) {
-    return '昨天'
+    return 'Yesterday'
   } else {
     const weekdays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
     const months = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12']

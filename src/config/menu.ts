@@ -79,9 +79,14 @@ export const menuConfig: MenuItem[] = [
         icon: Connection
       },
       {
-        title: '更新记录',
+        title: 'Order Updates',
         path: '/order/updates',
         icon: Refresh
+      },
+      {
+        title: 'Order Logs',
+        path: '/order/log',
+        icon: List
       }
     ]
   },

@@ -1,0 +1,172 @@
+.return-page {
+  padding: 24px;
+  background: var(--el-bg-color);
+  min-height: 100%;
+
+  // 搜索表单样式
+  .search-form {
+    padding: 24px;
+    background: var(--el-bg-color-overlay);
+    border-radius: 12px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+    margin-bottom: 24px;
+
+    .el-form {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 20px;
+      
+      .el-form-item {
+        margin-bottom: 0;
+        
+        &:last-child {
+          grid-column: 1 / -1;
+          justify-content: flex-end;
+          margin-top: 8px;
+        }
+      }
+    }
+  }
+
+  // 状态过滤器样式
+  .status-filter {
+    margin-bottom: 24px;
+    
+    .el-radio-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      
+      .el-radio-button {
+        &:first-child .el-radio-button__inner {
+          border-radius: 8px 0 0 8px;
+        }
+        
+        &:last-child .el-radio-button__inner {
+          border-radius: 0 8px 8px 0;
+        }
+        
+        .el-radio-button__inner {
+          padding: 10px 20px;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          
+          .status-count {
+            background: var(--el-color-primary-light-8);
+            color: var(--el-color-primary);
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 12px;
+          }
+        }
+      }
+    }
+  }
+
+  // 工具栏样式
+  .toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+    
+    .left {
+      display: flex;
+      gap: 12px;
+    }
+    
+    .right {
+      display: flex;
+      gap: 12px;
+    }
+  }
+
+  // 表格样式
+  .el-table {
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+    margin-bottom: 24px;
+    
+    .el-table__header {
+      background: var(--el-bg-color-overlay);
+      
+      th {
+        background: none;
+        font-weight: 600;
+      }
+    }
+    
+    // 渠道信息样式
+    .channel-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      
+      .el-tag {
+        text-transform: capitalize;
+      }
+      
+      .store-info {
+        .platform-order {
+          color: var(--el-text-color-secondary);
+          font-size: 12px;
+          margin-top: 4px;
+        }
+      }
+    }
+    
+    // 操作按钮组样式
+    .el-button-group {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      
+      .el-button {
+        margin: 0;
+        padding: 6px 12px;
+        
+        .el-icon {
+          margin-right: 4px;
+        }
+      }
+    }
+  }
+
+  // 分页样式
+  .pagination {
+    display: flex;
+    justify-content: flex-end;
+    padding: 16px 0;
+  }
+
+  // 系统映射抽屉样式
+  .el-drawer {
+    .el-descriptions {
+      padding: 24px;
+      
+      .el-descriptions__label {
+        width: 120px;
+      }
+    }
+  }
+}
+
+// 暗色主题适配
+html.dark {
+  .return-page {
+    .search-form,
+    .el-table {
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+    }
+    
+    .status-filter {
+      .el-radio-button__inner {
+        .status-count {
+          background: var(--el-color-primary-dark-8);
+        }
+      }
+    }
+  }
+} 

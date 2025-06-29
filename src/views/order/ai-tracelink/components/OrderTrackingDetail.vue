@@ -3,26 +3,26 @@
     <!-- 页面状态栏 -->
     <div class="page-status">
       <div class="status-left">
-        <p class="last-updated">最后更新: {{ lastUpdateTime }}</p>
-        <p class="auto-refresh">每30秒自动刷新</p>
+        <p class="last-updated">Last Updated: {{ lastUpdateTime }}</p>
+        <p class="auto-refresh">Auto Refresh Every 30 Seconds</p>
       </div>
       <div class="status-right">
         <el-button-group>
           <el-button type="primary" @click="refreshOrder" :loading="refreshing">
             <el-icon><Refresh /></el-icon>
-            刷新
+            Refresh
           </el-button>
           <el-button @click="exportOrder">
             <el-icon><Download /></el-icon>
-            导出
+            Export
           </el-button>
           <el-button @click="printOrder">
             <el-icon><Printer /></el-icon>
-            打印
+            Print
           </el-button>
           <el-button @click="shareOrder">
             <el-icon><Share /></el-icon>
-            分享
+            Share
           </el-button>
         </el-button-group>
       </div>
@@ -32,9 +32,9 @@
     <div class="ai-analysis" v-if="aiAnalysis">
       <div class="analysis-header">
         <el-icon class="header-icon"><Lightning /></el-icon>
-        <h3 class="header-title">AI 智能分析</h3>
+        <h3 class="header-title">AI Intelligent Analysis</h3>
         <span class="confidence-tag">
-          置信度: {{ (aiAnalysis.confidence * 100).toFixed(1) }}%
+          Confidence: {{ (aiAnalysis.confidence * 100).toFixed(1) }}%
         </span>
       </div>
 
@@ -43,7 +43,7 @@
         <div class="analysis-card">
           <div class="card-title">
             <el-icon><Location /></el-icon>
-            路线优化
+            Route Optimization
           </div>
           <div class="card-content">
             {{ aiAnalysis.analysis.routeOptimization }}
@@ -54,7 +54,7 @@
         <div class="analysis-card">
           <div class="card-title">
             <el-icon><Warning /></el-icon>
-            天气影响
+            Weather Impact
           </div>
           <div class="card-content">
             {{ aiAnalysis.analysis.weatherImpact }}
@@ -65,7 +65,7 @@
         <div class="analysis-card">
           <div class="card-title">
             <el-icon><Warning /></el-icon>
-            交通状况
+            Traffic Conditions
           </div>
           <div class="card-content">
             {{ aiAnalysis.analysis.trafficConditions }}
@@ -76,7 +76,7 @@
         <div class="analysis-card">
           <div class="card-title">
             <el-icon><Warning /></el-icon>
-            历史表现
+            Historical Performance
           </div>
           <div class="card-content">
             {{ aiAnalysis.analysis.historicalPerformance }}
@@ -88,14 +88,14 @@
       <div class="prediction-section">
         <el-alert
           v-if="aiPrediction.delayProbability > 0.1"
-          :title="`延迟风险: ${(aiPrediction.delayProbability * 100).toFixed(1)}%`"
+          :title="`Delay Risk: ${(aiPrediction.delayProbability * 100).toFixed(1)}%`"
           type="warning"
           :closable="false"
           show-icon
         >
           <template #default>
             <div class="suggested-actions">
-              <p>建议采取以下措施：</p>
+              <p>Suggested Actions:</p>
               <ul>
                 <li v-for="(action, index) in aiPrediction.suggestedActions" :key="index">
                   {{ action }}
@@ -110,8 +110,8 @@
     <!-- 包裹信息 -->
     <div class="package-info" v-if="packages.length > 0">
       <div class="package-header">
-        <h3 class="header-title">包裹信息</h3>
-        <p class="header-subtitle">共 {{ packages.length }} 个包裹</p>
+        <h3 class="header-title">Package Information</h3>
+        <p class="header-subtitle">Total {{ packages.length }} Packages</p>
       </div>
       <div class="package-grid">
         <div v-for="pkg in packages" :key="pkg.id" class="package-card">
@@ -123,27 +123,27 @@
           </div>
           <div class="card-content">
             <div class="info-item">
-              <div class="label">运输方式</div>
+              <div class="label">Shipment Type</div>
               <div class="value">{{ getShipmentTypeText(pkg.type) }}</div>
             </div>
             <div class="info-item">
-              <div class="label">追踪编号</div>
+              <div class="label">Tracking Number</div>
               <div class="value">{{ pkg.trackingNumber }}</div>
             </div>
             <div class="info-item">
-              <div class="label">预计送达</div>
+              <div class="label">Estimated Delivery</div>
               <div class="value">{{ pkg.estimatedDeliveryTime }}</div>
             </div>
             <div class="info-item">
-              <div class="label">包裹规格</div>
+              <div class="label">Package Specifications</div>
               <div class="value">{{ pkg.weight }}kg / {{ pkg.dimensions }}</div>
             </div>
             <div class="info-item">
-              <div class="label">当前位置</div>
+              <div class="label">Current Location</div>
               <div class="value">{{ pkg.currentLocation.city }}, {{ pkg.currentLocation.state }}</div>
             </div>
             <div class="info-item">
-              <div class="label">下一站</div>
+              <div class="label">Next Stop</div>
               <div class="value">{{ pkg.routeInfo.nextStop }}</div>
             </div>
           </div>
@@ -154,8 +154,8 @@
     <!-- 追踪时间线 -->
     <div class="tracking-timeline" v-if="trackingEvents.length > 0">
       <div class="timeline-header">
-        <h3 class="header-title">追踪记录</h3>
-        <p class="header-subtitle">共 {{ trackingEvents.length }} 条记录</p>
+        <h3 class="header-title">Tracking Records</h3>
+        <p class="header-subtitle">Total {{ trackingEvents.length }} Records</p>
       </div>
       <el-timeline>
         <el-timeline-item
@@ -166,22 +166,22 @@
         >
           <h4>{{ event.location }}</h4>
           <p>{{ event.description }}</p>
-          <!-- 天气和交通信息 -->
+          <!-- Weather and Traffic Information -->
           <div class="event-details" v-if="event.weatherConditions || event.trafficConditions">
             <el-tag 
               v-if="event.weatherConditions"
               :type="event.weatherConditions.impact === 'none' ? 'success' : 'warning'"
               size="small"
             >
-              天气: {{ event.weatherConditions.condition }} {{ event.weatherConditions.temperature }}°C
+              Weather: {{ event.weatherConditions.condition }} {{ event.weatherConditions.temperature }}°C
             </el-tag>
             <el-tag 
               v-if="event.trafficConditions"
               :type="event.trafficConditions.congestion === 'low' ? 'success' : 'warning'"
               size="small"
             >
-              交通: {{ event.trafficConditions.congestion === 'low' ? '通畅' : '拥堵' }}
-              {{ event.trafficConditions.delay > 0 ? `延迟${event.trafficConditions.delay}分钟` : '' }}
+              Traffic: {{ event.trafficConditions.congestion === 'low' ? 'Smooth' : 'Congested' }}
+              {{ event.trafficConditions.delay > 0 ? `Delay ${event.trafficConditions.delay} mins` : '' }}
             </el-tag>
           </div>
         </el-timeline-item>
@@ -250,9 +250,9 @@ const refreshOrder = async () => {
     const response = await mockAIAnalysis(props.orderNo)
     aiAnalysis.value = response
     lastUpdateTime.value = new Date().toLocaleString()
-    ElMessage.success('AI分析完成，数据已更新')
+    ElMessage.success('AI Analysis Completed, Data Updated')
   } catch (error) {
-    ElMessage.error('更新失败，请稍后重试')
+    ElMessage.error('Update Failed, Please Try Again Later')
   } finally {
     refreshing.value = false
   }
@@ -283,19 +283,19 @@ const mockAIAnalysis = async (orderNo: string): Promise<AITrackingResponse> => {
         weight: 2.5,
         dimensions: '30x20x15cm',
         currentLocation: {
-          city: '洛杉矶',
-          state: '加利福尼亚',
-          country: '美国',
+          city: 'Los Angeles',
+          state: 'California',
+          country: 'USA',
           coordinates: {
             lat: 34.0522,
             lng: -118.2437
           }
         },
         routeInfo: {
-          origin: '洛杉矶仓库',
-          destination: '纽约配送中心',
-          currentStop: '芝加哥中转站',
-          nextStop: '克利夫兰分拣中心',
+          origin: 'Los Angeles Warehouse',
+          destination: 'New York Distribution Center',
+          currentStop: 'Chicago Transfer Station',
+          nextStop: 'Cleveland Sorting Center',
           remainingStops: 2
         }
       }
@@ -305,15 +305,15 @@ const mockAIAnalysis = async (orderNo: string): Promise<AITrackingResponse> => {
         id: '1',
         status: 'shipped',
         time: '2025-06-10 10:00:00',
-        location: '洛杉矶仓库',
-        description: '包裹已从仓库发出',
+        location: 'Los Angeles Warehouse',
+        description: 'Package Sent from Warehouse',
         coordinates: {
           lat: 34.0522,
           lng: -118.2437
         },
         weatherConditions: {
           temperature: 25,
-          condition: '晴朗',
+          condition: 'Clear',
           impact: 'none'
         },
         trafficConditions: {
@@ -326,16 +326,16 @@ const mockAIAnalysis = async (orderNo: string): Promise<AITrackingResponse> => {
       estimatedDeliveryTime: '2025-06-12 15:00:00',
       delayProbability: 0.15,
       suggestedActions: [
-        '建议提前2小时到达配送地点',
-        '天气良好，预计不会影响配送',
-        '路况通畅，无需调整路线'
+        'Suggest Arriving 2 Hours Early for Delivery',
+        'Weather Good, No Impact on Delivery',
+        'Road Smooth, No Route Adjustment Needed'
       ]
     },
     analysis: {
-      routeOptimization: '当前路线最优，预计可节省2小时配送时间',
-      weatherImpact: '未来48小时天气良好，对配送无影响',
-      trafficConditions: '目标城市交通流畅，无拥堵风险',
-      historicalPerformance: '该路线历史准时率98%，表现优异'
+      routeOptimization: 'Current Route Optimal, Estimated Savings of 2 Hours for Delivery',
+      weatherImpact: 'Next 48 Hours Weather Good, No Impact on Delivery',
+      trafficConditions: 'Target City Traffic Smooth, No Congestion Risk',
+      historicalPerformance: 'This Route History On-Time Rate 98%, Excellent Performance'
     }
   }
 }
@@ -359,7 +359,7 @@ const shareOrder = () => {
 
 const trackPackage = (pkg: any) => {
   // TODO: 实现包裹追踪逻辑
-  ElMessage.info(`正在跳转到 ${pkg.carrier} 追踪页面...`)
+  ElMessage.info(`Redirecting to ${pkg.carrier} Tracking Page...`)
 }
 
 // 标签类型获取方法

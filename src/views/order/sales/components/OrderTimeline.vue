@@ -1,6 +1,6 @@
 <template>
   <div class="order-timeline">
-    <!-- 额外字段卡片 -->
+    <!-- Additional Information Card -->
     <div class="extra-fields-card">
       <div class="card-header">
         <h3>Additional Information</h3>
@@ -29,7 +29,7 @@
       </div>
     </div>
 
-    <!-- 财务摘要卡片 -->
+    <!-- Financial Summary Card -->
     <div class="financial-card">
       <div class="card-header">
         <h3>Financial Summary</h3>
@@ -58,7 +58,7 @@
       </div>
     </div>
 
-    <!-- 原有的时间线部分 -->
+    <!-- Timeline Section -->
     <div class="timeline-section">
       <div class="timeline-header">
         <h3>Order Timeline</h3>
@@ -92,7 +92,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 
-// 格式化日期时间
+// Format date time
 const formatDateTime = (dateStr: string) => {
   const date = new Date(dateStr)
   return date.toLocaleString('en-US', {
@@ -105,7 +105,7 @@ const formatDateTime = (dateStr: string) => {
   })
 }
 
-// 模拟时间线数据
+// Mock timeline data
 const activities = ref([
   {
     timestamp: '2024-03-20 12:17:08 PM',

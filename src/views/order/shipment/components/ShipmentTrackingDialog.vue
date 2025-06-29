@@ -240,9 +240,9 @@ const formatDateHeader = (dateString: string) => {
   yesterday.setDate(yesterday.getDate() - 1)
   
   if (date.toDateString() === today.toDateString()) {
-    return '今天'
+    return 'Today'
   } else if (date.toDateString() === yesterday.toDateString()) {
-    return '昨天'
+    return 'Yesterday'
   } else {
     const weekdays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
     const months = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12']
@@ -272,21 +272,19 @@ const isLatestEvent = (event: any) => {
 // 获取追踪描述
 const getTrackingDescription = (event: any) => {
   const statusDescriptions: Record<string, string> = {
-    [ShipmentStatus.New]: '已创建运单',
-    [ShipmentStatus.InTransit]: event.description.includes('发出') ? '已离开始发地' : 
-                               event.description.includes('到达') ? '已到达中转站' : '运输中',
-    [ShipmentStatus.Delivered]: '已签收',
-    [ShipmentStatus.Closed]: '订单完成'
+    [ShipmentStatus.New]: 'Tracking Number Created',
+    [ShipmentStatus.InTransit]: event.description.includes('departed') ? 'Departed from Origin' : 
+                               event.description.includes('arrived') ? 'Arrived at Transit Point' : 'In Transit',
+    [ShipmentStatus.Delivered]: 'Delivered',
+    [ShipmentStatus.Closed]: 'Order Completed'
   }
   
   if (event.status === ShipmentStatus.Delivered) {
-    return '已签收'
+    return 'Delivered'
   }
   
-  return event.description || statusDescriptions[event.status] || '状态更新'
+  return event.description || statusDescriptions[event.status] || 'Status Updated'
 }
-
-
 
 const getCarrierContact = (carrier: string) => {
   const contactMap: Record<string, string> = {
@@ -294,20 +292,18 @@ const getCarrierContact = (carrier: string) => {
     'ups': '400-820-8388',
     'dhl': '400-810-8000',
     'usps': '400-123-4567',
-    'other': '客服电话请联系承运商'
+    'other': 'Please contact carrier for customer service'
   }
-  return contactMap[carrier] || '客服电话请联系承运商'
+  return contactMap[carrier] || 'Please contact carrier for customer service'
 }
-
-
 
 const refreshTimeline = async () => {
   timelineLoading.value = true
   try {
     await new Promise(resolve => setTimeout(resolve, 1000))
-    ElMessage.success('物流轨迹已更新')
+    ElMessage.success('Tracking information updated')
   } catch (error) {
-    ElMessage.error('轨迹更新失败')
+    ElMessage.error('Failed to update tracking')
   } finally {
     timelineLoading.value = false
   }

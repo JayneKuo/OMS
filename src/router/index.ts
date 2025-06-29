@@ -125,6 +125,15 @@ const routes: RouteRecordRaw[] = [
               title: '更新记录',
               icon: 'Refresh'
             }
+          },
+          {
+            path: 'log',
+            name: 'OrderLog',
+            component: () => import('@/views/order/log/index.vue'),
+            meta: {
+              title: 'Order Logs',
+              icon: 'List'
+            }
           }
         ]
       },

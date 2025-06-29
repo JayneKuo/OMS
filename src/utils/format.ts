@@ -4,15 +4,32 @@
  * @param locale - 本地化设置，默认为中文
  * @returns 格式化后的日期字符串
  */
-export const formatDate = (date: string | Date, locale: string = 'zh-CN'): string => {
-  const d = typeof date === 'string' ? new Date(date) : date
-  return d.toLocaleString(locale, {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit'
-  })
+export const formatDate = (date: string | undefined | null): string => {
+  if (!date) return '-'
+  return new Date(date).toLocaleDateString()
+}
+
+/**
+ * 格式化日期时间
+ * @param date - ISO格式的日期字符串或Date对象
+ * @returns 格式化后的日期时间字符串
+ */
+export const formatDateTime = (date: string | undefined | null): string => {
+  if (!date) return '-'
+  return new Date(date).toLocaleString()
+}
+
+/**
+ * 格式化货币
+ * @param amount - 金额
+ * @returns 格式化后的货币字符串
+ */
+export const formatCurrency = (amount: number | undefined | null): string => {
+  if (amount == null) return '-'
+  return new Intl.NumberFormat('zh-CN', {
+    style: 'currency',
+    currency: 'CNY'
+  }).format(amount)
 }
 
 /**
