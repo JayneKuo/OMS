@@ -121,6 +121,11 @@ export const menuConfig: MenuItem[] = [
         title: 'Exception Logs',
         path: '/settings/email-logs',
         icon: List
+      },
+      {
+        title: 'Event Callback Routing',
+        path: '/settings/event-callback',
+        icon: Connection
       }
     ]
   },

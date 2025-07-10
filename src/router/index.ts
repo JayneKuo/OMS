@@ -181,6 +181,11 @@ const routes: RouteRecordRaw[] = [
             path: 'email-logs',
             name: 'ExceptionLogs',
             component: () => import('@/views/settings/EmailLogs.vue')
+          },
+          {
+            path: 'event-callback',
+            name: 'EventCallbackRouting',
+            component: () => import('@/views/settings/EventCallbackRouting.vue')
           }
         ]
       },
