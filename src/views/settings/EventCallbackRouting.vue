@@ -272,31 +272,53 @@
         </el-form-item>
       </div>
 
-      <!-- Target Configuration -->
+      <!-- Return Configuration -->
       <div class="form-section">
-        <h3 class="form-section-title">Target Configuration</h3>
-        <el-form-item label="Return Type" prop="returnType" required>
-          <el-select v-model="form.returnType" placeholder="Select return type" class="w-full">
+        <h3 class="form-section-title">Return Configuration</h3>
+        <el-form-item label="Return Type" prop="returnType">
+          <el-select 
+            v-model="form.returnType" 
+            placeholder="Select return type"
+            class="w-full"
+          >
             <el-option
-              v-for="option in returnTypeOptions"
+              v-for="option in RETURN_TYPE_OPTIONS"
               :key="option.value"
               :label="option.label"
               :value="option.value"
             />
           </el-select>
         </el-form-item>
-        
-        <el-form-item label="Target Endpoint" prop="targetEndpoint" required>
-          <el-input v-model="form.targetEndpoint" placeholder="Enter target endpoint" />
-        </el-form-item>
-        
-        <el-form-item label="Priority" prop="priority" required>
-          <el-input-number 
-            v-model="form.priority" 
-            :min="1" 
-            :max="100"
-            class="w-[200px]"
-          />
+
+        <el-form-item 
+          v-if="form.returnType !== ReturnTypeEnum.NONE"
+          label="Target Endpoint" 
+          prop="targetEndpoint"
+          :rules="targetEndpointRules"
+        >
+          <el-input
+            v-model="form.targetEndpoint"
+            :placeholder="targetEndpointPlaceholder"
+            @blur="validateField('targetEndpoint')"
+          >
+            <template #prepend v-if="form.returnType === ReturnTypeEnum.WEBHOOK || form.returnType === ReturnTypeEnum.API">
+              https://
+            </template>
+          </el-input>
+          <div class="mt-1 text-gray-500 text-sm">
+            <template v-if="form.returnType === ReturnTypeEnum.WEBHOOK">
+              The webhook URL where event data will be sent. Must be a valid HTTPS URL.
+            </template>
+            <template v-else-if="form.returnType === ReturnTypeEnum.EMAIL">
+              The email address(es) to receive event notifications. Separate multiple addresses with commas.
+            </template>
+            <template v-else-if="form.returnType === ReturnTypeEnum.API">
+              The API endpoint to receive event data. Must be a valid HTTPS URL.
+            </template>
+            <template v-else-if="form.returnType === ReturnTypeEnum.TOPIC">
+              The topic name for event publishing. Use forward slashes (/) for hierarchical topics.
+            </template>
+          </div>
         </el-form-item>
       </div>
 
@@ -306,41 +328,31 @@
         <el-form-item label="Enable Retry">
           <el-switch v-model="form.enableRetry" />
         </el-form-item>
-        
+
         <el-form-item 
+          v-if="form.enableRetry"
           label="Retry Times" 
           prop="retryTimes"
-          v-if="form.enableRetry"
         >
           <el-input-number 
             v-model="form.retryTimes" 
-            :min="0" 
+            :min="1" 
             :max="10"
             class="w-[200px]"
           />
+          <div class="mt-1 text-gray-500 text-sm">
+            Maximum number of retry attempts if the event delivery fails.
+          </div>
         </el-form-item>
       </div>
 
-      <!-- Payload Configuration -->
-      <div class="form-section">
-        <h3 class="form-section-title">Payload Configuration</h3>
-        <el-form-item label="Payload Template" prop="payloadTemplate" required>
-          <el-input
-            v-model="form.payloadTemplate"
-            type="textarea"
-            :rows="6"
-            placeholder="Enter JSON template"
-          />
-        </el-form-item>
-      </div>
-
-      <!-- Authentication -->
+      <!-- Authentication Configuration -->
       <div class="form-section">
         <h3 class="form-section-title">Authentication</h3>
         <el-form-item label="Authentication Type" prop="authentication">
-          <el-select v-model="form.authentication" placeholder="Select auth type" class="w-full">
+          <el-select v-model="form.authentication" placeholder="Select authentication type" class="w-full">
             <el-option
-              v-for="option in authTypeOptions"
+              v-for="option in AUTH_TYPE_OPTIONS"
               :key="option.value"
               :label="option.label"
               :value="option.value"
@@ -348,40 +360,136 @@
           </el-select>
         </el-form-item>
 
-        <el-form-item label="Header Config">
-          <div class="header-config">
-            <div v-for="(value, key) in form.headerConfig" :key="key" class="header-item">
-              <el-input v-model="form.headerConfig[key]" placeholder="Header value">
-                <template #prepend>{{ key }}</template>
-                <template #append>
-                  <el-button @click="deleteHeader(key)">
-                    <el-icon><delete /></el-icon>
-                  </el-button>
-                </template>
-              </el-input>
+        <!-- Basic Auth Configuration -->
+        <template v-if="form.authentication === 'basic'">
+          <el-form-item label="Username" prop="authConfig.username" required>
+            <el-input v-model="form.authConfig.username" placeholder="Enter username" />
+          </el-form-item>
+          <el-form-item label="Password" prop="authConfig.password" required>
+            <el-input v-model="form.authConfig.password" type="password" placeholder="Enter password" show-password />
+          </el-form-item>
+        </template>
+
+        <!-- Bearer Token Configuration -->
+        <template v-if="form.authentication === 'bearer'">
+          <el-form-item label="Token" prop="authConfig.token" required>
+            <el-input v-model="form.authConfig.token" placeholder="Enter Bearer Token" />
+          </el-form-item>
+        </template>
+
+        <!-- HMAC Signature Configuration -->
+        <template v-if="form.authentication === 'hmac'">
+          <el-form-item label="Algorithm" prop="authConfig.hmacConfig.algorithm" required>
+            <el-select v-model="form.authConfig.hmacConfig.algorithm" placeholder="Select algorithm" class="w-full">
+              <el-option label="SHA256" value="SHA256" />
+              <el-option label="SHA512" value="SHA512" />
+              <el-option label="MD5" value="MD5" />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="Secret Key" prop="authConfig.hmacConfig.secret" required>
+            <el-input v-model="form.authConfig.hmacConfig.secret" placeholder="Enter secret key" show-password />
+          </el-form-item>
+          <el-form-item label="Signature Parameter" prop="authConfig.hmacConfig.signatureParam" required>
+            <el-input v-model="form.authConfig.hmacConfig.signatureParam" placeholder="Enter signature parameter name" />
+          </el-form-item>
+          <el-form-item label="Signature Header" prop="authConfig.hmacConfig.signatureHeader" required>
+            <el-input v-model="form.authConfig.hmacConfig.signatureHeader" placeholder="Enter signature header name" />
+          </el-form-item>
+          <el-form-item label="Signature Scope">
+            <div class="flex gap-4">
+              <el-checkbox v-model="form.authConfig.hmacConfig.includeBody">Include Request Body</el-checkbox>
+              <el-checkbox v-model="form.authConfig.hmacConfig.includeQuery">Include Query Parameters</el-checkbox>
             </div>
-            <el-button @click="addHeader" plain>Add Header</el-button>
-          </div>
-        </el-form-item>
+          </el-form-item>
+        </template>
+
+        <!-- Header Authentication Configuration -->
+        <template v-if="form.authentication === 'header'">
+          <el-form-item label="Headers Configuration" prop="authConfig.headers">
+            <div class="header-config">
+              <div v-for="(header, index) in form.authConfig.headers" :key="index" class="header-item mb-2">
+                <div class="flex items-center gap-2 w-full">
+                  <el-input v-model="header.key" placeholder="Header name" class="header-key" />
+                  <el-input v-model="header.value" placeholder="Header value" class="header-value" />
+                  <el-button type="danger" link @click="deleteHeader(index)">
+                    <el-icon><Delete /></el-icon>
+                  </el-button>
+                </div>
+              </div>
+              <el-button @click="addHeader" type="primary" plain class="mt-2">
+                <el-icon><Plus /></el-icon>
+                Add Header
+              </el-button>
+            </div>
+          </el-form-item>
+        </template>
+
+        <!-- Custom Authentication Configuration -->
+        <template v-if="form.authentication === 'custom'">
+          <el-form-item label="Custom Configuration" prop="authConfig.custom" required>
+            <el-input
+              v-model="form.authConfig.custom"
+              type="textarea"
+              :rows="4"
+              placeholder="Enter custom authentication configuration (JSON format)"
+            />
+          </el-form-item>
+        </template>
       </div>
 
       <!-- Additional Info -->
       <div class="form-section">
         <h3 class="form-section-title">Additional Information</h3>
+        <el-form-item label="Status">
+          <div class="flex items-center gap-4">
+            <el-switch
+              v-model="form.status"
+              :active-value="'active'"
+              :inactive-value="'inactive'"
+              :disabled="form.returnType !== ReturnTypeEnum.NONE && !testPassed"
+            />
+            <span class="text-sm text-gray-500" v-if="form.returnType !== ReturnTypeEnum.NONE && !testPassed">
+              请先测试连接成功后才能启用
+            </span>
+          </div>
+        </el-form-item>
+
         <el-form-item label="Remark">
           <el-input 
             v-model="form.remark" 
             type="textarea" 
-            rows="3" 
+            :rows="3" 
             placeholder="Enter remark"
           />
+        </el-form-item>
+
+        <!-- 测试连接按钮 -->
+        <el-form-item v-if="form.returnType !== ReturnTypeEnum.NONE">
+          <div class="flex items-center gap-4">
+            <el-button 
+              type="primary" 
+              :loading="testingConnection"
+              @click="testConnection"
+            >
+              测试连接
+            </el-button>
+            <div v-if="testResult" :class="['flex items-center gap-2', testPassed ? 'text-success' : 'text-danger']">
+              <el-icon v-if="testPassed"><circle-check-filled /></el-icon>
+              <el-icon v-else><circle-close-filled /></el-icon>
+              <span>{{ testResult }}</span>
+            </div>
+          </div>
         </el-form-item>
       </div>
     </el-form>
     
     <template #footer>
       <el-button @click="handleCancel(formRef)">Cancel</el-button>
-      <el-button type="primary" @click="handleSubmit(formRef)">
+      <el-button 
+        type="primary" 
+        @click="handleSubmit(formRef)"
+        :disabled="form.returnType !== ReturnTypeEnum.NONE && !testPassed"
+      >
         {{ isEdit ? 'Update' : 'Create' }}
       </el-button>
     </template>
@@ -405,7 +513,7 @@ import {
   CircleCloseFilled
 } from '@element-plus/icons-vue'
 import { format, isWithinInterval, parseISO, subDays } from 'date-fns'
-import type { FormInstance, FormRules } from 'element-plus'
+import type { FormInstance, FormRules, FormItemRule } from 'element-plus'
 
 // 模拟数据
 interface Rule {
@@ -477,8 +585,26 @@ interface HeaderItem {
   value: string;
 }
 
-type ReturnTypeValue = 'webhook' | 'api' | 'kafka' | 'email' | 'none';
-type AuthTypeValue = 'none' | 'header' | 'basic' | 'bearer' | 'hmac' | 'custom';
+enum ReturnTypeEnum {
+  NONE = 'none',
+  WEBHOOK = 'webhook',
+  EMAIL = 'email',
+  API = 'api',
+  TOPIC = 'topic'
+}
+
+type ReturnType = ReturnTypeEnum;
+
+// Return type options
+const RETURN_TYPE_OPTIONS = [
+  { label: 'None', value: ReturnTypeEnum.NONE },
+  { label: 'Webhook', value: ReturnTypeEnum.WEBHOOK },
+  { label: 'Email', value: ReturnTypeEnum.EMAIL },
+  { label: 'API', value: ReturnTypeEnum.API },
+  { label: 'Topic', value: ReturnTypeEnum.TOPIC }
+];
+
+type AuthType = 'none' | 'header' | 'basic' | 'bearer' | 'hmac' | 'custom';
 
 interface HmacConfig {
   algorithm: string;
@@ -495,6 +621,7 @@ interface AuthConfig {
   token: string;
   headers: HeaderItem[];
   hmacConfig: HmacConfig;
+  custom: string;
 }
 
 interface FormData {
@@ -502,12 +629,12 @@ interface FormData {
   merchant: string[];
   warehouse: string[];
   eventType: string;
-  returnType: ReturnTypeValue;
+  returnType: ReturnType;
   targetEndpoint: string;
   priority: number;
   enableRetry: boolean;
   retryTimes: number;
-  authType: AuthTypeValue;
+  authType: AuthType;
   headers: HeaderItem[];
   payloadTemplate: string;
   authConfig: AuthConfig;
@@ -515,25 +642,17 @@ interface FormData {
 
 interface AuthTypeOption {
   label: string;
-  value: AuthTypeValue;
+  value: AuthType;
 }
 
 // 常量定义
-const ReturnTypeEnum = {
-  WEBHOOK: 'webhook' as ReturnTypeValue,
-  API: 'api' as ReturnTypeValue,
-  KAFKA: 'kafka' as ReturnTypeValue,
-  EMAIL: 'email' as ReturnTypeValue,
-  NONE: 'none' as ReturnTypeValue
-};
-
 const AuthTypeEnum = {
-  NONE: 'none' as AuthTypeValue,
-  HEADER: 'header' as AuthTypeValue,
-  BASIC: 'basic' as AuthTypeValue,
-  BEARER: 'bearer' as AuthTypeValue,
-  HMAC: 'hmac' as AuthTypeValue,
-  CUSTOM: 'custom' as AuthTypeValue
+  NONE: 'none' as AuthType,
+  HEADER: 'header' as AuthType,
+  BASIC: 'basic' as AuthType,
+  BEARER: 'bearer' as AuthType,
+  HMAC: 'hmac' as AuthType,
+  CUSTOM: 'custom' as AuthType
 };
 
 // 初始化表单数据时的 authConfig
@@ -549,7 +668,8 @@ const defaultAuthConfig: AuthConfig = {
     signatureHeader: 'X-Signature',
     includeBody: true,
     includeQuery: true
-  }
+  },
+  custom: '' // For custom auth
 };
 
 // 模拟数据
@@ -592,8 +712,100 @@ const form = reactive({
   authentication: 'none',
   headerConfig: {} as Record<string, string>,
   remark: '',
-  status: 'active' as const
+  status: 'active' as const,
+  authConfig: defaultAuthConfig // Initialize authConfig
 })
+
+// 添加测试状态相关的变量
+const testingConnection = ref(false)
+const testPassed = ref(false)
+const testResult = ref('')
+
+// 测试连接方法
+const testConnection = async () => {
+  if (!form.targetEndpoint) {
+    ElMessage.warning('请先输入目标地址')
+    return
+  }
+
+  testingConnection.value = true
+  testPassed.value = false
+  testResult.value = ''
+  
+  try {
+    // 根据不同的返回类型构建测试数据
+    const testData = {
+      eventType: form.eventType || 'test.event',
+      timestamp: new Date().toISOString(),
+      data: {
+        message: '这是一条测试消息',
+        testId: Date.now()
+      }
+    }
+
+    // 构建请求配置
+    const requestConfig: any = {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    }
+
+    // 根据认证类型添加认证信息
+    if (form.authentication === 'basic') {
+      const base64Auth = btoa(`${form.authConfig.username}:${form.authConfig.password}`)
+      requestConfig.headers['Authorization'] = `Basic ${base64Auth}`
+    } else if (form.authentication === 'bearer') {
+      requestConfig.headers['Authorization'] = `Bearer ${form.authConfig.token}`
+    } else if (form.authentication === 'header') {
+      form.authConfig.headers.forEach(header => {
+        requestConfig.headers[header.key] = header.value
+      })
+    } else if (form.authentication === 'hmac') {
+      // 计算HMAC签名
+      const message = JSON.stringify(testData)
+      const signatureHeader = form.authConfig.hmacConfig.signatureHeader || 'X-Signature'
+      // 这里需要实现HMAC签名的计算
+      requestConfig.headers[signatureHeader] = 'test-signature'
+    }
+
+    let testEndpoint = form.targetEndpoint
+    if (form.returnType === ReturnTypeEnum.WEBHOOK || form.returnType === ReturnTypeEnum.API) {
+      testEndpoint = testEndpoint.startsWith('http') ? testEndpoint : `https://${testEndpoint}`
+    }
+
+    // 发送测试请求
+    const response = await fetch(testEndpoint, {
+      ...requestConfig,
+      body: JSON.stringify(testData)
+    })
+
+    if (response.ok) {
+      testPassed.value = true
+      testResult.value = '连接测试成功！'
+      ElMessage.success('连接测试成功！')
+    } else {
+      testPassed.value = false
+      throw new Error(`请求失败: ${response.status} ${response.statusText}`)
+    }
+  } catch (error) {
+    console.error('测试连接失败:', error)
+    testResult.value = `连接测试失败: ${error.message}`
+    ElMessage.error(`连接测试失败: ${error.message}`)
+  } finally {
+    testingConnection.value = false
+  }
+}
+
+// 监听表单变化，重置测试状态
+watch(
+  () => [form.returnType, form.targetEndpoint, form.authentication, form.authConfig],
+  () => {
+    testPassed.value = false
+    testResult.value = ''
+  },
+  { deep: true }
+)
 
 // 表单验证规则
 const rules = reactive<FormRules>({
@@ -624,17 +836,71 @@ const rules = reactive<FormRules>({
   payloadTemplate: [
     { required: true, message: 'Please enter payload template', trigger: 'blur' }
   ]
-})
+});
+
+// 添加认证配置的验证规则
+const authConfigRules = {
+  username: [
+    { required: true, message: 'Please enter username for Basic Auth', trigger: 'blur' }
+  ],
+  password: [
+    { required: true, message: 'Please enter password for Basic Auth', trigger: 'blur' }
+  ],
+  token: [
+    { required: true, message: 'Please enter token for Bearer Token', trigger: 'blur' }
+  ],
+  hmacConfig: {
+    algorithm: [
+      { required: true, message: 'Please select algorithm for HMAC', trigger: 'change' }
+    ],
+    secret: [
+      { required: true, message: 'Please enter secret for HMAC', trigger: 'blur' }
+    ],
+    signatureParam: [
+      { required: true, message: 'Please enter signature parameter name for HMAC', trigger: 'blur' }
+    ],
+    signatureHeader: [
+      { required: true, message: 'Please enter signature header name for HMAC', trigger: 'blur' }
+    ]
+  },
+  custom: [
+    { required: true, message: 'Please enter custom authentication config for Custom Auth', trigger: 'blur' }
+  ],
+  headers: [
+    { 
+      validator: (rule: any, value: HeaderItem[], callback: Function) => {
+        if (form.authentication === 'header') {
+          if (!Array.isArray(value) || value.length === 0) {
+            callback(new Error('Please add at least one header'));
+            return;
+          }
+          for (const header of value) {
+            if (!header.key || !header.value) {
+              callback(new Error('Header name and value are required'));
+              return;
+            }
+          }
+        }
+        callback();
+      },
+      trigger: 'change'
+    }
+  ]
+};
 
 // Header 配置相关方法
 const addHeader = () => {
-  const key = `header_${Object.keys(form.headerConfig).length + 1}`
-  form.headerConfig[key] = ''
-}
+  if (!Array.isArray(form.authConfig.headers)) {
+    form.authConfig.headers = [];
+  }
+  form.authConfig.headers.push({ key: '', value: '' });
+};
 
-const deleteHeader = (key: string) => {
-  delete form.headerConfig[key]
-}
+const deleteHeader = (index: number) => {
+  if (Array.isArray(form.authConfig.headers)) {
+    form.authConfig.headers.splice(index, 1);
+  }
+};
 
 // 弹窗控制
 const dialogVisible = ref(false)
@@ -813,7 +1079,8 @@ const handleAdd = () => {
     authentication: 'none',
     headerConfig: {},
     remark: '',
-    status: 'active'
+    status: 'active',
+    authConfig: defaultAuthConfig // Reset authConfig
   })
   dialogVisible.value = true
 }
@@ -836,7 +1103,8 @@ const handleEdit = (row: Rule) => {
     authentication: row.authentication,
     headerConfig: { ...row.headerConfig },
     remark: row.remark,
-    status: row.status
+    status: row.status,
+    authConfig: { ...row.authConfig } // Assign authConfig
   })
   dialogVisible.value = true
 }
@@ -943,7 +1211,41 @@ const formData = ref<FormData>({
   authConfig: defaultAuthConfig
 });
 
-// 计算属性
+// Validation patterns
+const VALIDATION_PATTERNS = {
+  // 支持多级域名、允许 IP 地址、支持端口号、支持路径和查询参数
+  URL: /^https?:\/\/(?:(?:[\w-]+\.)+[a-zA-Z]{2,}|(?:\d{1,3}\.){3}\d{1,3})(?::\d{1,5})?(?:\/[\w-./?%&=]*)?$/,
+  
+  // 支持多级域名、允许带名字的邮箱地址、支持多个邮箱（逗号分隔）
+  EMAIL: /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+(?:\.[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+)*@(?:(?:[a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}|\[(?:\d{1,3}\.){3}\d{1,3}\])(?:\s*,\s*[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+(?:\.[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+)*@(?:(?:[a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}|\[(?:\d{1,3}\.){3}\d{1,3}\]))*$/,
+  
+  // 支持字母、数字、下划线、中划线、点号、斜杠，但不能以特殊字符开头或结尾
+  TOPIC: /^[a-zA-Z0-9](?:[a-zA-Z0-9._/-]*[a-zA-Z0-9])?$/
+};
+
+// Validation messages
+const VALIDATION_MESSAGES = {
+  URL: {
+    pattern: 'Please enter a valid URL. Examples:\n' +
+      '- https://api.example.com\n' +
+      '- http://192.168.1.1:8080/webhook\n' +
+      '- https://api.example.com/callback?token=123'
+  },
+  EMAIL: {
+    pattern: 'Please enter valid email address(es). Examples:\n' +
+      '- user@example.com\n' +
+      '- user.name@sub.example.com\n' +
+      '- user1@example.com, user2@example.com'
+  },
+  TOPIC: {
+    pattern: 'Please enter a valid topic name. Examples:\n' +
+      '- my-topic\n' +
+      '- order/status/updated\n' +
+      '- user.notification.email'
+  }
+};
+
+// Computed properties
 const showAuthConfig = computed(() => {
   return [ReturnTypeEnum.WEBHOOK, ReturnTypeEnum.API, ReturnTypeEnum.KAFKA].includes(formData.value.returnType);
 });
@@ -962,15 +1264,49 @@ const showHeaderConfig = computed(() => {
 const targetEndpointPlaceholder = computed(() => {
   switch (formData.value.returnType) {
     case ReturnTypeEnum.WEBHOOK:
-    case ReturnTypeEnum.API:
-      return '请输入回调 URL';
-    case ReturnTypeEnum.KAFKA:
-      return '请输入 Topic 名称';
+      return 'Enter webhook URL (e.g., api.example.com/webhook)';
     case ReturnTypeEnum.EMAIL:
-      return '请输入邮箱地址';
+      return 'Enter email address(es), separate multiple with commas';
+    case ReturnTypeEnum.API:
+      return 'Enter API endpoint URL (e.g., api.example.com/callback)';
+    case ReturnTypeEnum.TOPIC:
+      return 'Enter topic name (e.g., order/status/updated)';
     default:
-      return '请输入目标地址';
+      return 'Enter target endpoint';
   }
+});
+
+const targetEndpointRules = computed(() => {
+  const rules: FormItemRule[] = [
+    { required: true, message: 'Please enter target endpoint', trigger: 'blur' }
+  ];
+
+  switch (formData.value.returnType) {
+    case ReturnTypeEnum.WEBHOOK:
+    case ReturnTypeEnum.API:
+      rules.push({
+        pattern: VALIDATION_PATTERNS.URL,
+        message: VALIDATION_MESSAGES.URL.pattern,
+        trigger: 'blur'
+      });
+      break;
+    case ReturnTypeEnum.EMAIL:
+      rules.push({
+        pattern: VALIDATION_PATTERNS.EMAIL,
+        message: VALIDATION_MESSAGES.EMAIL.pattern,
+        trigger: 'blur'
+      });
+      break;
+    case ReturnTypeEnum.TOPIC:
+      rules.push({
+        pattern: VALIDATION_PATTERNS.TOPIC,
+        message: VALIDATION_MESSAGES.TOPIC.pattern,
+        trigger: 'blur'
+      });
+      break;
+  }
+
+  return rules;
 });
 
 const templateLabel = computed(() => {
@@ -978,14 +1314,14 @@ const templateLabel = computed(() => {
 });
 
 // 获取认证类型选项
-const authTypeOptions = computed<AuthTypeOption[]>(() => {
+const AUTH_TYPE_OPTIONS = computed<AuthTypeOption[]>(() => {
   return [
-    { label: '无认证', value: AuthTypeEnum.NONE },
-    { label: 'Header 认证', value: AuthTypeEnum.HEADER },
+    { label: 'None', value: AuthTypeEnum.NONE },
     { label: 'Basic Auth', value: AuthTypeEnum.BASIC },
     { label: 'Bearer Token', value: AuthTypeEnum.BEARER },
-    { label: 'HMAC 签名', value: AuthTypeEnum.HMAC },
-    { label: '自定义认证', value: AuthTypeEnum.CUSTOM }
+    { label: 'HMAC Signature', value: AuthTypeEnum.HMAC },
+    { label: 'Header Authentication', value: AuthTypeEnum.HEADER },
+    { label: 'Custom', value: AuthTypeEnum.CUSTOM }
   ];
 });
 
@@ -993,55 +1329,111 @@ const authTypeOptions = computed<AuthTypeOption[]>(() => {
 const formRules = computed<FormRules>(() => {
   const rules: FormRules = {
     ruleName: [
-      { required: true, message: '请输入规则名称', trigger: 'blur' },
-      { min: 3, max: 50, message: '长度在 3 到 50 个字符', trigger: 'blur' }
+      { required: true, message: 'Please enter rule name', trigger: 'blur' },
+      { min: 3, max: 50, message: 'Length should be 3 to 50 characters', trigger: 'blur' }
     ],
     merchant: [
-      { required: true, message: '请选择商户', trigger: 'change' }
+      { required: true, message: 'Please select merchant', trigger: 'change' }
     ],
     eventType: [
-      { required: true, message: '请选择事件类型', trigger: 'change' }
+      { required: true, message: 'Please select event type', trigger: 'change' }
     ],
     returnType: [
-      { required: true, message: '请选择回传类型', trigger: 'change' }
+      { required: true, message: 'Please select return type', trigger: 'change' }
     ]
   };
 
   if (formData.value.returnType && formData.value.returnType !== ReturnTypeEnum.NONE) {
     rules.targetEndpoint = [
-      { required: true, message: '请输入目标地址', trigger: 'blur' }
+      { required: true, message: 'Please enter target endpoint', trigger: 'blur' }
     ];
 
     if ([ReturnTypeEnum.WEBHOOK, ReturnTypeEnum.API].includes(formData.value.returnType)) {
       rules.targetEndpoint.push({
-        pattern: /^(http|https):\/\/([\w-]+\.)+[\w-]+(\/[\w-./?%&=]*)?$/,
-        message: '请输入有效的 URL 地址',
+        pattern: VALIDATION_PATTERNS.URL,
+        message: VALIDATION_MESSAGES.URL.pattern,
         trigger: 'blur'
       });
     }
 
     if (formData.value.returnType === ReturnTypeEnum.EMAIL) {
       rules.targetEndpoint.push({
-        pattern: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
-        message: '请输入有效的邮箱地址',
+        pattern: VALIDATION_PATTERNS.EMAIL,
+        message: VALIDATION_MESSAGES.EMAIL.pattern,
         trigger: 'blur'
       });
     }
 
     if (formData.value.returnType === ReturnTypeEnum.KAFKA) {
       rules.targetEndpoint.push({
-        pattern: /^[a-zA-Z0-9._-]+$/,
-        message: '请输入有效的 Topic 名称',
+        pattern: VALIDATION_PATTERNS.TOPIC,
+        message: VALIDATION_MESSAGES.TOPIC.pattern,
         trigger: 'blur'
       });
     }
 
     if (formData.value.returnType !== ReturnTypeEnum.NONE) {
       rules.payloadTemplate = [
-        { required: true, message: '请输入模板内容', trigger: 'blur' }
+        { required: true, message: 'Please enter template content', trigger: 'blur' }
       ];
     }
   }
+
+  // Add validation for authConfig
+  rules.authConfig = {
+    username: [
+      { required: true, message: 'Please enter username', trigger: 'blur' }
+    ],
+    password: [
+      { required: true, message: 'Please enter password', trigger: 'blur' }
+    ],
+    token: [
+      { required: true, message: 'Please enter token', trigger: 'blur' }
+    ],
+    hmacConfig: {
+      algorithm: [
+        { required: true, message: 'Please select algorithm', trigger: 'change' }
+      ],
+      secret: [
+        { required: true, message: 'Please enter secret key', trigger: 'blur' }
+      ],
+      signatureParam: [
+        { required: true, message: 'Please enter signature parameter', trigger: 'blur' }
+      ],
+      signatureHeader: [
+        { required: true, message: 'Please enter signature header', trigger: 'blur' }
+      ],
+      includeBody: [
+        { type: 'boolean', message: 'Please select if body is included', trigger: 'change' }
+      ],
+      includeQuery: [
+        { type: 'boolean', message: 'Please select if query is included', trigger: 'change' }
+      ]
+    },
+    custom: [
+      { required: true, message: 'Please enter custom authentication config', trigger: 'blur' }
+    ],
+    headers: [
+      { 
+        validator: (rule: any, value: HeaderItem[], callback: Function) => {
+          if (formData.value.authType === AuthTypeEnum.HEADER) {
+            if (!Array.isArray(value) || value.length === 0) {
+              callback(new Error('Please add at least one header'));
+              return;
+            }
+            for (const header of value) {
+              if (!header.key || !header.value) {
+                callback(new Error('Header name and value are required'));
+                return;
+              }
+            }
+          }
+          callback();
+        },
+        trigger: 'change'
+      }
+    ]
+  };
 
   return rules;
 });
@@ -1400,6 +1792,10 @@ watch(() => formData.value.authType, (newType) => {
   color: var(--el-color-success);
 }
 
+.text-danger {
+  color: var(--el-color-danger);
+}
+
 .form-section {
   margin-bottom: 24px;
 }
@@ -1647,5 +2043,70 @@ watch(() => formData.value.authType, (newType) => {
 
 :deep(.el-select-dropdown.status-select) {
   min-width: 200px !important;
+}
+
+.header-config {
+  .header-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    .header-key {
+      width: 200px;
+    }
+
+    .header-value {
+      width: 300px;
+    }
+  }
+}
+
+.form-section {
+  margin-bottom: 24px;
+  padding: 16px;
+  background-color: var(--el-bg-color-overlay);
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+
+  .form-section-title {
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--el-text-color-primary);
+    margin-bottom: 16px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--el-border-color-light);
+  }
+}
+
+:deep(.el-form-item) {
+  margin-bottom: 16px;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+:deep(.el-form-item__label) {
+  font-weight: 500;
+}
+
+:deep(.el-input__wrapper),
+:deep(.el-select .el-input__wrapper) {
+  box-shadow: none;
+  border: 1px solid var(--el-border-color);
+  border-radius: 4px;
+
+  &:hover {
+    border-color: var(--el-color-primary);
+  }
+
+  &.is-focus {
+    border-color: var(--el-color-primary);
+    box-shadow: 0 0 0 1px var(--el-color-primary) inset;
+  }
 }
 </style> 
