@@ -247,4 +247,88 @@ export interface SubOrder {
   warehouse: string
   quantity: number
   product: string
+}
+
+// 商品基础类型
+export interface Product {
+  id: string
+  name: string
+  category: string
+  status: string
+  quantity: number
+  uom: string // 计量单位
+  price: number
+  discount: number
+  tax: number
+  amount: number
+  snCode: string
+  remarks: string
+  color: string
+}
+
+// 商品操作历史记录
+export interface ProductHistoryRecord {
+  type: string // cancel, return, exchange, refund
+  action: string // 操作描述
+  beforeQuantity: number // 操作前数量
+  afterQuantity: number // 操作后数量
+  reason: string // 操作原因
+  time: string // 操作时间
+}
+
+// 增强商品数据结构
+export interface EnhancedProduct {
+  id: string
+  name: string
+  category: string
+  snCode: string
+  poLineNo?: string  // 添加 poLineNo 字段，设为可选
+  uom: string
+  price: number
+  discount: number
+  tax: number
+  color: string
+  originalQuantity: number // 原始购买数量
+  shouldDispatchQuantity: number // 应发货数量
+  dispatchedQuantity: number // 已下发数量
+  shippedQuantity: number // 已shipped数量
+  fulfillmentQuantity: number // 当前需要履约的数量
+  cancelledQuantity: number // 已取消数量
+  returnedQuantity: number // 已退货数量
+  exchangedQuantity: number // 已换货数量
+  refundedQuantity: number // 已退款数量
+  productStatus: string // 商品状态：待发货、已取消、已退款、已退货
+  fulfillmentStatus: string // 履约状态
+  hasOperations: boolean // 是否有操作历史
+  operationTypes: string[] // 操作类型列表
+  history: ProductHistoryRecord[] // 操作历史
+  isExchangeProduct?: boolean // 是否为换货商品
+  originalProductId?: string // 原商品ID（换货商品使用）
+  isOnHold?: boolean // 是否处于 hold 状态
+  holdReason?: string // hold 原因
+}
+
+// 取消商品数据结构
+export interface CancelledProduct extends Product {
+  cancelReason: string
+  cancelTime: string
+}
+
+// 退货商品数据结构
+export interface ReturnedProduct extends Product {
+  returnQuantity: number
+  returnReason: string
+  returnStatus: string
+  returnTime: string
+}
+
+// 换货商品数据结构
+export interface ExchangedProduct {
+  id: string
+  originalProduct: Product
+  newProduct: Product
+  exchangeReason: string
+  exchangeStatus: string
+  exchangeTime: string
+  priceDifference: number
 } 

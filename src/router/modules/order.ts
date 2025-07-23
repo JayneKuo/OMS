@@ -4,9 +4,16 @@ const routes: RouteRecordRaw[] = [
   {
     path: '/order',
     name: 'Order',
-    redirect: '/order/sales',
     component: () => import('@/layouts/MainLayout.vue'),
     children: [
+      {
+        path: 'sales-orders-new',
+        name: 'SalesOrdersNew',
+        component: () => import('@/views/order/sales-orders-new/index.vue'),
+        meta: {
+          title: 'Sales Orders New'
+        }
+      },
       {
         path: 'sales',
         name: 'OrderList',

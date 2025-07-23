@@ -80,6 +80,14 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/layouts/RouterView.vue'),
         children: [
           {
+            path: 'sales-orders-new',
+            name: 'SalesOrdersNew',
+            component: () => import('@/views/order/sales-orders-new/index.vue'),
+            meta: {
+              title: 'Sales Orders New'
+            }
+          },
+          {
             path: 'sales',
             name: 'SalesOrder',
             component: () => import('@/views/order/sales/index.vue')

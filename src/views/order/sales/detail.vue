@@ -15,28 +15,49 @@
           >
             {{ getStatusLabel(orderStatus) }}
           </el-tag>
-          <!-- 移动错误信息到这里 -->
-          <div v-if="hasError" class="error-tag">
-            <el-icon><Warning class="error-icon" /></el-icon>
-            <span class="error-text">{{ errorMessage }}</span>
-            <el-button 
-              type="danger" 
-              link 
-              class="view-detail"
-              @click="showErrorDetail"
-            >
-              查看详情
-            </el-button>
-          </div>
         </div>
+
+        <!-- 订单信息区域 -->
         <div class="order-info">
-          <div class="channel-path">
-            <el-icon><Connection class="path-icon" /></el-icon>
-            <span class="path-text">{{ platformInfo.sourceChannel }}</span>
+          <!-- 渠道路径 -->
+          <div class="channel-flow">
+            <span class="flow-item">Amazon</span>
+            <el-icon class="arrow"><ArrowRight /></el-icon>
+            <span class="flow-item">Shopify</span>
+            <el-icon class="arrow"><ArrowRight /></el-icon>
+            <span class="flow-item">OMS</span>
+            <el-tag class="store-name">{{ platformInfo.currentChannel }}</el-tag>
           </div>
-          <div class="create-time">
-            <el-icon><Clock class="time-icon" /></el-icon>
-            <span class="time-text">创建于 {{ formatDate(orderBasicInfo.orderCreateTime) }}</span>
+          
+          <!-- 信息卡片区域 -->
+          <div class="info-cards">
+            <!-- Internal Info -->
+            <div class="info-card">
+              <div class="info-content">
+                <div class="info-item">
+                  <span class="label">Ingested</span>
+                  <span class="value">{{ formatDate(orderBasicInfo.importDate) }}</span>
+                </div>
+                <div class="info-item">
+                  <span class="label">Updated</span>
+                  <span class="value">{{ formatDate(orderBasicInfo.lastUpdateDate) }}</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- External Source Info -->
+            <div class="info-card">
+              <div class="info-content">
+                <div class="info-item">
+                  <span class="label">Ordered</span>
+                  <span class="value">{{ formatDate(orderBasicInfo.orderDate) }}</span>
+                </div>
+                <div class="info-item">
+                  <span class="label">Ship by Date</span>
+                  <span class="value">{{ formatDate(orderBasicInfo.shipByDate) }}</span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -75,13 +96,13 @@
           </el-button>
           <template #dropdown>
             <el-dropdown-menu>
-              <!-- 通用操作（始终可见） -->
+              <!-- Common Operations (Always Visible) -->
               <el-dropdown-item command="rawData">
                 <el-icon><Document /></el-icon>
                 Raw Data
               </el-dropdown-item>
 
-              <!-- 状态相关操作 -->
+              <!-- Status Related Operations -->
               <template v-if="hasAvailableActions">
                 <el-dropdown-item divided></el-dropdown-item>
                 <template v-for="action in availableActions" :key="action">
@@ -130,570 +151,28 @@
             <!-- Items Tab -->
             <el-tab-pane label="Items" name="items">
               <div class="tab-content">
-                <div class="table-container">
-                  <el-table 
-                    :data="enhancedProducts" 
-                    style="width: 100%;"
-                    :expand-row-keys="expandedProducts"
-                    row-key="id"
-                  >
-                    <!-- 展开行显示操作历史 -->
-                    <el-table-column type="expand" width="50">
-              <template #default="{ row }">
-                        <div class="expanded-items-section">
-                          <div class="items-title">
-                            <el-icon><Box /></el-icon>
-                            <span>Operation History ({{ row.history.length }} records)</span>
-                          </div>
-                          <div class="items-table-container">
-                            <el-table :data="row.history" size="small" style="width: 100%;">
-                              <el-table-column label="Operation Type" width="100" align="center">
-                                <template #default="{ row: record }">
-                                  <el-tag :type="getOperationTagType(record.type)" size="small">
-                                    {{ getOperationLabel(record.type) }}
-                                  </el-tag>
-              </template>
-            </el-table-column>
-                              <el-table-column label="Operation Description" min-width="200">
-                                <template #default="{ row: record }">
-                                  <span class="operation-action">{{ record.action }}</span>
-                </template>
-                              </el-table-column>
-                              <el-table-column label="Quantity Change" width="120" align="center">
-                                <template #default="{ row: record }">
-                                  <span class="quantity-change">{{ record.beforeQuantity }} → {{ record.afterQuantity }}</span>
-                </template>
-                              </el-table-column>
-                              <el-table-column label="Operation Reason" min-width="250">
-                                <template #default="{ row: record }">
-                                  <span class="operation-reason">{{ record.reason }}</span>
-              </template>
-            </el-table-column>
-                              <el-table-column label="Operation Time" width="150" align="center">
-                                <template #default="{ row: record }">
-                                  <span class="operation-time">{{ formatDate(record.time) }}</span>
-                        </template>
-                              </el-table-column>
-                            </el-table>
-                          </div>
-                        </div>
-                        </template>
-                    </el-table-column>
-
-                    <!-- 商品信息 -->
-                    <el-table-column label="Product" min-width="220">
-                      <template #default="{ row }">
-                        <div class="item-info-simple">
-                          <div class="item-name">
-                            {{ row.name }}
-                            <el-tag v-if="row.isExchangeProduct" size="small" type="warning" class="exchange-tag">
-                              Exchange Product
-                            </el-tag>
-                          </div>
-                          <div class="item-sku">{{ row.snCode }}</div>
-                          <div v-if="row.isExchangeProduct" class="exchange-info">
-                            <el-icon class="exchange-icon"><SwitchButton /></el-icon>
-                            <span>Original Product ID: {{ row.originalProductId }}</span>
-                          </div>
-                          <!-- 操作汇总标签 -->
-                          <div class="operations-summary">
-                            <el-tag v-if="row.cancelledQuantity > 0" size="small" type="danger">
-                              Cancelled {{ row.cancelledQuantity }}
-                            </el-tag>
-                            <el-tag v-if="row.returnedQuantity > 0" size="small" type="warning">
-                              Returned {{ row.returnedQuantity }}
-                            </el-tag>
-                            <el-tag v-if="row.exchangedQuantity > 0" size="small" type="info">
-                              Exchanged {{ row.exchangedQuantity }}
-                            </el-tag>
-                          </div>
-                        </div>
-              </template>
-            </el-table-column>
-
-                    <!-- 购买数量 -->
-                    <el-table-column label="Ordered Qty" width="80" align="center">
-              <template #default="{ row }">
-                        <div class="quantity-info">
-                          <span class="original-quantity">{{ row.originalQuantity }}</span>
-                          <span class="quantity-unit">{{ row.uom }}</span>
-                        </div>
-                      </template>
-                    </el-table-column>
-
-                    <!-- 应发货数量 -->
-                    <el-table-column label="To Fulfill Qty" width="90" align="center">
-                      <template #default="{ row }">
-                        <template v-if="isEditing && isProductEditable(row)">
-                  <el-input-number 
-                            v-model="row.shouldDispatchQuantity" 
-                            :min="0" 
-                            :max="row.originalQuantity"
-                    controls-position="right"
-                            size="small"
-                            @change="(value: number) => handleShouldDispatchQuantityChange(row, value)"
-                  />
-                </template>
-                <template v-else>
-                          <div class="should-dispatch-quantity" :class="{ 
-                            'zero': row.shouldDispatchQuantity === 0,
-                            'partial': row.shouldDispatchQuantity < row.originalQuantity,
-                            'full': row.shouldDispatchQuantity === row.originalQuantity
-                          }">
-                            {{ row.shouldDispatchQuantity }}
-                          </div>
-                </template>
-              </template>
-            </el-table-column>
-
-                    <!-- 已下发数量 -->
-                    <el-table-column label="Dispatched Qty" width="90" align="center">
-              <template #default="{ row }">
-                        <div class="dispatched-quantity" :class="{ 
-                          'zero': row.dispatchedQuantity === 0,
-                          'partial': row.dispatchedQuantity < row.shouldDispatchQuantity,
-                          'full': row.dispatchedQuantity === row.shouldDispatchQuantity,
-                          'over': row.dispatchedQuantity > row.shouldDispatchQuantity
-                        }">
-                          {{ row.dispatchedQuantity }}
-                          <span v-if="row.shouldDispatchQuantity > 0" class="dispatch-ratio">
-                            /{{ row.shouldDispatchQuantity }}
-                          </span>
-                        </div>
-              </template>
-            </el-table-column>
-
-                    <!-- 已shipped数量 -->
-                    <el-table-column label="Shipped Qty" width="90" align="center">
-              <template #default="{ row }">
-                        <div class="shipped-quantity" :class="{ 
-                          'zero': row.shippedQuantity === 0,
-                          'partial': row.shippedQuantity < row.dispatchedQuantity,
-                          'full': row.shippedQuantity === row.dispatchedQuantity,
-                          'over': row.shippedQuantity > row.dispatchedQuantity
-                        }">
-                          {{ row.shippedQuantity }}
-                          <span v-if="row.dispatchedQuantity > 0" class="shipped-ratio">
-                            /{{ row.dispatchedQuantity }}
-                          </span>
-                        </div>
-              </template>
-            </el-table-column>
-
-
-
-                    <!-- 履约状态 -->
-                    <el-table-column label="Fulfillment Status" width="80" align="center">
-              <template #default="{ row }">
-                        <el-tag :type="getFulfillmentStatusType(row.fulfillmentStatus)" size="small">
-                          {{ getFulfillmentStatusLabel(row.fulfillmentStatus) }}
-                        </el-tag>
-                        </template>
-                    </el-table-column>
-
-                    <!-- 单价 -->
-                    <el-table-column label="Unit Price" width="80" align="right">
-                      <template #default="{ row }">
-                          <div class="price-display">${{ row.price.toFixed(2) }}</div>
-                        </template>
-                    </el-table-column>
-
-                    <!-- 折扣 -->
-                    <el-table-column label="Discount" width="80" align="right">
-                      <template #default="{ row }">
-                        <div class="discount-display">
-                          <span v-if="row.discount > 0" class="discount-amount">
-                            -${{ row.discount.toFixed(2) }}
-                          </span>
-                          <span v-else class="no-discount">-</span>
-                        </div>
-                      </template>
-                    </el-table-column>
-
-                    <!-- 税费 -->
-                    <el-table-column label="Tax" width="80" align="right">
-                      <template #default="{ row }">
-                        <div class="tax-display">
-                          <span v-if="row.tax > 0" class="tax-amount">
-                            ${{ row.tax.toFixed(2) }}
-                          </span>
-                          <span v-else class="no-tax">-</span>
-                        </div>
-                      </template>
-                    </el-table-column>
-
-                    <!-- 履约金额 -->
-                    <el-table-column label="Fulfillment Amount" width="160" align="right">
-                      <template #default="{ row }">
-                        <div class="fulfillment-amount">
-                          <div class="current-amount">
-                            ${{ calculateLineTotal(row, row.shouldDispatchQuantity).toFixed(2) }}
-                          </div>
-                          <div v-if="row.shouldDispatchQuantity < row.originalQuantity" class="original-amount">
-                            Original: ${{ calculateLineTotal(row, row.originalQuantity).toFixed(2) }}
-                          </div>
-                          <!-- 退款金额 -->
-                          <div v-if="calculateRefundAmount(row) > 0" class="refund-amount">
-                            Refund: -${{ calculateRefundAmount(row).toFixed(2) }}
-                          </div>
-                          <div class="amount-breakdown">
-                            <span class="breakdown-text">
-                              {{ row.shouldDispatchQuantity }} × ${{ row.price.toFixed(2) }}
-                              <span v-if="row.discount > 0">- ${{ (row.discount * row.shouldDispatchQuantity / row.originalQuantity).toFixed(2) }}</span>
-                              <span v-if="row.tax > 0">+ ${{ (row.tax * row.shouldDispatchQuantity / row.originalQuantity).toFixed(2) }}</span>
-                            </span>
-                          </div>
-                        </div>
-                      </template>
-                    </el-table-column>
-
-
-
-                    <!-- 编辑操作 -->
-                    <el-table-column v-if="isEditing" label="Actions" width="80" align="center">
-                      <template #default="{ row, $index }">
-                        <el-button 
-                          v-if="isProductEditable(row)"
-                          type="danger" 
-                          link 
-                          @click="handleDeleteProduct($index)"
-                            size="small"
-                        >
-                          <el-icon><Delete /></el-icon>
-                        </el-button>
-                        <el-tooltip 
-                          v-else
-                          content="Dispatched products cannot be deleted" 
-                          placement="top"
-                        >
-                          <el-icon class="edit-disabled-icon">
-                            <Lock />
-                          </el-icon>
-                        </el-tooltip>
-                        </template>
-                    </el-table-column>
-                  </el-table>
+                <div class="table-actions" v-if="isEditing">
+                  <el-button type="primary" link @click="handleAddProduct">
+                    <el-icon><Plus /></el-icon>
+                    添加商品
+                  </el-button>
                 </div>
-
-                <!-- 取消商品列表 -->
-                <div v-if="cancelledProducts.length > 0" class="status-products-section">
-                  <div class="status-section-header">
-                    <div class="header-content">
-                      <el-icon class="status-icon cancelled"><CircleClose /></el-icon>
-                      <h4>Cancelled Products</h4>
-                      <el-tag type="danger" size="small">{{ cancelledProducts.length }} products</el-tag>
-                    </div>
-                    <div class="status-summary">
-                      Total Amount: <span class="amount-highlight">-${{ getCancelledTotalAmount() }}</span>
-                    </div>
-                  </div>
-                  <div class="status-table-container">
-                    <el-table :data="cancelledProducts" size="small" style="width: 100%;">
-                      <el-table-column label="" width="50">
-                        <template #default="{ row }">
-                          <div class="product-image-small" :style="{ backgroundColor: row.color }"></div>
-                        </template>
-                      </el-table-column>
-                      <el-table-column label="Product Info" min-width="250">
-                        <template #default="{ row }">
-                          <div class="item-info">
-                            <div class="item-name">{{ row.name }}</div>
-                            <div class="item-category">{{ row.category }}</div>
-                            <div class="item-sku">SKU: {{ row.snCode }}</div>
-                          </div>
-                      </template>
-                    </el-table-column>
-                      <el-table-column label="Quantity" width="80" align="center">
-                      <template #default="{ row }">
-                          <span class="quantity-cancelled">{{ row.quantity }}</span>
-                      </template>
-                    </el-table-column>
-                      <el-table-column label="Cancel Reason" min-width="200">
-                      <template #default="{ row }">
-                          <span class="cancel-reason">{{ row.cancelReason }}</span>
-                      </template>
-                    </el-table-column>
-                      <el-table-column label="Cancel Time" width="130" align="center">
-                      <template #default="{ row }">
-                          <span class="cancel-time">{{ formatDate(row.cancelTime) }}</span>
-                        </template>
-                      </el-table-column>
-                      <el-table-column label="Amount" width="100" align="right">
-                        <template #default="{ row }">
-                          <span class="amount-cancelled">-${{ (row.price * row.quantity).toFixed(2) }}</span>
-                        </template>
-                      </el-table-column>
-                    </el-table>
-                  </div>
-                </div>
-
-                <!-- 退货商品列表 -->
-                <div v-if="returnedProducts.length > 0" class="status-products-section">
-                  <div class="status-section-header">
-                    <div class="header-content">
-                      <el-icon class="status-icon returned"><ArrowLeft /></el-icon>
-                                              <h4>Returned Products</h4>
-                                              <el-tag type="warning" size="small">{{ returnedProducts.length }} products</el-tag>
-                    </div>
-                    <div class="status-summary">
-                                              Refund Amount: <span class="amount-highlight">-${{ getReturnedTotalAmount() }}</span>
-                    </div>
-                  </div>
-                  <div class="status-table-container">
-                    <el-table :data="returnedProducts" size="small" style="width: 100%;">
-                      <el-table-column label="" width="50">
-                        <template #default="{ row }">
-                          <div class="product-image-small" :style="{ backgroundColor: row.color }"></div>
-              </template>
-            </el-table-column>
-                      <el-table-column label="Product Info" min-width="250">
-                        <template #default="{ row }">
-                          <div class="item-info">
-                            <div class="item-name">{{ row.name }}</div>
-                            <div class="item-category">{{ row.category }}</div>
-                            <div class="item-sku">SKU: {{ row.snCode }}</div>
-                          </div>
-                        </template>
-                      </el-table-column>
-                      <el-table-column label="Return Qty" width="90" align="center">
-                        <template #default="{ row }">
-                          <span class="quantity-returned">{{ row.returnQuantity }}</span>
-                        </template>
-                      </el-table-column>
-                                              <el-table-column label="Return Reason" min-width="200">
-                        <template #default="{ row }">
-                          <span class="return-reason">{{ row.returnReason }}</span>
-                        </template>
-                      </el-table-column>
-                                              <el-table-column label="Return Status" width="120" align="center">
-                        <template #default="{ row }">
-                          <el-tag :type="getReturnStatusType(row.returnStatus)" size="small">
-                            {{ row.returnStatus }}
-                          </el-tag>
-                        </template>
-                      </el-table-column>
-                                              <el-table-column label="Return Time" width="130" align="center">
-                        <template #default="{ row }">
-                          <span class="return-time">{{ formatDate(row.returnTime) }}</span>
-                        </template>
-                      </el-table-column>
-                                              <el-table-column label="Refund Amount" width="100" align="right">
-                        <template #default="{ row }">
-                          <span class="amount-returned">-${{ (row.price * row.returnQuantity).toFixed(2) }}</span>
-              </template>
-            </el-table-column>
-          </el-table>
-                  </div>
-                </div>
-
-                <!-- 换货商品列表 -->
-                <div v-if="exchangedProducts.length > 0" class="status-products-section">
-                  <div class="status-section-header">
-                    <div class="header-content">
-                      <el-icon class="status-icon exchanged"><SwitchButton /></el-icon>
-                                              <h4>Exchange Products</h4>
-                                              <el-tag type="info" size="small">{{ exchangedProducts.length }} exchanges</el-tag>
-                    </div>
-                    <div class="status-summary">
-                                              Price Difference: <span class="amount-highlight">${{ getExchangeTotalDifference() }}</span>
-                    </div>
-                  </div>
-                  <div class="status-table-container">
-                    <el-table :data="exchangedProducts" size="small" style="width: 100%;">
-                      <el-table-column type="expand" width="40">
-                        <template #default="{ row }">
-                          <div class="exchange-details">
-                            <div class="exchange-item">
-                              <div class="exchange-label">Original Product</div>
-                              <div class="exchange-product">
-                                <div class="product-image-tiny" :style="{ backgroundColor: row.originalProduct.color }"></div>
-                                <div class="product-details">
-                                  <div class="name">{{ row.originalProduct.name }}</div>
-                                  <div class="meta">{{ row.originalProduct.category }} | {{ row.originalProduct.snCode }}</div>
-                                  <div class="price">Qty: {{ row.originalProduct.quantity }} | Price: ${{ row.originalProduct.price }}</div>
-                                </div>
-                              </div>
-                            </div>
-                            <div class="exchange-arrow">
-                              <el-icon><ArrowRight /></el-icon>
-                            </div>
-                            <div class="exchange-item">
-                              <div class="exchange-label">New Product</div>
-                              <div class="exchange-product">
-                                <div class="product-image-tiny" :style="{ backgroundColor: row.newProduct.color }"></div>
-                                <div class="product-details">
-                                  <div class="name">{{ row.newProduct.name }}</div>
-                                  <div class="meta">{{ row.newProduct.category }} | {{ row.newProduct.snCode }}</div>
-                                  <div class="price">Qty: {{ row.newProduct.quantity }} | Price: ${{ row.newProduct.price }}</div>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        </template>
-                      </el-table-column>
-                      <el-table-column label="" width="50">
-                        <template #default="{ row }">
-                          <div class="product-image-small" :style="{ backgroundColor: row.originalProduct.color }"></div>
-                        </template>
-                      </el-table-column>
-                                              <el-table-column label="Exchange Info" min-width="300">
-                        <template #default="{ row }">
-                          <div class="exchange-info">
-                            <div class="exchange-summary">
-                              <span class="original-name">{{ row.originalProduct.name }}</span>
-                              <el-icon class="exchange-icon"><ArrowRight /></el-icon>
-                              <span class="new-name">{{ row.newProduct.name }}</span>
-                            </div>
-                            <div class="exchange-meta">{{ row.originalProduct.snCode }} → {{ row.newProduct.snCode }}</div>
-                          </div>
-                        </template>
-                      </el-table-column>
-                                              <el-table-column label="Exchange Reason" min-width="150">
-                        <template #default="{ row }">
-                          <span class="exchange-reason">{{ row.exchangeReason }}</span>
-                        </template>
-                      </el-table-column>
-                                              <el-table-column label="Exchange Status" width="120" align="center">
-                        <template #default="{ row }">
-                          <el-tag :type="getExchangeStatusType(row.exchangeStatus)" size="small">
-                            {{ row.exchangeStatus }}
-                          </el-tag>
-                        </template>
-                      </el-table-column>
-                                              <el-table-column label="Exchange Time" width="130" align="center">
-                        <template #default="{ row }">
-                          <span class="exchange-time">{{ formatDate(row.exchangeTime) }}</span>
-                        </template>
-                      </el-table-column>
-                                              <el-table-column label="Price Diff" width="100" align="right">
-                        <template #default="{ row }">
-                          <span class="price-difference" :class="{ 
-                            'positive': row.priceDifference > 0, 
-                            'negative': row.priceDifference < 0,
-                            'zero': row.priceDifference === 0
-                          }">
-                            {{ row.priceDifference > 0 ? '+' : '' }}${{ row.priceDifference.toFixed(2) }}
-                          </span>
-                        </template>
-                      </el-table-column>
-                    </el-table>
-                  </div>
-                </div>
+                <OrderItemsTable
+                  :products="enhancedProducts"
+                  :cancelled-products="cancelledProducts"
+                  :returned-products="returnedProducts"
+                  :exchanged-products="exchangedProducts"
+                  :is-editing="isEditing"
+                  @update:products="handleProductsUpdate"
+                  @delete-product="handleDeleteProduct"
+                  @quantity-change="handleShouldDispatchQuantityChange"
+                />
               </div>
             </el-tab-pane>
 
             <!-- Dispatched Details Tab -->
-            <el-tab-pane label="Dispatched Details" name="dispatched">
-              <div class="tab-content">
-                <div class="table-container">
-                  <el-table 
-                    :data="dispatchedDetails" 
-                    style="width: 100%; min-width: 1200px;"
-                    :expand-row-keys="expandedDispatches"
-                    row-key="dispatchId"
-                  >
-                    <el-table-column type="expand" width="50">
-                      <template #default="{ row }">
-                        <div class="expanded-items-section">
-                          <div class="items-title">
-                            <el-icon><Box /></el-icon>
-                            <span>商品明细 (共{{ row.items.length }}个商品，{{ row.items.reduce((sum, item) => sum + item.quantity, 0) }}件)</span>
-                          </div>
-                          <div class="items-table-container">
-                            <el-table :data="row.items" size="small" style="width: 100%;">
-                              <el-table-column label="SKU" width="120" align="center">
-                                <template #default="{ row: item }">
-                                  <span>{{ item.sku }}</span>
-                                </template>
-                              </el-table-column>
-                              <el-table-column label="商品名称" min-width="200">
-                                <template #default="{ row: item }">
-                                  <span class="item-name">{{ item.name || 'Product Name' }}</span>
-                                </template>
-                              </el-table-column>
-                              <el-table-column label="SN NO." width="130" align="center">
-                                <template #default="{ row: item }">
-                                  <span class="number-highlight">{{ item.snCode || 'SN' + Math.random().toString().substr(2,8) }}</span>
-                                </template>
-                              </el-table-column>
-                              <el-table-column label="Lot NO." width="120" align="center">
-                                <template #default="{ row: item }">
-                                  <span class="number-highlight">{{ item.lotNo || 'LOT' + Math.random().toString().substr(2,6) }}</span>
-                                </template>
-                              </el-table-column>
-                              <el-table-column label="数量" width="80" align="center">
-                                <template #default="{ row: item }">
-                                  <span class="item-quantity">{{ item.quantity }}</span>
-                                </template>
-                              </el-table-column>
-                              <el-table-column label="单位" width="80" align="center">
-                                <template #default="{ row: item }">
-                                  <span class="item-uom">{{ item.uom || 'PCS' }}</span>
-                                </template>
-                              </el-table-column>
-                            </el-table>
-                          </div>
-                        </div>
-                      </template>
-                    </el-table-column>
-                    <el-table-column label="Dispatch NO." width="120" align="center">
-                      <template #default="{ row }">
-                        <span class="number-highlight">{{ row.dispatchId }}</span>
-                      </template>
-                    </el-table-column>
-                    <el-table-column label="Warehouse" width="180" align="center">
-                      <template #default="{ row }">
-                        <span class="warehouse-info">{{ row.warehouse }} ({{ row.warehouseCode }})</span>
-                      </template>
-                    </el-table-column>
-                    <el-table-column label="Status" width="100" align="center">
-                      <template #default="{ row }">
-                        <el-tag :type="getDispatchStatusType(row.status)" size="small">
-                          {{ row.status }}
-                        </el-tag>
-                      </template>
-                    </el-table-column>
-                    <el-table-column label="Carrier" width="120" align="center">
-                      <template #default="{ row }">
-                        <span class="carrier-info">{{ row.carrier }}</span>
-                      </template>
-                    </el-table-column>
-                    <el-table-column label="Shipment NO." width="150" align="center">
-                      <template #default="{ row }">
-                        <el-link 
-                          v-if="row.trackingNumber"
-                          type="primary" 
-                          @click="handleTrackingClick(row.trackingNumber)"
-                          class="tracking-link number-highlight"
-                          size="small"
-                        >
-                          {{ row.trackingNumber }}
-                        </el-link>
-                        <span v-else class="no-tracking">-</span>
-                      </template>
-                    </el-table-column>
-                    <el-table-column label="Ship Date" width="130" align="center">
-                      <template #default="{ row }">
-                        <span class="date-info">{{ formatDate(row.shipDate) }}</span>
-                      </template>
-                    </el-table-column>
-                    <el-table-column label="Est. Delivery" width="130" align="center">
-                      <template #default="{ row }">
-                        <span class="date-info">{{ formatDate(row.estimatedDelivery) }}</span>
-                      </template>
-                    </el-table-column>
-                    <el-table-column label="Items Summary" min-width="250">
-                      <template #default="{ row }">
-                        <div class="items-summary">
-                          <el-tag size="small" type="primary">{{ row.items.length }} products</el-tag>
-                                                      <span class="total-qty">Total {{ row.items.reduce((sum, item) => sum + item.quantity, 0) }} items</span>
-                                                      <span class="quick-preview">{{ row.items[0].sku }}{{ row.items.length > 1 ? ' etc.' : '' }}</span>
-                        </div>
-                      </template>
-                    </el-table-column>
-                  </el-table>
-                </div>
-              </div>
+            <el-tab-pane label="Allocation Order" name="dispatched">
+              <DispatchDetails :dispatches="dispatchedDetails" />
             </el-tab-pane>
 
             <!-- Packages Tab -->
@@ -1556,10 +1035,8 @@ import {
   Timer,
   User,
   Box,
-  Shield,
   DataBoard,
   CreditCard,
-  Map,
   InfoFilled,
   Lock,
   Calendar,
@@ -1578,9 +1055,36 @@ import {
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { OrderAction, STATUS_CONFIG } from './types'
 import { OrderStatus } from '@/types/order'
+import DispatchDetails from './components/DispatchDetails.vue'
+import OrderItemsTable from './components/OrderItemsTable.vue'
+
+// 定义 DispatchedDetail 接口
+interface DispatchItem {
+  sku: string
+  name?: string
+  quantity: number
+  fulfilledQuantity?: number
+}
+
+interface DispatchedDetail {
+  dispatchId: string
+  warehouse: string
+  warehouseCode: string
+  status: string
+  carrier: string
+  trackingNumber?: string
+  trackingUrl?: string
+  shipDate?: string
+  estimatedDelivery?: string
+  orderTime?: string
+  reviewTime?: string
+  cancelTime?: string
+  items: DispatchItem[]
+}
 
 const route = useRoute()
-  const currentOrderStatus = ref<OrderStatus>(OrderStatus.Pending) // 设置为Pending状态用于测试
+const currentOrderStatus = ref<OrderStatus>(OrderStatus.Pending) // 设置为Pending状态用于测试
+const showInfoDialog = ref(false) // 控制信息弹窗的显示状态
 
 // 订单状态（与currentOrderStatus保持一致，用于状态标签显示）
 const orderStatus = computed(() => currentOrderStatus.value)
@@ -1702,6 +1206,7 @@ interface EnhancedProduct {
   history: ProductHistoryRecord[]; // 操作历史
   isExchangeProduct?: boolean; // 是否为换货商品
   originalProductId?: string; // 原商品ID（换货商品使用）
+  holdReason?: string; // Hold 原因
 }
 
 // 商品操作历史记录
@@ -1887,6 +1392,87 @@ const enhancedProducts = computed<EnhancedProduct[]>(() => {
       hasOperations: false,
       operationTypes: [],
       history: []
+    },
+    {
+      id: 'P005',
+      name: '绿色运动裤',
+      category: '运动服 | 运动裤 | L码',
+      snCode: 'SN001234571',
+      uom: 'PCS',
+      price: 49.99,
+      discount: 0.00, // 无折扣
+      tax: 4.50, // 税费
+      color: 'linear-gradient(45deg, #34D399, #10B981)',
+      originalQuantity: 3, // 购买数量
+      cancelledQuantity: 0, // 取消数量
+      returnedQuantity: 0, // 退货数量
+      exchangedQuantity: 0, // 换货数量（退回的数量）
+      refundedQuantity: 0, // 退款数量
+      dispatchedQuantity: 0, // 已下发数量
+      shippedQuantity: 0, // 已shipped数量
+      // 应发货数量 = 购买数量 - 取消数量 - 退款数量 - 退货数量 - 换货数量
+      shouldDispatchQuantity: 3 - 0 - 0 - 0 - 0, // = 3
+      fulfillmentQuantity: 3,
+      productStatus: '待发货',
+      fulfillmentStatus: 'TO_BE_DISPATCHED',
+      hasOperations: false,
+      operationTypes: [],
+      history: [],
+      holdReason: '库存不足，等待补货 (ETA: 2024-02-25)'
+    },
+    {
+      id: 'P006',
+      name: '蓝色牛仔裤',
+      category: '男装 | 牛仔裤 | 32码',
+      snCode: 'SN001234572',
+      uom: 'PCS',
+      price: 69.99,
+      discount: 5.00, // 折扣金额
+      tax: 6.30, // 税费
+      color: 'linear-gradient(45deg, #3B82F6, #1E40AF)',
+      originalQuantity: 2, // 购买数量
+      cancelledQuantity: 0, // 取消数量
+      returnedQuantity: 0, // 退货数量
+      exchangedQuantity: 0, // 换货数量（退回的数量）
+      refundedQuantity: 0, // 退款数量
+      dispatchedQuantity: 0, // 已下发数量
+      shippedQuantity: 0, // 已shipped数量
+      // 应发货数量 = 购买数量 - 取消数量 - 退款数量 - 退货数量 - 换货数量
+      shouldDispatchQuantity: 2 - 0 - 0 - 0 - 0, // = 2
+      fulfillmentQuantity: 2,
+      productStatus: '待发货',
+      fulfillmentStatus: 'TO_BE_DISPATCHED',
+      hasOperations: false,
+      operationTypes: [],
+      history: [],
+      holdReason: '质检不通过，等待品控确认'
+    },
+    {
+      id: 'P007',
+      name: '红色运动套装',
+      category: '运动服 | 运动套装 | M码',
+      snCode: 'SN001234573',
+      uom: 'SET',
+      price: 99.99,
+      discount: 10.00, // 折扣金额
+      tax: 9.00, // 税费
+      color: 'linear-gradient(45deg, #EF4444, #DC2626)',
+      originalQuantity: 1, // 购买数量
+      cancelledQuantity: 0, // 取消数量
+      returnedQuantity: 0, // 退货数量
+      exchangedQuantity: 0, // 换货数量（退回的数量）
+      refundedQuantity: 0, // 退款数量
+      dispatchedQuantity: 0, // 已下发数量
+      shippedQuantity: 0, // 已shipped数量
+      // 应发货数量 = 购买数量 - 取消数量 - 退款数量 - 退货数量 - 换货数量
+      shouldDispatchQuantity: 1 - 0 - 0 - 0 - 0, // = 1
+      fulfillmentQuantity: 1,
+      productStatus: '待发货',
+      fulfillmentStatus: 'TO_BE_DISPATCHED',
+      hasOperations: false,
+      operationTypes: [],
+      history: [],
+      holdReason: 'Order matched pre-sale rule: Product will continue fulfillment after Sep 09, 2025 09:00 AM (Pre-sale Activity Rule #PS20240001)'
     }
   ]
 })
@@ -2016,52 +1602,264 @@ interface DispatchedDetail {
     sku: string;
     quantity: number;
   }[];
+  allocatedTime?: string;
+  receivedTime?: string;
+  committedTime?: string;
+  pickedTime?: string;
+  packedTime?: string;
+  loadedTime?: string;
+  partiallyShippedTime?: string;
+  shippedTime?: string;
+  shortShippedTime?: string;
+  cancelTime?: string;
 }
 
 const dispatchedDetails = ref<DispatchedDetail[]>([
   {
-    dispatchId: 'D789',
-    warehouse: 'WMS-上海仓',
-    warehouseCode: 'SH001',
+    dispatchId: 'D002',
+    warehouse: 'Valley View',
+    warehouseCode: 'VV001',
+    status: 'Warehouse Cancelled',
+    carrier: '顺丰快递',
+    trackingNumber: undefined,
+    trackingUrl: undefined,
+    // 时间线节点时间 - 展示在 Packed 状态下被仓库取消
+    allocatedTime: '2024-02-17 10:48:00',
+    receivedTime: '2024-02-17 11:00:00',
+    committedTime: '2024-02-17 11:15:00',
+    pickedTime: '2024-02-17 11:30:00',
+    packedTime: '2024-02-17 11:45:00',
+    loadedTime: undefined,
+    partiallyShippedTime: undefined,
+    shippedTime: undefined,
+    shortShippedTime: undefined,
+    cancelTime: '2024-02-17 11:50:00',
+    // 其他时间
+    shipDate: undefined,
+    estimatedDelivery: '2024-02-20 16:00:00',
+    items: [
+      { 
+        sku: 'SKU002',
+        name: 'iPhone 15 Pro Max',
+        quantity: 1,
+        fulfilledQuantity: 0
+      }
+    ]
+  },
+  {
+    dispatchId: 'D003',
+    warehouse: 'Valley View',
+    warehouseCode: 'VV001',
+    status: 'Cancelled',
+    carrier: '顺丰快递',
+    trackingNumber: undefined,
+    trackingUrl: undefined,
+    // 时间线节点时间 - 展示在 Allocated 状态下被取消
+    allocatedTime: '2024-02-17 10:48:00',
+    receivedTime: undefined,
+    committedTime: undefined,
+    pickedTime: undefined,
+    packedTime: undefined,
+    loadedTime: undefined,
+    partiallyShippedTime: undefined,
+    shippedTime: undefined,
+    shortShippedTime: undefined,
+    cancelTime: '2024-02-17 10:55:00',
+    // 其他时间
+    shipDate: undefined,
+    estimatedDelivery: '2024-02-20 16:00:00',
+    items: [
+      { 
+        sku: 'SKU003',
+        name: 'iPhone 15',
+        quantity: 1,
+        fulfilledQuantity: 0
+      }
+    ]
+  },
+  {
+    dispatchId: 'D001',
+    warehouse: 'Valley View',
+    warehouseCode: 'VV001',
+    status: 'Allocated',
+    carrier: '顺丰快递',
+    trackingNumber: undefined,
+    trackingUrl: undefined,
+    // 时间线节点时间
+    allocatedTime: '2024-02-17 10:48:00',
+    receivedTime: undefined,
+    committedTime: undefined,
+    pickedTime: undefined,
+    packedTime: undefined,
+    loadedTime: undefined,
+    partiallyShippedTime: undefined,
+    shippedTime: undefined,
+    shortShippedTime: undefined,
+    cancelTime: undefined,
+    // 其他时间
+    shipDate: undefined,
+    estimatedDelivery: '2024-02-20 16:00:00',
+    items: [
+      { 
+        sku: 'SKU001',
+        name: 'iPhone 15 Pro',
+        quantity: 1,
+        fulfilledQuantity: 0
+      }
+    ]
+  },
+  {
+    dispatchId: 'D002',
+    warehouse: 'Valley View',
+    warehouseCode: 'VV001',
+    status: 'Warehouse Received',
+    carrier: null,
+    trackingNumber: null,
+    trackingUrl: null,
+    shipDate: null,
+    estimatedDelivery: '2024-02-20 16:00:00',
+    orderTime: '2024-02-17 09:30:00',
+    reviewTime: '2024-02-17 09:35:00',
+    cancelTime: null,
+    items: [
+      { 
+        sku: 'SKU002',
+        name: 'AirPods Pro',
+        quantity: 2,
+        fulfilledQuantity: 0
+      }
+    ]
+  },
+  {
+    dispatchId: 'D003',
+    warehouse: 'Valley View',
+    warehouseCode: 'VV001',
+    status: 'Picked',
+    carrier: '',
+    trackingNumber: undefined,
+    trackingUrl: undefined,
+    shipDate: undefined,
+    estimatedDelivery: '2024-02-19 16:00:00',
+    orderTime: '2024-02-17 08:20:00',
+    reviewTime: '2024-02-17 08:25:00',
+    cancelTime: undefined,
+    items: [
+      { 
+        sku: 'SKU003',
+        name: 'MacBook Pro',
+        quantity: 1,
+        fulfilledQuantity: 0
+      }
+    ]
+  },
+  {
+    dispatchId: 'D004',
+    warehouse: 'Valley View',
+    warehouseCode: 'VV001',
+    status: 'Packed',
+    carrier: '顺丰快递',
+    trackingNumber: null,
+    trackingUrl: null,
+    shipDate: null,
+    estimatedDelivery: '2024-02-19 16:00:00',
+    orderTime: '2024-02-17 07:15:00',
+    reviewTime: '2024-02-17 07:20:00',
+    cancelTime: null,
+    items: [
+      { 
+        sku: 'SKU004',
+        name: 'iPad Pro',
+        quantity: 1,
+        fulfilledQuantity: 0
+      }
+    ]
+  },
+  {
+    dispatchId: 'D005',
+    warehouse: 'Valley View',
+    warehouseCode: 'VV001',
     status: 'Shipped',
     carrier: '顺丰快递',
     trackingNumber: 'SF7234567890',
     trackingUrl: 'https://www.sf-express.com/tracking',
     shipDate: '2024-02-17 14:30:00',
     estimatedDelivery: '2024-02-18 16:00:00',
+    orderTime: '2024-02-17 06:00:00',
+    reviewTime: '2024-02-17 06:05:00',
+    cancelTime: null,
     items: [
-      { sku: 'SKU-001', quantity: 2 },
-      { sku: 'SKU-002', quantity: 1 },
-      { sku: 'SKU-003', quantity: 3 }
+      { 
+        sku: 'SKU005',
+        name: 'Apple Watch',
+        quantity: 1,
+        fulfilledQuantity: 1
+      }
     ]
   },
   {
-    dispatchId: 'D456',
-    warehouse: 'WMS-北京仓',
-    warehouseCode: 'BJ001',
-    status: 'Processing',
-    carrier: '中通快递',
-    trackingNumber: 'ZTO8876543210',
-    trackingUrl: 'https://www.zto.com/tracking',
-    shipDate: '2024-02-17 15:45:00',
+    dispatchId: 'D006',
+    warehouse: 'Valley View',
+    warehouseCode: 'VV001',
+    status: 'Exception',
+    carrier: '',
+    trackingNumber: undefined,
+    trackingUrl: undefined,
+    shipDate: undefined,
     estimatedDelivery: '2024-02-19 16:00:00',
+    orderTime: '2024-02-17 05:00:00',
+    reviewTime: '2024-02-17 05:05:00',
+    cancelTime: undefined,
     items: [
-      { sku: 'SKU-004', quantity: 1 },
-      { sku: 'SKU-005', quantity: 2 }
+      { 
+        sku: 'SKU006',
+        name: 'Magic Keyboard',
+        quantity: 1,
+        fulfilledQuantity: 0
+      }
     ]
   },
   {
-    dispatchId: 'D321',
-    warehouse: 'WMS-广州仓',
-    warehouseCode: 'GZ001',
-    status: 'Delivered',
-    carrier: '申通快递',
-    trackingNumber: 'STO5544332211',
-    trackingUrl: 'https://www.sto.cn/tracking',
-    shipDate: '2024-02-16 10:20:00',
-    estimatedDelivery: '2024-02-17 18:00:00',
+    dispatchId: 'D007',
+    warehouse: 'Valley View',
+    warehouseCode: 'VV001',
+    status: 'On Hold',
+    carrier: null,
+    trackingNumber: null,
+    trackingUrl: null,
+    shipDate: null,
+    estimatedDelivery: '2024-02-20 16:00:00',
+    orderTime: '2024-02-17 04:00:00',
+    reviewTime: '2024-02-17 04:05:00',
+    cancelTime: null,
     items: [
-      { sku: 'SKU-006', quantity: 4 }
+      { 
+        sku: 'SKU007',
+        name: 'Magic Mouse',
+        quantity: 1,
+        fulfilledQuantity: 0
+      }
+    ]
+  },
+  {
+    dispatchId: 'D008',
+    warehouse: 'Valley View',
+    warehouseCode: 'VV001',
+    status: 'Cancelled',
+    carrier: null,
+    trackingNumber: null,
+    trackingUrl: null,
+    shipDate: null,
+    estimatedDelivery: '2024-02-19 16:00:00',
+    orderTime: '2024-02-17 03:00:00',
+    reviewTime: '2024-02-17 03:05:00',
+    cancelTime: '2024-02-17 03:30:00',
+    items: [
+      { 
+        sku: 'SKU008',
+        name: 'AirTag',
+        quantity: 4,
+        fulfilledQuantity: 0
+      }
     ]
   }
 ])
@@ -2070,6 +1868,11 @@ const dispatchedDetails = ref<DispatchedDetail[]>([
 interface Package {
   packageId: string;
   dispatchId: string;
+  shipmentNo: string;
+  palletNo: string;
+  carrier: string;
+  service: string;
+  masterTrackingNumber: string;
   status: string;
   weight: string;
   dimensions: string;
@@ -2092,6 +1895,7 @@ const packages = ref<Package[]>([
     carrier: '顺丰速运',
     service: 'SF Standard',
     masterTrackingNumber: 'MST7234567890',
+    status: 'Shipped',
     weight: '2.3kg',
     dimensions: '35×25×15cm',
     trackingNumber: 'SF7234567890',
@@ -2110,9 +1914,10 @@ const packages = ref<Package[]>([
     carrier: '顺丰速运',
     service: 'SF Standard',
     masterTrackingNumber: 'MST7234567890',
+    status: 'Shipped',
     weight: '1.8kg',
     dimensions: '25×20×12cm',
-    trackingNumber: 'SF7234567891',
+    trackingNumber: 'SF7234567890',
     trackingUrl: 'https://www.sf-express.com/tracking',
     lastUpdate: '2024-02-18 14:30:00',
     items: [
@@ -2127,6 +1932,7 @@ const packages = ref<Package[]>([
     carrier: '中通快递',
     service: 'ZTO Express',
     masterTrackingNumber: 'MST8876543210',
+    status: 'Shipped',
     weight: '1.5kg',
     dimensions: '30×25×10cm',
     trackingNumber: 'ZTO8876543210',
@@ -2145,6 +1951,7 @@ const packages = ref<Package[]>([
     carrier: '申通快递',
     service: 'STO Standard',
     masterTrackingNumber: 'MST5544332211',
+    status: 'Shipped',
     weight: '3.2kg',
     dimensions: '40×30×20cm',
     trackingNumber: 'STO5544332211',
@@ -3023,11 +2830,17 @@ const formatDetailLabel = (key) => {
 
 // 新增数据
 const orderBasicInfo = ref({
-  orderCreateTime: '2024-02-16 09:00:00',
+  orderDate: '2024-02-16 08:30:00',      // 原始订单创建时间
+  importDate: '2024-02-16 09:00:00',     // 导入OMS时间
+  lastUpdateDate: '2024-02-16 10:30:00',  // 最后更新时间
+  shipByDate: '2024-02-20 16:00:00',     // 要求发货时间
   fulfillBy: 'WMS 仓库发货',
   dispatchTime: '2024-02-16 10:30:00',
   shippingSentToChannelDate: '2024-02-16 11:00:00'
 })
+
+// 控制信息面板的展开状态
+const activeInfoPanel = ref(['information'])
 
 const platformInfo = ref({
   sourceChannel: 'Amazon → Shopify → OMS',
@@ -3458,18 +3271,18 @@ const getStatusType = (status: OrderStatus): string => {
 // 获取状态标签
 const getStatusLabel = (status: OrderStatus): string => {
   const labels: Record<string, string> = {
-    [OrderStatus.Imported]: '已导入',
-    [OrderStatus.Pending]: '待处理',
-    [OrderStatus.Allocated]: '已分配',
-    [OrderStatus.Exception]: '异常',
-    [OrderStatus.Deallocated]: '已取消分配',
-    [OrderStatus.Cancelling]: '取消中',
-    [OrderStatus.Canceled]: '已取消',
-    [OrderStatus['Warehouse Processing']]: '仓库处理中',
-    [OrderStatus.Shipped]: '已发货',
-    [OrderStatus.InTransit]: '运输中',
-    [OrderStatus.Delivered]: '已送达',
-    [OrderStatus.Completed]: '已完成'
+    [OrderStatus.Imported]: 'Imported',
+    [OrderStatus.Pending]: 'Pending',
+    [OrderStatus.Allocated]: 'Allocated',
+    [OrderStatus.Exception]: 'Exception',
+    [OrderStatus.Deallocated]: 'Deallocated',
+    [OrderStatus.Cancelling]: 'Cancelling',
+    [OrderStatus.Canceled]: 'Cancelled',
+    [OrderStatus['Warehouse Processing']]: 'Warehouse Processing',
+    [OrderStatus.Shipped]: 'Shipped',
+    [OrderStatus.InTransit]: 'In Transit',
+    [OrderStatus.Delivered]: 'Delivered',
+    [OrderStatus.Completed]: 'Completed'
   }
   return labels[status] || status
 }
@@ -3591,6 +3404,16 @@ interface DispatchedDetail {
     sku: string;
     quantity: number;
   }>;
+  allocatedTime?: string;
+  receivedTime?: string;
+  committedTime?: string;
+  pickedTime?: string;
+  packedTime?: string;
+  loadedTime?: string;
+  partiallyShippedTime?: string;
+  shippedTime?: string;
+  shortShippedTime?: string;
+  cancelTime?: string;
 }
 
 // Package数据接口
@@ -3772,9 +3595,9 @@ watch(isEditing, (newVal) => {
   }
 })
 
-// 添加错误相关的状态
-const hasError = ref(true) // 设置为true显示错误
-const errorMessage = ref('订单商品库存不足：SKU-001缺少2件, SKU-002缺少1件，请检查库存后重新分配。')
+// 错误相关的状态
+const hasError = ref(false)
+const errorMessage = ref('')
 
 // 显示错误详情
 const showErrorDetail = () => {
@@ -8609,5 +8432,158 @@ const statusHistory = ref<StatusHistory[]>([
   font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
 }
 
+.detail-header {
+  background: var(--el-bg-color);
+  border-bottom: 1px solid var(--el-border-color-lighter);
 
-</style> 
+  .header-main {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 12px 16px;
+
+    .left-section {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+
+      .order-id {
+        margin: 0;
+        font-size: 16px;
+        font-weight: 500;
+        color: var(--el-text-color-primary);
+      }
+
+      :deep(.el-tag) {
+        margin-left: 4px;
+        height: 22px;
+        padding: 0 8px;
+      }
+    }
+
+    .order-info {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+
+      .channel-flow {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 12px;
+        color: var(--el-text-color-regular);
+
+        .flow-item {
+          color: var(--el-text-color-regular);
+        }
+
+        .arrow {
+          font-size: 12px;
+          color: var(--el-text-color-secondary);
+          margin: 0 2px;
+        }
+      }
+
+      .info-cards {
+        display: flex;
+        gap: 16px;
+
+        .info-card {
+          flex: 1;
+
+          .info-content {
+            .info-item {
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              margin-bottom: 2px;
+              font-size: 12px;
+
+              &:last-child {
+                margin-bottom: 0;
+              }
+
+              .label {
+                color: var(--el-text-color-regular);
+              }
+
+              .value {
+                color: var(--el-text-color-primary);
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  .header-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 20px;
+    background: var(--el-bg-color);
+    border-bottom: 1px solid var(--el-border-color-lighter);
+  }
+}
+
+.info-dialog {
+  :deep(.el-dialog__body) {
+    padding: 20px;
+  }
+  
+  .info-cards {
+    display: flex;
+    gap: 20px;
+    
+    .info-card {
+      flex: 1;
+      
+      :deep(.el-card__header) {
+        padding: 12px 16px;
+        border-bottom: 1px solid var(--el-border-color-lighter);
+        
+        .card-header {
+          h3 {
+            margin: 0;
+            font-size: 16px;
+            color: var(--el-text-color-primary);
+          }
+          
+          .source-path {
+            margin-top: 4px;
+            font-size: 12px;
+            color: var(--el-text-color-secondary);
+          }
+        }
+      }
+      
+      .info-content {
+        padding: 16px;
+        
+        .info-item {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 12px;
+          
+          &:last-child {
+            margin-bottom: 0;
+          }
+          
+          .label {
+            color: var(--el-text-color-secondary);
+            font-size: 14px;
+          }
+          
+          .value {
+            color: var(--el-text-color-primary);
+            font-size: 14px;
+            font-weight: 500;
+          }
+        }
+      }
+    }
+  }
+}
+</style>

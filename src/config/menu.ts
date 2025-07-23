@@ -64,6 +64,11 @@ export const menuConfig: MenuItem[] = [
     icon: ShoppingCart,
     children: [
       {
+        title: 'Sales Orders New',
+        path: '/order/sales-orders-new',
+        icon: Document
+      },
+      {
         title: 'Sales Order',
         path: '/order/sales',
         icon: Document
@@ -230,6 +235,10 @@ const menus: Menu[] = [
     name: '订单管理',
     icon: 'ShoppingCart',
     children: [
+      {
+        path: '/order/sales-orders-new',
+        name: 'Sales Orders New'
+      },
       {
         path: '/order/sales',
         name: '订单列表'

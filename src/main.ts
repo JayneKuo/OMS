@@ -8,7 +8,7 @@ import 'element-plus/dist/index.css'
 import '@/styles/index.scss'
 import './styles/element-dark.scss'  // 引入自定义的暗色主题样式
 import { vClickOutside } from './directives'
-import zhCn from 'element-plus/es/locale/lang/zh-cn'
+import en from 'element-plus/es/locale/lang/en' // 引入英文语言包
 
 // 引入模拟数据
 import './mock'
@@ -22,7 +22,7 @@ for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
 
 app.use(router)
 app.use(ElementPlus, {
-  locale: zhCn // 设置Element Plus为中文
+  locale: en // 设置Element Plus为英文
 })
 app.directive('click-outside', vClickOutside)
 

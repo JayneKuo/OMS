@@ -7,7 +7,17 @@ export default defineConfig({
     port: 3001,
     host: true
   },
-  plugins: [vue()],
+  plugins: [
+    vue({
+      template: {
+        compilerOptions: {
+          // 处理模板编译警告
+          isCustomElement: (tag) => false,
+          whitespace: 'preserve'
+        }
+      }
+    })
+  ],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, 'src')
@@ -29,6 +39,11 @@ export default defineConfig({
               id.includes('node_modules/@element-plus')) {
             return 'vue-vendor'
           }
+          // 将 vuedraggable 及其依赖打包到一个文件中
+          if (id.includes('node_modules/vuedraggable') ||
+              id.includes('node_modules/sortablejs')) {
+            return 'draggable-vendor'
+          }
         }
       }
     }
@@ -40,7 +55,9 @@ export default defineConfig({
       'element-plus',
       '@vue/shared',
       '@vue/runtime-core',
-      '@vue/runtime-dom'
+      '@vue/runtime-dom',
+      'vuedraggable',
+      'sortablejs'
     ]
   }
 }) 
