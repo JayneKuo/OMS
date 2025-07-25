@@ -493,34 +493,35 @@
       <!-- 右侧信息栏 -->
       <div class="side-section">
         <!-- Exception卡片 -->
-        <div 
-          class="info-card exception-card" 
-          :class="[`error-type-${getErrorType(exceptionInfo.type)}`]"
-          v-if="hasException"
-        >
+        <div class="info-card exception-card" v-if="hasException">
           <div class="error-header">
             <div class="error-title">
               <el-icon><Warning class="error-icon" /></el-icon>
-              <span>{{ exceptionInfo.title }}</span>
+              <span>Sent Order Failure - Route Not Found</span>
             </div>
             <el-icon class="expand-icon" :class="{ 'is-expanded': isErrorExpanded }" @click="toggleErrorExpand">
               <ArrowUp />
             </el-icon>
           </div>
           <div class="error-content" v-show="isErrorExpanded">
+            <div class="error-summary">
+              <span>None of your routing rules matched this order.</span>
+              <el-link type="primary" class="error-link">Order Routing Engine integration error</el-link>
+            </div>
             <div class="error-details">
               <div class="error-section">
                 <div class="section-title">Error message</div>
-                <div class="section-content">{{ exceptionInfo.message }}</div>
+                <div class="section-content">None of your routing rules matched this order.</div>
               </div>
               <div class="error-section">
-                <div class="section-title">Suggestion</div>
-                <div class="section-content">{{ exceptionInfo.suggestion }}</div>
+                <div class="section-content">
+                  You should check the order routing run(s) for this order to see why.
+                </div>
               </div>
               <div class="error-meta">
                 <div class="meta-item">
                   <span class="meta-label">Error created</span>
-                  <span class="meta-value">{{ exceptionInfo.createdAt }}</span>
+                  <span class="meta-value">Jul 18, 2025 10:23 AM</span>
                 </div>
               </div>
             </div>
@@ -536,10 +537,10 @@
                 {{ getRoutingStatusText }}
               </el-tag>
             </div>
-                          <el-switch
-              v-model="showAllRoutes"
-              active-text="Show All"
-              class="route-switch"
+            <el-switch
+              v-model="showEmptyRuns"
+              active-text="Show Empty Runs"
+              class="empty-runs-switch"
             />
           </div>
           <div class="routing-content">
@@ -3601,14 +3602,14 @@ interface RouteItem {
 const hasException = ref(true) // 控制异常卡片的显示
 const isErrorExpanded = ref(true) // 控制异常详情的展开/收起
 const exceptionInfo = ref<ExceptionInfo>({
-  createdTime: '07/24/2025 02:26:16 AM',
-  type: 'WMSReturnTimeout',
-  message: 'WMS did not return fulfillment result for order {orderNo} within expected time.',
-  suggestion: 'Contact WMS or escalate for delayed fulfillment.'
+  createdTime: 'Jul 18, 2025 10:23 AM',
+  type: 'Route Not Found',
+  message: 'None of your routing rules matched this order.',
+  suggestion: ''
 })
 
 // Order Routing相关数据
-const showAllRoutes = ref(false)
+const showEmptyRuns = ref(false)
 const routingHistory = ref<RouteItem[]>([
   {
     time: '07/22/2025 8:28 AM',
@@ -3622,10 +3623,10 @@ const routingHistory = ref<RouteItem[]>([
 
 // 过滤后的路由历史
 const filteredRoutingHistory = computed(() => {
-  if (showAllRoutes.value) {
+  if (showEmptyRuns.value) {
     return routingHistory.value
   }
-  return routingHistory.value.filter(route => route.status === 'Fully Routed')
+  return routingHistory.value.filter(route => route.status !== 'Nothing Routed')
 })
 
 // 编辑前的备份数据
