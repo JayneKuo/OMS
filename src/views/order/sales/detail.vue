@@ -7,7 +7,20 @@
           <el-button link @click="$router.back()">
             <el-icon><ArrowLeft /></el-icon>
           </el-button>
-          <h2 class="order-id">#{{ orderNo }}</h2>
+          <div class="order-info-section">
+            <div class="id-section">
+              <h2 class="order-id">#{{ orderNo }}</h2>
+              <el-button 
+                text
+                size="small"
+                class="info-button"
+                @click="showInfoDialog = !showInfoDialog"
+              >
+                <el-icon><InfoFilled /></el-icon>
+                <span>information</span>
+              </el-button>
+            </div>
+          </div>
           <el-tag 
             :type="getStatusType(orderStatus)" 
             size="small" 
@@ -17,46 +30,28 @@
           </el-tag>
         </div>
 
-        <!-- 订单信息区域 -->
-        <div class="order-info">
-          <!-- 渠道路径 -->
-          <div class="channel-flow">
-            <span class="flow-item">Amazon</span>
-            <el-icon class="arrow"><ArrowRight /></el-icon>
-            <span class="flow-item">Shopify</span>
-            <el-icon class="arrow"><ArrowRight /></el-icon>
-            <span class="flow-item">OMS</span>
-            <el-tag class="store-name">{{ platformInfo.currentChannel }}</el-tag>
-          </div>
-          
-          <!-- 信息卡片区域 -->
-          <div class="info-cards">
-            <!-- Internal Info -->
-            <div class="info-card">
-              <div class="info-content">
-                <div class="info-item">
-                  <span class="label">Ingested</span>
-                  <span class="value">{{ formatDate(orderBasicInfo.importDate) }}</span>
-                </div>
-                <div class="info-item">
-                  <span class="label">Updated</span>
-                  <span class="value">{{ formatDate(orderBasicInfo.lastUpdateDate) }}</span>
-                </div>
-              </div>
+                  <!-- 订单信息区域 -->
+        <div class="order-info" v-if="showInfoDialog">
+          <div class="info-line">
+            <div class="info-item">
+              <span class="label">Source:</span>
+              <span class="value">Amazon → Shopify → OMS</span>
             </div>
-
-            <!-- External Source Info -->
-            <div class="info-card">
-              <div class="info-content">
-                <div class="info-item">
-                  <span class="label">Ordered</span>
-                  <span class="value">{{ formatDate(orderBasicInfo.orderDate) }}</span>
-                </div>
-                <div class="info-item">
-                  <span class="label">Ship by Date</span>
-                  <span class="value">{{ formatDate(orderBasicInfo.shipByDate) }}</span>
-                </div>
-              </div>
+            <div class="info-item">
+              <span class="label">Ordered:</span>
+              <span class="value">2024/02/16 08:30</span>
+            </div>
+            <div class="info-item">
+              <span class="label">Ingested:</span>
+              <span class="value">2024/02/16 09:00</span>
+            </div>
+            <div class="info-item">
+              <span class="label">Updated:</span>
+              <span class="value">2024/02/16 10:30</span>
+            </div>
+            <div class="info-item">
+              <span class="label">Ship by Date:</span>
+              <span class="value">2024/02/20 16:00</span>
             </div>
           </div>
         </div>
@@ -129,12 +124,17 @@
       </div>
     </div>
 
+    <!-- 订单状态进度条 -->
+    <OrderStatusProgress
+      :current-status="orderStatus"
+      :status-times="statusTimes"
+      :dynamic-nodes="dynamicNodes"
+    />
+
     <!-- 主要内容区域 -->
     <div class="detail-content">
       <!-- 左侧主要内容 -->
       <div class="main-section">
-
-
         <!-- 订单详情Tab区域 -->
         <div class="order-details-section">
           <div class="section-header">
@@ -492,6 +492,80 @@
 
       <!-- 右侧信息栏 -->
       <div class="side-section">
+        <!-- Exception卡片 -->
+        <div 
+          class="info-card exception-card" 
+          :class="[`error-type-${getErrorType(exceptionInfo.type)}`]"
+          v-if="hasException"
+        >
+          <div class="error-header">
+            <div class="error-title">
+              <el-icon><Warning class="error-icon" /></el-icon>
+              <span>{{ exceptionInfo.title }}</span>
+            </div>
+            <el-icon class="expand-icon" :class="{ 'is-expanded': isErrorExpanded }" @click="toggleErrorExpand">
+              <ArrowUp />
+            </el-icon>
+          </div>
+          <div class="error-content" v-show="isErrorExpanded">
+            <div class="error-details">
+              <div class="error-section">
+                <div class="section-title">Error message</div>
+                <div class="section-content">{{ exceptionInfo.message }}</div>
+              </div>
+              <div class="error-section">
+                <div class="section-title">Suggestion</div>
+                <div class="section-content">{{ exceptionInfo.suggestion }}</div>
+              </div>
+              <div class="error-meta">
+                <div class="meta-item">
+                  <span class="meta-label">Error created</span>
+                  <span class="meta-value">{{ exceptionInfo.createdAt }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Order Routing卡片 -->
+        <div class="info-card routing-card">
+          <div class="routing-header">
+            <div class="header-left">
+              <h3>Order Routing History</h3>
+              <el-tag size="small" :type="getRoutingStatusType" effect="plain" class="routing-status">
+                {{ getRoutingStatusText }}
+              </el-tag>
+            </div>
+                          <el-switch
+              v-model="showAllRoutes"
+              active-text="Show All"
+              class="route-switch"
+            />
+          </div>
+          <div class="routing-content">
+            <div class="routing-timeline">
+              <div v-for="route in filteredRoutingHistory" :key="route.time" class="route-item">
+                <div class="route-icon">
+                  <el-icon v-if="route.status === 'Fully Routed'" class="success"><CircleCheck /></el-icon>
+                  <el-icon v-else class="warning"><InfoFilled /></el-icon>
+                </div>
+                <div class="route-info">
+                  <div class="route-time">{{ route.time }}</div>
+                  <div class="route-status">
+                    <el-tag 
+                      size="small" 
+                      :type="route.status === 'Fully Routed' ? 'success' : 'warning'"
+                      effect="plain"
+                    >
+                      {{ route.status }}
+                    </el-tag>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- Tab切换的信息卡片 -->
         <div class="info-card tab-card">
           <el-tabs type="border-card" class="custom-tabs">
@@ -1057,6 +1131,7 @@ import { OrderAction, STATUS_CONFIG } from './types'
 import { OrderStatus } from '@/types/order'
 import DispatchDetails from './components/DispatchDetails.vue'
 import OrderItemsTable from './components/OrderItemsTable.vue'
+import OrderStatusProgress from '@/components/OrderStatusProgress.vue'
 
 // 定义 DispatchedDetail 接口
 interface DispatchItem {
@@ -1085,6 +1160,69 @@ interface DispatchedDetail {
 const route = useRoute()
 const currentOrderStatus = ref<OrderStatus>(OrderStatus.Pending) // 设置为Pending状态用于测试
 const showInfoDialog = ref(false) // 控制信息弹窗的显示状态
+
+// 订单状态时间
+const statusTimes = ref({
+  [OrderStatus.Imported]: '2024-02-16 09:22:15',
+  [OrderStatus.Pending]: '2024-02-16 10:25:00',
+  [OrderStatus.Allocated]: '2024-02-16 12:30:00',
+  [OrderStatus.Processing]: '2024-02-16 14:25:00',
+  [OrderStatus.Shipped]: '2024-02-17 14:30:00',
+  [OrderStatus.InTransit]: '2024-02-17 22:30:00',
+  [OrderStatus.Delivered]: '2024-02-18 14:30:00'
+})
+
+// 动态节点
+const dynamicNodes = computed(() => {
+  const nodes = []
+
+  // 检查是否有 Hold 状态
+  const holdActivity = activities.value.find(activity => 
+    activity.actionType === 'Hold' || 
+    activity.title?.includes('Hold') || 
+    activity.content?.includes('Hold')
+  )
+  if (holdActivity) {
+    nodes.push({
+      status: OrderStatus.Pending,
+      position: 'beforeAllocated',
+      reason: holdActivity.reason || '订单Hold中',
+      time: holdActivity.timestamp
+    })
+  }
+
+  // 检查是否有异常
+  const exceptionActivity = activities.value.find(activity => 
+    activity.actionType === 'Exception' || 
+    activity.type === 'danger' ||
+    activity.title?.includes('异常')
+  )
+  if (exceptionActivity) {
+    nodes.push({
+      status: OrderStatus.Exception,
+      position: 'beforeWarehouse',
+      reason: exceptionActivity.reason || '订单异常',
+      time: exceptionActivity.timestamp
+    })
+  }
+
+  // 检查是否有取消
+  const cancelActivity = activities.value.find(activity => 
+    activity.actionType === 'Cancel' || 
+    activity.title?.includes('取消') ||
+    activity.content?.includes('取消')
+  )
+  if (cancelActivity) {
+    nodes.push({
+      status: OrderStatus.Cancelled,
+      position: 'afterAllocated',
+      reason: cancelActivity.reason || '订单已取消',
+      time: cancelActivity.timestamp
+    })
+  }
+
+  return nodes
+})
 
 // 订单状态（与currentOrderStatus保持一致，用于状态标签显示）
 const orderStatus = computed(() => currentOrderStatus.value)
@@ -1713,10 +1851,10 @@ const dispatchedDetails = ref<DispatchedDetail[]>([
     warehouse: 'Valley View',
     warehouseCode: 'VV001',
     status: 'Warehouse Received',
-    carrier: null,
-    trackingNumber: null,
-    trackingUrl: null,
-    shipDate: null,
+    carrier: undefined,
+    trackingNumber: undefined,
+    trackingUrl: undefined,
+    shipDate: undefined,
     estimatedDelivery: '2024-02-20 16:00:00',
     orderTime: '2024-02-17 09:30:00',
     reviewTime: '2024-02-17 09:35:00',
@@ -1758,9 +1896,9 @@ const dispatchedDetails = ref<DispatchedDetail[]>([
     warehouseCode: 'VV001',
     status: 'Packed',
     carrier: '顺丰快递',
-    trackingNumber: null,
-    trackingUrl: null,
-    shipDate: null,
+    trackingNumber: undefined,
+    trackingUrl: undefined,
+    shipDate: undefined,
     estimatedDelivery: '2024-02-19 16:00:00',
     orderTime: '2024-02-17 07:15:00',
     reviewTime: '2024-02-17 07:20:00',
@@ -1823,10 +1961,10 @@ const dispatchedDetails = ref<DispatchedDetail[]>([
     warehouse: 'Valley View',
     warehouseCode: 'VV001',
     status: 'On Hold',
-    carrier: null,
-    trackingNumber: null,
-    trackingUrl: null,
-    shipDate: null,
+    carrier: undefined,
+    trackingNumber: undefined,
+    trackingUrl: undefined,
+    shipDate: undefined,
     estimatedDelivery: '2024-02-20 16:00:00',
     orderTime: '2024-02-17 04:00:00',
     reviewTime: '2024-02-17 04:05:00',
@@ -1845,10 +1983,10 @@ const dispatchedDetails = ref<DispatchedDetail[]>([
     warehouse: 'Valley View',
     warehouseCode: 'VV001',
     status: 'Cancelled',
-    carrier: null,
-    trackingNumber: null,
-    trackingUrl: null,
-    shipDate: null,
+    carrier: undefined,
+    trackingNumber: undefined,
+    trackingUrl: undefined,
+    shipDate: undefined,
     estimatedDelivery: '2024-02-19 16:00:00',
     orderTime: '2024-02-17 03:00:00',
     reviewTime: '2024-02-17 03:05:00',
@@ -3436,8 +3574,59 @@ interface Package {
   }>;
 }
 
+// 类型定义
+interface ExceptionInfo {
+  createdTime: string;
+  type: string;
+  message: string;
+  suggestion?: string;
+}
 
+interface RouteError {
+  title: string;
+  detail: string;
+}
 
+interface RouteItem {
+  time: string;
+  status: string;
+  message?: string;
+  error?: RouteError;
+  showError?: boolean;
+  canExplain?: boolean;
+  fullMessage?: string;
+}
+
+// Exception相关数据
+const hasException = ref(true) // 控制异常卡片的显示
+const isErrorExpanded = ref(true) // 控制异常详情的展开/收起
+const exceptionInfo = ref<ExceptionInfo>({
+  createdTime: '07/24/2025 02:26:16 AM',
+  type: 'WMSReturnTimeout',
+  message: 'WMS did not return fulfillment result for order {orderNo} within expected time.',
+  suggestion: 'Contact WMS or escalate for delayed fulfillment.'
+})
+
+// Order Routing相关数据
+const showAllRoutes = ref(false)
+const routingHistory = ref<RouteItem[]>([
+  {
+    time: '07/22/2025 8:28 AM',
+    status: 'Fully Routed'
+  },
+  {
+    time: '07/22/2025 7:53 AM',
+    status: 'Nothing Routed'
+  }
+])
+
+// 过滤后的路由历史
+const filteredRoutingHistory = computed(() => {
+  if (showAllRoutes.value) {
+    return routingHistory.value
+  }
+  return routingHistory.value.filter(route => route.status === 'Fully Routed')
+})
 
 // 编辑前的备份数据
 const backupData = ref<BackupData>({
@@ -4083,6 +4272,129 @@ const statusHistory = ref<StatusHistory[]>([
   background: linear-gradient(135deg, #0A0A0F 0%, #141420 100%);
   color: #fff;
 
+  :deep(.order-status-card) {
+    margin-bottom: 24px;
+    background: rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(24px);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
+
+    .card-header {
+      border-bottom-color: rgba(255, 255, 255, 0.06);
+
+      .title {
+        color: rgba(255, 255, 255, 0.9);
+      }
+    }
+
+    .status-nodes {
+      .connector-line {
+        background-color: rgba(255, 255, 255, 0.1);
+
+        &.is-completed {
+          background-color: var(--el-color-success);
+        }
+
+        &.is-error {
+          background-color: var(--el-color-danger);
+        }
+
+        &.is-warning {
+          background-color: var(--el-color-warning);
+        }
+      }
+
+      .status-node {
+        .node-dot {
+          background: transparent;
+          border-color: rgba(255, 255, 255, 0.2);
+
+          .el-icon {
+            color: rgba(255, 255, 255, 0.5);
+          }
+        }
+
+        .node-info {
+          .node-label {
+            color: rgba(255, 255, 255, 0.7);
+          }
+
+          .node-time {
+            color: rgba(255, 255, 255, 0.4);
+          }
+        }
+
+        &.is-completed {
+          .node-dot {
+            background: var(--el-color-success);
+            border-color: var(--el-color-success);
+
+            .el-icon {
+              color: #fff;
+            }
+          }
+
+          .node-label {
+            color: var(--el-color-success);
+          }
+        }
+
+        &.is-current {
+          .node-dot {
+            background: var(--el-color-primary);
+            border-color: var(--el-color-primary);
+
+            .el-icon {
+              color: #fff;
+            }
+          }
+
+          .node-label {
+            color: var(--el-color-primary);
+          }
+        }
+
+        &.is-error {
+          .node-dot {
+            background: transparent;
+            border-color: var(--el-color-danger);
+
+            .el-icon {
+              color: var(--el-color-danger);
+            }
+          }
+
+          .node-label {
+            color: var(--el-color-danger);
+          }
+        }
+
+        &.is-warning {
+          .node-dot {
+            background: transparent;
+            border-color: var(--el-color-warning);
+
+            .el-icon {
+              color: var(--el-color-warning);
+            }
+          }
+
+          .node-label {
+            color: var(--el-color-warning);
+          }
+        }
+      }
+    }
+  }
+
+  // 订单状态进度条样式
+  :deep(.order-status-card) {
+    margin: 16px 24px;
+    border-radius: 8px;
+    box-shadow: var(--el-box-shadow-light);
+    background: var(--el-bg-color);
+  }
+
   .detail-header {
     padding: 32px 48px;
     background: rgba(255, 255, 255, 0.03);
@@ -4102,28 +4414,46 @@ const statusHistory = ref<StatusHistory[]>([
       .left-section {
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: 12px;
         margin-bottom: 20px;
         flex-wrap: wrap;
 
-        .order-id {
-          margin: 0;
-          font-size: 32px;
+        .order-info-section {
+          display: flex;
+          flex-direction: column;
+          align-items: flex-start;
+
+          .order-id {
+            margin: 0;
+            font-size: 32px;
       font-weight: 600;
-          background: linear-gradient(135deg, #fff, rgba(255, 255, 255, 0.6));
+            background: linear-gradient(135deg, #fff, rgba(255, 255, 255, 0.6));
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
-          letter-spacing: -0.5px;
-          position: relative;
-          
-          &::after {
-            content: '';
-            position: absolute;
-            bottom: -4px;
-            left: 0;
-            width: 100%;
-            height: 1px;
-            background: linear-gradient(90deg, rgba(255, 255, 255, 0.2), transparent);
+            letter-spacing: -0.5px;
+            position: relative;
+            
+            &::after {
+              content: '';
+              position: absolute;
+              bottom: -4px;
+              left: 0;
+              width: 100%;
+              height: 1px;
+              background: linear-gradient(90deg, rgba(255, 255, 255, 0.2), transparent);
+            }
+          }
+
+          .info-button {
+            padding: 0;
+            height: 20px;
+            font-size: 12px;
+            color: var(--el-text-color-secondary);
+            margin-top: 4px;
+            
+            &:hover {
+              color: var(--el-text-color-primary);
+            }
           }
         }
 
@@ -7779,651 +8109,6 @@ const statusHistory = ref<StatusHistory[]>([
 // 订单备注样式
 .notes-section {
   margin-bottom: 24px;
-  
-  .notes-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 12px;
-    
-    h5 {
-      margin: 0;
-      color: rgba(255, 255, 255, 0.9);
-      font-size: 14px;
-      font-weight: 600;
-    }
-    
-    .notes-desc {
-      font-size: 12px;
-      color: rgba(255, 255, 255, 0.5);
-      background: rgba(255, 255, 255, 0.05);
-      padding: 2px 8px;
-      border-radius: 4px;
-    }
-  }
-  
-  .notes-content {
-    .notes-text {
-      color: rgba(255, 255, 255, 0.8);
-      line-height: 1.6;
-      padding: 12px;
-      background: rgba(255, 255, 255, 0.03);
-      border-radius: 6px;
-      border-left: 3px solid rgba(99, 102, 241, 0.3);
-      margin: 0;
-    }
-    
-    .empty-notes {
-      color: rgba(255, 255, 255, 0.4);
-      font-style: italic;
-      padding: 12px;
-      text-align: center;
-      margin: 0;
-    }
-    
-    .notes-textarea {
-      :deep(.el-textarea__inner) {
-        background: rgba(255, 255, 255, 0.05);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        color: rgba(255, 255, 255, 0.9);
-        
-        &:focus {
-          border-color: rgba(99, 102, 241, 0.5);
-        }
-        
-        &::placeholder {
-          color: rgba(255, 255, 255, 0.4);
-        }
-      }
-    }
-  }
-  
-
-}
-
-.notes-actions {
-  display: flex;
-  gap: 12px;
-  justify-content: flex-end;
-  margin-top: 20px;
-  padding-top: 16px;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-// 商品编辑限制相关样式
-.edit-note {
-  font-size: 11px;
-  color: rgba(52, 199, 89, 0.8);
-  background: rgba(52, 199, 89, 0.1);
-  padding: 2px 6px;
-  border-radius: 4px;
-  margin-top: 4px;
-  border: 1px solid rgba(52, 199, 89, 0.2);
-  display: inline-block;
-}
-
-.dispatch-lock {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  margin-top: 4px;
-  font-size: 11px;
-  color: rgba(248, 113, 113, 0.8);
-  background: rgba(248, 113, 113, 0.1);
-  padding: 2px 6px;
-  border-radius: 4px;
-  border: 1px solid rgba(248, 113, 113, 0.2);
-  
-  .el-icon {
-    font-size: 10px;
-  }
-}
-
-.edit-disabled-icon {
-  color: rgba(148, 163, 184, 0.6);
-  font-size: 14px;
-  margin-left: 4px;
-  cursor: help;
-  
-  &:hover {
-    color: rgba(148, 163, 184, 0.8);
-  }
-}
-
-.quantity-display {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-}
-
-// 商品状态列表样式
-.status-products-section {
-  margin-top: 32px;
-  padding: 20px;
-  background: rgba(255, 255, 255, 0.02);
-  border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  
-  .status-section-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 16px;
-    padding-bottom: 12px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    
-    .header-content {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      
-      .status-icon {
-        font-size: 20px;
-        
-        &.cancelled {
-          color: #F87171;
-        }
-        
-        &.returned {
-          color: #FBBF24;
-        }
-        
-        &.exchanged {
-          color: #60A5FA;
-        }
-      }
-      
-      h4 {
-        margin: 0;
-        color: rgba(255, 255, 255, 0.9);
-        font-size: 16px;
-        font-weight: 600;
-      }
-    }
-    
-    .status-summary {
-      color: rgba(255, 255, 255, 0.7);
-      font-size: 14px;
-      
-      .amount-highlight {
-        color: #FBBF24;
-        font-weight: 600;
-        font-size: 16px;
-      }
-    }
-  }
-  
-  .status-table-container {
-    .el-table {
-      background: transparent;
-      
-      :deep(.el-table__header) {
-        background: rgba(255, 255, 255, 0.05);
-        
-        th {
-          background: transparent;
-          border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-          color: rgba(255, 255, 255, 0.8);
-        }
-      }
-      
-      :deep(.el-table__body) {
-        tr {
-          background: transparent;
-          
-          &:hover {
-            background: rgba(255, 255, 255, 0.03);
-          }
-          
-          td {
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-            color: rgba(255, 255, 255, 0.8);
-          }
-        }
-      }
-    }
-  }
-}
-
-// 小尺寸商品图片
-.product-image-small {
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
-  background: linear-gradient(45deg, #6366F1, #8B5CF6);
-  flex-shrink: 0;
-}
-
-.product-image-tiny {
-  width: 24px;
-  height: 24px;
-  border-radius: 6px;
-  background: linear-gradient(45deg, #6366F1, #8B5CF6);
-  flex-shrink: 0;
-}
-
-// 商品信息样式
-.item-info {
-  .item-name {
-    color: rgba(255, 255, 255, 0.9);
-    font-size: 14px;
-    font-weight: 500;
-    margin-bottom: 4px;
-  }
-  
-  .item-category {
-    color: rgba(255, 255, 255, 0.6);
-    font-size: 12px;
-    margin-bottom: 2px;
-  }
-  
-  .item-sku {
-    color: rgba(99, 102, 241, 0.8);
-    font-size: 11px;
-    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-    background: rgba(99, 102, 241, 0.1);
-    padding: 2px 6px;
-    border-radius: 4px;
-    display: inline-block;
-  }
-}
-
-// 数量样式
-.quantity-cancelled,
-.quantity-returned {
-  color: rgba(248, 113, 113, 0.9);
-  font-weight: 600;
-  background: rgba(248, 113, 113, 0.1);
-  padding: 4px 8px;
-  border-radius: 6px;
-  font-size: 13px;
-}
-
-// 原因样式
-.cancel-reason,
-.return-reason,
-.exchange-reason {
-  color: rgba(255, 255, 255, 0.8);
-  font-size: 13px;
-  line-height: 1.4;
-}
-
-// 时间样式
-.cancel-time,
-.return-time,
-.exchange-time {
-  color: rgba(148, 163, 184, 0.9);
-  font-size: 12px;
-  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-}
-
-// 金额样式
-.amount-cancelled,
-.amount-returned {
-  color: #F87171;
-  font-weight: 600;
-  font-size: 14px;
-}
-
-// 换货详情样式
-.exchange-details {
-  display: flex;
-  align-items: center;
-  gap: 24px;
-  padding: 16px;
-  background: rgba(255, 255, 255, 0.02);
-  border-radius: 8px;
-  margin: 8px 0;
-  
-  .exchange-item {
-    flex: 1;
-    
-    .exchange-label {
-      color: rgba(255, 255, 255, 0.6);
-      font-size: 12px;
-      margin-bottom: 8px;
-      font-weight: 500;
-    }
-    
-    .exchange-product {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      
-      .product-details {
-        .name {
-          color: rgba(255, 255, 255, 0.9);
-          font-size: 14px;
-          font-weight: 500;
-          margin-bottom: 4px;
-        }
-        
-        .meta {
-          color: rgba(255, 255, 255, 0.6);
-          font-size: 12px;
-          margin-bottom: 2px;
-        }
-        
-        .price {
-          color: rgba(99, 102, 241, 0.8);
-          font-size: 11px;
-        }
-      }
-    }
-  }
-  
-  .exchange-arrow {
-    color: rgba(99, 102, 241, 0.8);
-    font-size: 20px;
-    
-    .el-icon {
-      font-size: 20px;
-    }
-  }
-}
-
-// 换货信息样式
-.exchange-info {
-  .exchange-summary {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 4px;
-    
-    .original-name {
-      color: rgba(255, 255, 255, 0.8);
-      font-size: 13px;
-    }
-    
-    .exchange-icon {
-      color: rgba(99, 102, 241, 0.8);
-      font-size: 14px;
-    }
-    
-    .new-name {
-      color: rgba(52, 199, 89, 0.9);
-      font-size: 13px;
-      font-weight: 500;
-    }
-  }
-  
-  .exchange-meta {
-    color: rgba(99, 102, 241, 0.8);
-    font-size: 11px;
-    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-  }
-}
-
-// 价差样式
-.price-difference {
-  font-weight: 600;
-  font-size: 14px;
-  
-  &.positive {
-    color: #34C759;
-  }
-  
-  &.negative {
-    color: #F87171;
-  }
-  
-  &.zero {
-    color: rgba(148, 163, 184, 0.8);
-  }
-}
-
-// 简化商品信息样式
-.item-info-simple {
-  .item-name {
-    color: rgba(255, 255, 255, 0.9);
-    font-size: 14px;
-    font-weight: 500;
-    margin-bottom: 4px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex-wrap: wrap;
-    
-    .exchange-tag {
-      font-size: 10px;
-      padding: 1px 4px;
-      border-radius: 3px;
-    }
-  }
-  
-  .item-meta {
-    color: rgba(255, 255, 255, 0.6);
-    font-size: 12px;
-    margin-bottom: 4px;
-  }
-  
-  .item-sku {
-    color: rgba(99, 102, 241, 0.8);
-    font-size: 11px;
-    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-    background: rgba(99, 102, 241, 0.1);
-    padding: 2px 6px;
-    border-radius: 4px;
-    display: inline-block;
-    margin-bottom: 4px;
-  }
-  
-  .exchange-info {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    color: rgba(251, 191, 36, 0.8);
-    font-size: 11px;
-    background: rgba(251, 191, 36, 0.1);
-    padding: 2px 6px;
-    border-radius: 4px;
-    
-    .exchange-icon {
-      font-size: 10px;
-    }
-  }
-}
-
-.quantity-info {
-  text-align: center;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  
-  .original-quantity {
-    color: rgba(255, 255, 255, 0.9);
-    font-size: 14px;
-    font-weight: 600;
-  }
-  
-  .quantity-unit {
-    color: rgba(255, 255, 255, 0.6);
-    font-size: 11px;
-  }
-}
-
-// 应发货数量样式
-.should-dispatch-quantity {
-  text-align: center;
-  padding: 4px 8px;
-  border-radius: 6px;
-  font-weight: 600;
-  
-  &.zero {
-    background: rgba(248, 113, 113, 0.1);
-    color: #F87171;
-  }
-  
-  &.partial {
-    background: rgba(251, 191, 36, 0.1);
-    color: #FBBF24;
-  }
-  
-  &.full {
-    background: rgba(52, 199, 89, 0.1);
-    color: #34C759;
-  }
-}
-
-// 已下发数量样式
-.dispatched-quantity {
-  text-align: center;
-  padding: 4px 8px;
-  border-radius: 6px;
-  font-weight: 600;
-  position: relative;
-  
-  &.zero {
-    background: rgba(148, 163, 184, 0.1);
-    color: rgba(148, 163, 184, 0.8);
-  }
-  
-  &.partial {
-    background: rgba(251, 191, 36, 0.1);
-    color: #FBBF24;
-  }
-  
-  &.full {
-    background: rgba(52, 199, 89, 0.1);
-    color: #34C759;
-  }
-  
-  &.over {
-    background: rgba(248, 113, 113, 0.1);
-    color: #F87171;
-  }
-  
-  .dispatch-ratio {
-    color: rgba(255, 255, 255, 0.6);
-    font-size: 11px;
-    margin-left: 2px;
-  }
-}
-
-// 已shipped数量样式
-.shipped-quantity {
-  text-align: center;
-  padding: 4px 8px;
-  border-radius: 6px;
-  font-weight: 600;
-  position: relative;
-  
-  &.zero {
-    background: rgba(148, 163, 184, 0.1);
-    color: rgba(148, 163, 184, 0.8);
-  }
-  
-  &.partial {
-    background: rgba(251, 191, 36, 0.1);
-    color: #FBBF24;
-  }
-  
-  &.full {
-    background: rgba(52, 199, 89, 0.1);
-    color: #34C759;
-  }
-  
-  &.over {
-    background: rgba(248, 113, 113, 0.1);
-    color: #F87171;
-  }
-  
-  .shipped-ratio {
-    color: rgba(255, 255, 255, 0.6);
-    font-size: 11px;
-    margin-left: 2px;
-  }
-}
-
-.fulfillment-amount {
-  text-align: right;
-  
-  .current-amount {
-    color: rgba(255, 255, 255, 0.9);
-    font-size: 14px;
-    font-weight: 600;
-    margin-bottom: 2px;
-  }
-  
-  .original-amount {
-    color: rgba(148, 163, 184, 0.8);
-    font-size: 11px;
-    text-decoration: line-through;
-    margin-bottom: 4px;
-  }
-  
-  .refund-amount {
-    color: #F87171;
-    font-size: 11px;
-    font-weight: 500;
-    margin-bottom: 4px;
-    background: rgba(248, 113, 113, 0.1);
-    padding: 2px 6px;
-    border-radius: 4px;
-    display: inline-block;
-  }
-  
-  .amount-breakdown {
-    .breakdown-text {
-      color: rgba(148, 163, 184, 0.8);
-      font-size: 10px;
-      line-height: 1.2;
-      font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-      
-      span {
-        display: inline-block;
-        margin: 0 2px;
-        
-        &:first-child {
-          margin-left: 0;
-        }
-      }
-    }
-  }
-}
-
-.operations-summary {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  align-items: center;
-  margin-top: 6px;
-  
-  .el-tag {
-    font-size: 10px;
-    padding: 1px 4px;
-    border-radius: 3px;
-    height: auto;
-  }
-  
-  .no-operations {
-    color: rgba(148, 163, 184, 0.6);
-    font-size: 11px;
-  }
-}
-
-// 操作历史表格样式
-.operation-action {
-  color: rgba(255, 255, 255, 0.9);
-  font-size: 13px;
-}
-
-.operation-reason {
-  color: rgba(255, 255, 255, 0.7);
-  font-size: 12px;
-  line-height: 1.4;
-}
-
-.quantity-change {
-  color: rgba(99, 102, 241, 0.8);
-  font-size: 12px;
-  font-weight: 500;
-  background: rgba(99, 102, 241, 0.1);
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
 }
 
 .operation-time {
@@ -8445,13 +8130,55 @@ const statusHistory = ref<StatusHistory[]>([
     .left-section {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 12px;
 
-      .order-id {
-        margin: 0;
-        font-size: 16px;
-        font-weight: 500;
-        color: var(--el-text-color-primary);
+      .order-info-section {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+
+        .order-id {
+          margin: 0;
+          font-size: 32px;
+          font-weight: 600;
+          background: linear-gradient(135deg, #fff, rgba(255, 255, 255, 0.6));
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          letter-spacing: -0.5px;
+          position: relative;
+          
+          &::after {
+            content: '';
+            position: absolute;
+            bottom: -4px;
+            left: 0;
+            width: 100%;
+            height: 1px;
+            background: linear-gradient(90deg, rgba(255, 255, 255, 0.2), transparent);
+          }
+
+          .info-button {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 0 8px;
+            height: 24px;
+            font-size: 12px;
+            color: var(--el-text-color-secondary);
+            border: 1px solid var(--el-border-color-lighter);
+            border-radius: 4px;
+            
+            .el-icon {
+              font-size: 12px;
+            }
+            
+            &:hover {
+              color: var(--el-text-color-primary);
+              border-color: var(--el-border-color);
+              background-color: var(--el-fill-color-light);
+            }
+          }
+        }
       }
 
       :deep(.el-tag) {
@@ -8462,55 +8189,28 @@ const statusHistory = ref<StatusHistory[]>([
     }
 
     .order-info {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
+      margin-top: 8px;
+      margin-left: 32px;
 
-      .channel-flow {
+      .info-line {
         display: flex;
         align-items: center;
-        gap: 4px;
-        font-size: 12px;
-        color: var(--el-text-color-regular);
+        gap: 32px;
 
-        .flow-item {
-          color: var(--el-text-color-regular);
-        }
-
-        .arrow {
+        .info-item {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          white-space: nowrap;
           font-size: 12px;
-          color: var(--el-text-color-secondary);
-          margin: 0 2px;
-        }
-      }
 
-      .info-cards {
-        display: flex;
-        gap: 16px;
+          .label {
+            color: var(--el-text-color-secondary);
+          }
 
-        .info-card {
-          flex: 1;
-
-          .info-content {
-            .info-item {
-              display: flex;
-              justify-content: space-between;
-              align-items: center;
-              margin-bottom: 2px;
-              font-size: 12px;
-
-              &:last-child {
-                margin-bottom: 0;
-              }
-
-              .label {
-                color: var(--el-text-color-regular);
-              }
-
-              .value {
-                color: var(--el-text-color-primary);
-              }
-            }
+          .value {
+            color: var(--el-text-color-regular);
+            font-family: 'Roboto Mono', monospace;
           }
         }
       }
