@@ -1,22 +1,41 @@
 <template>
   <nav class="nav-menu" :class="{ collapsed: isCollapsed }">
     <template v-for="item in menuItems" :key="item.path">
-      <router-link 
-        :to="item.path"
-        class="menu-item"
-        :class="{ active: isActive(item.path) }"
+      <el-sub-menu v-if="item.children" :index="item.path">
+        <template #title>
+          <el-icon v-if="item.icon">
+            <component :is="item.icon" />
+          </el-icon>
+          <span class="menu-title" v-show="!isCollapsed">{{ item.title }}</span>
+        </template>
+        <el-menu-item 
+          v-for="child in item.children" 
+          :key="child.path"
+          :index="child.path"
+          @click="navigateTo(child.path)"
+        >
+          <el-icon v-if="child.icon">
+            <component :is="child.icon" />
+          </el-icon>
+          <span>{{ child.title }}</span>
+        </el-menu-item>
+      </el-sub-menu>
+      <el-menu-item 
+        v-else 
+        :index="item.path"
+        @click="navigateTo(item.path)"
       >
         <el-icon v-if="item.icon">
           <component :is="item.icon" />
         </el-icon>
         <span class="menu-title" v-show="!isCollapsed">{{ item.title }}</span>
-      </router-link>
+      </el-menu-item>
     </template>
   </nav>
 </template>
 
 <script lang="ts" setup>
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import type { MenuItem } from '@/types/menu'
 
 const props = defineProps<{
@@ -25,9 +44,14 @@ const props = defineProps<{
 }>()
 
 const route = useRoute()
+const router = useRouter()
 
 const isActive = (path: string) => {
   return route.path === path
+}
+
+const navigateTo = (path: string) => {
+  router.push(path)
 }
 </script>
 
@@ -37,10 +61,35 @@ const isActive = (path: string) => {
   padding: 16px 12px;
   overflow-y: auto;
   
+  :deep(.el-sub-menu) {
+    .el-sub-menu__title {
+      color: #8b949e;
+      
+      &:hover {
+        background-color: rgba(124, 77, 255, 0.05);
+        color: #fff;
+      }
+    }
+    
+    .el-menu-item {
+      color: #8b949e;
+      
+      &:hover {
+        background-color: rgba(124, 77, 255, 0.05);
+        color: #fff;
+      }
+      
+      &.is-active {
+        background-color: rgba(124, 77, 255, 0.1);
+        color: #7c4dff;
+      }
+    }
+  }
+  
   &.collapsed {
     padding: 16px 0;
     
-    .menu-item {
+    .el-menu-item {
       padding: 12px 0;
       justify-content: center;
       
@@ -48,18 +97,14 @@ const isActive = (path: string) => {
         margin: 0;
         font-size: 20px;
       }
-
+      
       &:hover {
         background-color: rgba(124, 77, 255, 0.1);
-      }
-      
-      &.active::before {
-        width: 3px;
       }
     }
   }
   
-  .menu-item {
+  .el-menu-item {
     display: flex;
     align-items: center;
     gap: 12px;
@@ -69,27 +114,15 @@ const isActive = (path: string) => {
     text-decoration: none;
     transition: all 0.3s;
     margin-bottom: 4px;
-    position: relative;
     
     &:hover {
       background-color: rgba(124, 77, 255, 0.05);
       color: #fff;
     }
     
-    &.active {
+    &.is-active {
       background-color: rgba(124, 77, 255, 0.1);
       color: #7c4dff;
-      
-      &::before {
-        content: '';
-        position: absolute;
-        left: 0;
-        top: 0;
-        width: 4px;
-        height: 100%;
-        background-color: #7c4dff;
-        border-radius: 0 2px 2px 0;
-      }
     }
     
     .el-icon {

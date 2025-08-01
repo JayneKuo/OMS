@@ -29,22 +29,6 @@ const routes: RouteRecordRaw[] = [
         meta: {
           title: '订单详情'
         }
-      },
-      {
-        path: 'updates',
-        name: 'OrderUpdateList',
-        component: () => import('@/views/order/update/UpdateList.vue'),
-        meta: {
-          title: '订单更新记录'
-        }
-      },
-      {
-        path: 'log',
-        name: 'OrderLog',
-        component: () => import('@/views/order/log/index.vue'),
-        meta: {
-          title: 'Order Logs'
-        }
       }
     ]
   },
@@ -74,6 +58,32 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/return/detail.vue'),
         meta: {
           title: '退货单详情'
+        }
+      }
+    ]
+  },
+  {
+    path: '/warehouse',
+    name: 'Warehouse',
+    component: () => import('@/layouts/MainLayout.vue'),
+    meta: {
+      title: 'Warehouse Management'
+    },
+    children: [
+      {
+        path: 'inventory',
+        name: 'WarehouseInventory',
+        component: () => import('@/views/warehouse/inventory/index.vue'),
+        meta: {
+          title: 'Inventory Management'
+        }
+      },
+      {
+        path: 'inventory/:id',
+        name: 'WarehouseInventoryDetail',
+        component: () => import('@/views/warehouse/inventory/detail.vue'),
+        meta: {
+          title: 'Inventory Detail'
         }
       }
     ]

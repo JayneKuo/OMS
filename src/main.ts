@@ -2,11 +2,11 @@ import { createApp } from 'vue'
 import App from './App.vue'
 import router from './router'
 import ElementPlus from 'element-plus'
-import * as ElementPlusIconsVue from '@element-plus/icons-vue'
 import 'element-plus/theme-chalk/dark/css-vars.css'  // 引入暗色主题变量
 import 'element-plus/dist/index.css'
 import '@/styles/index.scss'
 import './styles/element-dark.scss'  // 引入自定义的暗色主题样式
+import * as ElementPlusIconsVue from '@element-plus/icons-vue'
 import { vClickOutside } from './directives'
 import en from 'element-plus/es/locale/lang/en' // 引入英文语言包
 

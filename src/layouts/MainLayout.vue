@@ -38,10 +38,18 @@
     </nav>
     <div class="main-content">
       <aside class="sidebar" :class="{ collapsed: isCollapsed }">
-        <nav-menu 
-          :menu-items="currentMainMenu?.children || []" 
-          :is-collapsed="isCollapsed" 
-        />
+        <el-menu
+          :collapse="isCollapsed"
+          :default-active="route.path"
+          class="sidebar-menu"
+          :unique-opened="true"
+          :collapse-transition="false"
+        >
+          <nav-menu 
+            :menu-items="currentMainMenu?.children || []" 
+            :is-collapsed="isCollapsed" 
+          />
+        </el-menu>
       </aside>
       <main class="page-content">
         <router-view />
@@ -51,7 +59,7 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { Fold, Expand, HomeFilled, ArrowDown } from '@element-plus/icons-vue'
 import NavMenu from '@/components/navigation/NavMenu.vue'
@@ -64,9 +72,10 @@ const isCollapsed = ref(false)
 
 const mainMenus = menuConfig
 
-const currentMainMenu = computed(() => {
-  const path = route.path
-  return mainMenus.find(menu => path.startsWith(menu.path))
+const currentMainMenu = ref(mainMenus.find(menu => route.path.startsWith(menu.path)))
+
+watch(route, (newRoute) => {
+  currentMainMenu.value = mainMenus.find(menu => newRoute.path.startsWith(menu.path))
 })
 
 const isActiveMainMenu = (path: string) => {
@@ -74,8 +83,11 @@ const isActiveMainMenu = (path: string) => {
 }
 
 const handleMainMenuClick = (menu: any) => {
-  if (menu.children && menu.children.length > 0) {
-    router.push(menu.children[0].path)
+  if (menu.path === '/dashboard') {
+    router.push(menu.path)
+  } else if (menu.children && menu.children.length > 0) {
+    // Only navigate if there's no children, otherwise just select the menu
+    currentMainMenu.value = menu
   } else {
     router.push(menu.path)
   }
@@ -230,6 +242,27 @@ const toggleSidebar = () => {
   
   &.collapsed {
     width: 64px;
+  }
+
+  :deep(.sidebar-menu) {
+    border-right: none;
+    background-color: transparent;
+    
+    .el-menu-item,
+    .el-sub-menu__title {
+      color: #8b949e;
+      background-color: transparent;
+      
+      &:hover {
+        color: #fff;
+        background-color: rgba(124, 77, 255, 0.05);
+      }
+    }
+    
+    .el-menu-item.is-active {
+      color: #7c4dff;
+      background-color: rgba(124, 77, 255, 0.1);
+    }
   }
 }
 

@@ -19,20 +19,215 @@ import {
   Warning,
   Connection,
   Edit,
-  Refresh
+  Refresh,
+  HomeFilled,
+  Van,
+  ShoppingBag,
+  Calendar,
+  Link,
+  Monitor
 } from '@element-plus/icons-vue'
-import { Menu } from '@/types/menu'
-
-export interface MenuItem {
-  title: string
-  path: string
-  icon?: any
-  children?: MenuItem[]
-}
+import type { MenuItem } from '@/types/menu'
 
 export const menuConfig: MenuItem[] = [
   {
-    title: 'Customs',
+    title: 'Dashboard',
+    path: '/dashboard',
+    icon: Monitor,
+    children: [
+      {
+        title: 'Overview',
+        path: '/dashboard/overview',
+        icon: TrendCharts
+      },
+      {
+        title: 'Analytics',
+        path: '/dashboard/analytics',
+        icon: DataLine
+      }
+    ]
+  },
+  {
+    title: 'Orders',
+    path: '/order',
+    icon: ShoppingCart,
+    children: [
+      {
+        title: 'Sales Orders New',
+        path: '/order/sales-orders-new',
+        icon: Document
+      },
+      {
+        title: 'Sales Order',
+        path: '/order/sales',
+        icon: Document
+      },
+      {
+        title: 'Shipment',
+        path: '/order/shipment',
+        icon: Ship
+      },
+      {
+        title: 'AI Order Tracking Assistant',
+        path: '/order/ai-tracelink',
+        icon: Connection
+      }
+    ]
+  },
+  {
+    title: 'Returns',
+    path: '/return',
+    icon: Box,
+    children: [
+      {
+        title: 'Return Orders',
+        path: '/return/order',
+        icon: Document
+      }
+    ]
+  },
+  {
+    title: 'Purchase',
+    path: '/purchase',
+    icon: ShoppingBag,
+    children: [
+      {
+        title: 'Purchase Orders',
+        path: '/purchase/orders',
+        icon: Document
+      },
+      {
+        title: 'Transfer Orders',
+        path: '/purchase/transfer',
+        icon: Share
+      },
+      {
+        title: 'Arrivals',
+        path: '/purchase/arrivals',
+        icon: Van
+      },
+      {
+        title: 'Receipts',
+        path: '/purchase/receipts',
+        icon: Files
+      }
+    ]
+  },
+  {
+    title: 'Logistics',
+    path: '/logistics',
+    icon: Van,
+    children: [
+      {
+        title: 'Shipments',
+        path: '/logistics/shipments',
+        icon: Ship
+      },
+      {
+        title: 'Carriers',
+        path: '/logistics/carriers',
+        icon: Files
+      },
+      {
+        title: 'Tracking',
+        path: '/logistics/tracking',
+        icon: Location
+      }
+    ]
+  },
+  {
+    title: 'Inventory',
+    path: '/warehouse',
+    icon: Box,
+    children: [
+      {
+        title: 'Warehouse List',
+        path: '/warehouse/list',
+        icon: Files
+      },
+      {
+        title: 'Inventory',
+        path: '/warehouse/inventory',
+        icon: Goods
+      },
+      {
+        title: 'Store Inventory',
+        path: '/foundation-data/store-inventory',
+        icon: ShoppingCart
+      },
+      {
+        title: 'Stock Movement',
+        path: '/warehouse/stock-movement',
+        icon: Refresh
+      },
+      {
+        title: 'Zipcode Range',
+        path: '/warehouse/zipcode-range',
+        icon: Location
+      },
+      {
+        title: 'Inventory',
+        path: '/foundation-data/inventory',
+        icon: Goods
+      }
+    ]
+  },
+  {
+    title: 'Product',
+    path: '/product',
+    icon: Goods,
+    children: [
+      {
+        title: 'Product List',
+        path: '/product/list',
+        icon: Files
+      },
+      {
+        title: 'Categories',
+        path: '/product/categories',
+        icon: Grid
+      },
+      {
+        title: 'Attributes',
+        path: '/product/attributes',
+        icon: List
+      }
+    ]
+  },
+  {
+    title: 'Events',
+    path: '/events',
+    icon: Calendar,
+    children: [
+      {
+        title: 'Order Updates',
+        path: '/events/order-updates',
+        icon: Refresh
+      },
+      {
+        title: 'Order Logs',
+        path: '/events/order-logs',
+        icon: List
+      },
+      {
+        title: 'Exception Logs',
+        path: '/settings/email-logs',
+        icon: List
+      },
+      {
+        title: 'Query Tool',
+        path: '/foundation-data/query-tool',
+        icon: Search
+      }
+    ]
+  },
+  {
+    title: 'Integrations',
+    icon: Connection,
+    path: '/integration/connections'
+  },
+  {
+    title: 'POM',
     path: '/customs',
     icon: Location,
     children: [
@@ -59,61 +254,17 @@ export const menuConfig: MenuItem[] = [
     ]
   },
   {
-    title: 'Order',
-    path: '/order',
-    icon: ShoppingCart,
-    children: [
-      {
-        title: 'Sales Orders New',
-        path: '/order/sales-orders-new',
-        icon: Document
-      },
-      {
-        title: 'Sales Order',
-        path: '/order/sales',
-        icon: Document
-      },
-      {
-        title: 'Shipment',
-        path: '/order/shipment',
-        icon: Ship
-      },
-      {
-        title: 'AI Order Tracking Assistant',
-        path: '/order/ai-tracelink',
-        icon: Connection
-      },
-      {
-        title: 'Order Updates',
-        path: '/order/updates',
-        icon: Refresh
-      },
-      {
-        title: 'Order Logs',
-        path: '/order/log',
-        icon: List
-      }
-    ]
-  },
-  {
-    title: 'Returns',
-    path: '/return',
-    icon: Box,
-    children: [
-      {
-        title: 'Return Orders',
-        path: '/return/order',
-        icon: Document
-      }
-    ]
-  },
-  {
-    title: 'Settings',
+    title: 'Automation',
     path: '/settings',
     icon: Setting,
     children: [
       {
-        title: 'Automation',
+        title: 'Order Automations',
+        path: '/settings/order-automations',
+        icon: Operation
+      },
+      {
+        title: 'Rules',
         path: '/settings/automation',
         icon: Operation
       },
@@ -123,53 +274,14 @@ export const menuConfig: MenuItem[] = [
         icon: Message
       },
       {
-        title: 'Exception Logs',
-        path: '/settings/email-logs',
-        icon: List
-      },
-      {
         title: 'Event Callback Routing',
         path: '/settings/event-callback',
         icon: Connection
-      }
-    ]
-  },
-  {
-    title: 'Warehouse',
-    path: '/warehouse',
-    icon: Box,
-    children: [
-      {
-        title: 'Warehouse List',
-        path: '/warehouse/list',
-        icon: Files
       },
-      {
-        title: 'Zipcode Range',
-        path: '/warehouse/zipcode-range',
-        icon: Location
-      }
-    ]
-  },
-  {
-    title: 'Foundation Data',
-    path: '/foundation-data',
-    icon: Grid,
-    children: [
       {
         title: 'Mapping',
         path: '/foundation-data/mapping',
         icon: Share
-      },
-      {
-        title: 'Inventory',
-        path: '/foundation-data/inventory',
-        icon: Goods
-      },
-      {
-        title: 'Store Inventory',
-        path: '/foundation-data/store-inventory',
-        icon: ShoppingCart
       },
       {
         title: 'Inventory Sync Rules',
@@ -177,140 +289,12 @@ export const menuConfig: MenuItem[] = [
         icon: TrendCharts
       },
       {
-        title: 'Query Tool',
-        path: '/foundation-data/query-tool',
-        icon: Search
-      },
-      {
         title: 'Order Update Settings',
         path: '/foundation-data/order-update-control',
         icon: Edit
       }
     ]
-  },
-  {
-    title: 'AI Knowledge Base',
-    path: '/knowledge-base',
-    icon: Files,
-    children: [
-      {
-        title: 'Knowledge Center',
-        path: '/knowledge-base/knowledge-center',
-        icon: TrendCharts
-      },
-      {
-        title: 'Knowledge Application',
-        path: '/knowledge-base/knowledge-application',
-        icon: Document
-      }
-    ]
-  },
-  {
-    title: '数据报表',
-    path: '/data-reports',
-    icon: DataLine,
-    children: [
-      {
-        title: '实时概览',
-        path: '/data-reports/sales-forecast',
-        icon: TrendCharts
-      },
-      {
-        title: '销量预测',
-        path: '/data-reports/sales-prediction',
-        icon: Timer
-      },
-      {
-        title: '滞销规则',
-        path: '/data-reports/slow-moving-rules',
-        icon: Warning
-      }
-    ]
   }
 ]
 
-const menus: Menu[] = [
-  {
-    path: '/order',
-    name: '订单管理',
-    icon: 'ShoppingCart',
-    children: [
-      {
-        path: '/order/sales-orders-new',
-        name: 'Sales Orders New'
-      },
-      {
-        path: '/order/sales',
-        name: '订单列表'
-      },
-      {
-        path: '/order/updates',
-        name: '更新记录'
-      }
-    ]
-  },
-  {
-    path: '/return',
-    name: '退货管理',
-    icon: 'RefreshLeft'
-  },
-  {
-    path: '/customs',
-    name: '报关管理',
-    icon: 'Document',
-    children: [
-      {
-        path: '/customs/form3461',
-        name: 'Form 3461'
-      },
-      {
-        path: '/customs/ftze214',
-        name: 'FTZ e214'
-      },
-      {
-        path: '/customs/isf',
-        name: 'ISF'
-      },
-      {
-        path: '/customs/t86',
-        name: 'T86'
-      }
-    ]
-  },
-  {
-    path: '/warehouse',
-    name: '仓库管理',
-    icon: 'House',
-    children: [
-      {
-        path: '/warehouse/list',
-        name: '仓库列表'
-      },
-      {
-        path: '/warehouse/zipcode',
-        name: '邮编范围'
-      }
-    ]
-  },
-  {
-    path: '/settings',
-    name: '系统设置',
-    icon: 'Setting',
-    children: [
-      {
-        path: '/settings/automation',
-        name: '自动化规则'
-      },
-      {
-        path: '/settings/email',
-        name: '邮件配置'
-      },
-      {
-        path: '/settings/logs',
-        name: '邮件日志'
-      }
-    ]
-  }
-]
-
-export default menus 
+export default menuConfig 

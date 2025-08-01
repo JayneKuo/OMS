@@ -322,7 +322,7 @@
           <el-divider content-position="left">Hold Settings</el-divider>
           <el-form-item label="Hold Mode">
             <el-radio-group v-model="editDialog.currentRule.config.holdMode">
-              <el-radio label="permanent">Permanent</el-radio>
+              <el-radio label="permanent">No Fulfillment Required</el-radio>
               <el-radio label="duration">Duration</el-radio>
               <el-radio label="dateRange">Date Range</el-radio>
             </el-radio-group>
@@ -371,369 +371,9 @@
 
           <!-- 触发条件 -->
           <el-divider content-position="left">Trigger Conditions</el-divider>
-          
-          <!-- 订单来源 -->
-          <el-form-item label="Order Source">
-            <el-select 
-              v-model="editDialog.currentRule.config.orderSource" 
-              multiple 
-              placeholder="Select order sources"
-              clearable
-            >
-              <el-option label="No Limit" value="all" />
-              <el-option label="Website" value="website" />
-              <el-option label="Mobile App" value="app" />
-              <el-option label="Third Party" value="third_party" />
-              <el-option label="Offline" value="offline" />
-            </el-select>
-          </el-form-item>
-
-          <!-- 仓库选择 -->
-          <el-form-item label="Warehouse">
-            <el-select
-              v-model="editDialog.currentRule.config.warehouse.list"
-              multiple
-              filterable
-              placeholder="Select warehouses"
-              clearable
-            >
-              <el-option
-                v-for="warehouse in warehouseOptions"
-                :key="warehouse.value"
-                :label="warehouse.label"
-                :value="warehouse.value"
-              />
-            </el-select>
-          </el-form-item>
-
-          <!-- 收货地址 -->
-          <el-form-item label="Delivery Address">
-            <!-- 添加的地址条件部分 -->
-            <div class="address-list">
-              <div class="address-list-header">
-                <div class="address-logic-selector">
-                  <span>Address Match Logic:</span>
-                  <el-select
-                    v-model="editDialog.currentRule.config.deliveryAddress.logic"
-                    style="width: 150px; margin-left: 10px; margin-right: 20px;"
-                  >
-                    <el-option
-                      v-for="type in LOGIC_TYPES"
-                      :key="type.value"
-                      :label="type.label"
-                      :value="type.value"
-                    />
-                  </el-select>
-                </div>
-                <el-button 
-                  type="primary" 
-                  size="small" 
-                  @click="addAddressCondition"
-                >
-                  Add Address Condition
-                </el-button>
-              </div>
-              
-              <div class="address-logic-explanation">
-                <span v-if="editDialog.currentRule.config.deliveryAddress.logic === 'AND'">
-                  <el-icon><InfoFilled /></el-icon> All conditions must match (AND logic)
-                </span>
-                <span v-else>
-                  <el-icon><InfoFilled /></el-icon> Any condition may match (OR logic)
-                </span>
-              </div>
-              
-              <div 
-                v-for="(addr, index) in editDialog.currentRule.config.deliveryAddress.addresses" 
-                :key="index"
-                class="address-item"
-              >
-                <el-select
-                  v-model="addr.type"
-                  placeholder="Address Type"
-                  style="width: 140px"
-                >
-                  <el-option
-                    v-for="type in ADDRESS_TYPES"
-                    :key="type.value"
-                    :label="type.label"
-                    :value="type.value"
+          <TriggerConditions
+            v-model="editDialog.currentRule.config"
                   />
-                </el-select>
-                
-                <!-- 国家选择 -->
-                <template v-if="addr.type === 'country'">
-                  <el-select
-                    v-model="addr.value"
-                    placeholder="Select Country"
-                    filterable
-                    style="flex: 1"
-                  >
-                    <el-option
-                      v-for="country in COUNTRIES"
-                      :key="country.value"
-                      :label="country.label"
-                      :value="country.value"
-                    />
-                  </el-select>
-                </template>
-                
-                <!-- 州/省选择 -->
-                <template v-else-if="addr.type === 'state'">
-                  <el-select
-                    v-model="addr.country"
-                    placeholder="Select Country"
-                    style="width: 120px"
-                    @change="(val: string) => { addr.value = ''; }"
-                  >
-                    <el-option
-                      v-for="country in COUNTRIES"
-                      :key="country.value"
-                      :label="country.label"
-                      :value="country.value"
-                    />
-                  </el-select>
-                  <el-select
-                    v-model="addr.value"
-                    placeholder="Select State"
-                    filterable
-                    style="flex: 1"
-                    :disabled="!addr.country"
-                  >
-                    <template v-if="addr.country === 'USA'">
-                      <el-option
-                        v-for="state in US_STATES"
-                        :key="state.value"
-                        :label="state.label"
-                        :value="state.value"
-                      />
-                    </template>
-                    <template v-else-if="addr.country === 'China'">
-                      <el-option
-                        v-for="state in CHINA_PROVINCES"
-                        :key="state.value"
-                        :label="state.label"
-                        :value="state.value"
-                      />
-                    </template>
-                    <template v-else-if="addr.country === 'Canada'">
-                      <el-option
-                        v-for="state in CANADA_PROVINCES"
-                        :key="state.value"
-                        :label="state.label"
-                        :value="state.value"
-                      />
-                    </template>
-                  </el-select>
-                </template>
-                
-                <!-- 城市选择 -->
-                <template v-else-if="addr.type === 'city'">
-                  <el-select
-                    v-model="addr.country"
-                    placeholder="Select Country"
-                    style="width: 120px"
-                    @change="(val: string) => { addr.state = ''; addr.value = ''; }"
-                  >
-                    <el-option
-                      v-for="country in COUNTRIES"
-                      :key="country.value"
-                      :label="country.label"
-                      :value="country.value"
-                    />
-                  </el-select>
-                  <el-select
-                    v-model="addr.state"
-                    placeholder="Select State"
-                    filterable
-                    style="width: 140px"
-                    :disabled="!addr.country"
-                    @change="(val: string) => { addr.value = ''; }"
-                  >
-                    <template v-if="addr.country === 'USA'">
-                      <el-option
-                        v-for="state in US_STATES"
-                        :key="state.value"
-                        :label="state.label"
-                        :value="state.value"
-                      />
-                    </template>
-                    <template v-else-if="addr.country === 'China'">
-                      <el-option
-                        v-for="state in CHINA_PROVINCES"
-                        :key="state.value"
-                        :label="state.label"
-                        :value="state.value"
-                      />
-                    </template>
-                    <template v-else-if="addr.country === 'Canada'">
-                      <el-option
-                        v-for="state in CANADA_PROVINCES"
-                        :key="state.value"
-                        :label="state.label"
-                        :value="state.value"
-                      />
-                    </template>
-                  </el-select>
-                  <el-select
-                    v-model="addr.value"
-                    placeholder="Select City"
-                    filterable
-                    style="flex: 1"
-                    :disabled="!addr.state"
-                  >
-                    <template v-if="addr.country === 'USA' && addr.state">
-                      <el-option
-                        v-for="city in addr.country === 'USA' ? (US_CITIES[addr.state as keyof typeof US_CITIES] || []) : []"
-                        :key="city.value"
-                        :label="city.label"
-                        :value="city.value"
-                      />
-                    </template>
-                    <template v-else-if="addr.country === 'China' && addr.state">
-                      <el-option
-                        v-for="city in addr.country === 'China' ? (CHINA_CITIES[addr.state as keyof typeof CHINA_CITIES] || []) : []"
-                        :key="city.value"
-                        :label="city.label"
-                        :value="city.value"
-                      />
-                    </template>
-                    <template v-else-if="addr.country === 'Canada' && addr.state">
-                      <el-option
-                        v-for="city in addr.country === 'Canada' ? (CANADA_CITIES[addr.state as keyof typeof CANADA_CITIES] || []) : []"
-                        :key="city.value"
-                        :label="city.label"
-                        :value="city.value"
-                      />
-                    </template>
-                  </el-select>
-                </template>
-                
-                <!-- 地址关键词选择 -->
-                <template v-else-if="addr.type === 'keyword'">
-                  <el-select
-                    v-model="addr.value"
-                    placeholder="Select Keyword"
-                    filterable
-                    allow-create
-                    style="flex: 1"
-                  >
-                    <el-option
-                      v-for="keyword in ADDRESS_KEYWORDS"
-                      :key="keyword.value"
-                      :label="keyword.label"
-                      :value="keyword.value"
-                    />
-                  </el-select>
-                </template>
-                
-                <!-- 其他地址类型输入 -->
-                <template v-else>
-                  <el-input
-                    v-model="addr.value"
-                    :placeholder="addr.type === 'full' ? 'Enter Full Address' : addr.type === 'zipcode' ? 'Enter Zip Code' : 'Enter Value'"
-                    style="flex: 1"
-                  />
-                </template>
-                
-                <el-button
-                  type="danger"
-                  @click="removeAddressCondition(index)"
-                >
-                  <el-icon><Delete /></el-icon>
-                </el-button>
-              </div>
-            </div>
-          </el-form-item>
-
-          <!-- 订单标签条件 -->
-          <el-form-item label="Order Tags">
-            <div class="tags-filter">
-              <el-select
-                v-model="editDialog.currentRule.config.orderTags.logic"
-                placeholder="Logic"
-                class="logic-select"
-                style="width: 140px"
-              >
-                <el-option
-                  v-for="type in LOGIC_TYPES"
-                  :key="type.value"
-                  :label="type.label"
-                  :value="type.value"
-                />
-              </el-select>
-              <el-select
-                v-model="editDialog.currentRule.config.orderTags.tags"
-                multiple
-                filterable
-                allow-create
-                placeholder="Enter order tags"
-                class="tags-input"
-                style="flex: 1"
-              />
-            </div>
-          </el-form-item>
-
-          <!-- SKU条件 -->
-          <el-form-item label="SKU Conditions">
-            <div class="sku-filters">
-              <el-select
-                v-model="editDialog.currentRule.config.skus.list"
-                multiple
-                filterable
-                remote
-                :remote-method="searchSkus"
-                placeholder="Search SKUs"
-                class="sku-select"
-              >
-                <el-option
-                  v-for="item in skuOptions"
-                  :key="item.value"
-                  :label="item.label"
-                  :value="item.value"
-                />
-              </el-select>
-              <el-select
-                v-model="editDialog.currentRule.config.skus.categories"
-                multiple
-                filterable
-                placeholder="Select categories"
-                class="category-select"
-              >
-                <el-option label="Phones" value="phones" />
-                <el-option label="Laptops" value="laptops" />
-                <el-option label="Accessories" value="accessories" />
-              </el-select>
-              <el-select
-                v-model="editDialog.currentRule.config.skus.brands"
-                multiple
-                filterable
-                placeholder="Select brands"
-                class="brand-select"
-              >
-                <el-option label="Apple" value="apple" />
-                <el-option label="Samsung" value="samsung" />
-                <el-option label="Xiaomi" value="xiaomi" />
-              </el-select>
-              <div class="price-range">
-                <el-input-number
-                  v-model="editDialog.currentRule.config.skus.priceRange.min"
-                  placeholder="Min price"
-                  :min="0"
-                  :precision="2"
-                  :step="10"
-                />
-                <span class="mx-2">-</span>
-                <el-input-number
-                  v-model="editDialog.currentRule.config.skus.priceRange.max"
-                  placeholder="Max price"
-                  :min="0"
-                  :precision="2"
-                  :step="10"
-                />
-              </div>
-            </div>
-          </el-form-item>
 
           <!-- 通知设置 -->
           <el-divider content-position="left">Notification</el-divider>
@@ -805,6 +445,8 @@
 import { ref, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Warning, Plus, Delete, Sort, Document, Bell, InfoFilled } from '@element-plus/icons-vue'
+import TriggerConditions from '@/components/SearchForm/TriggerConditions.vue'
+import type { Rule, RuleConfig, EditDialog } from '@/types/automation'
 
 // Types
 interface AddressRule {
@@ -815,8 +457,8 @@ interface AddressRule {
   addresses: Array<{
     type: 'country' | 'full' | 'state' | 'city' | 'zipcode' | 'keyword';
     value: string;
-    country?: string; // 州/城市所属的国家
-    state?: string;   // 城市所属的州
+    country?: string;
+    state?: string;
   }>;
 }
 
@@ -830,7 +472,6 @@ interface SKURule {
   };
 }
 
-// 添加订单标签规则接口
 interface OrderTagRule {
   tags: string[];
   logic: 'AND' | 'OR';
@@ -852,9 +493,12 @@ interface RuleConfig {
     list: string[];
   };
   skus: SKURule;
-  // 添加订单标签规则
   orderTags: OrderTagRule;
   notifications: Notification;
+  inventory: {
+    zeroStock: boolean;
+  };
+  customExpression: string;
   mutuallyExclusive: boolean;
   holdMode: 'permanent' | 'duration' | 'dateRange';
   holdDuration: {
@@ -871,6 +515,14 @@ interface Rule {
   config: RuleConfig;
   lastTriggered?: string;
   triggerCount: number;
+}
+
+interface EditDialog {
+  visible: boolean;
+  title: string;
+  currentRule: Rule | null;
+  editIndex: number;
+  mode: 'add' | 'edit';
 }
 
 // Constants
@@ -1356,7 +1008,6 @@ const createDefaultRule = (): Rule => ({
         max: null
       }
     },
-    // 添加订单标签规则默认值
     orderTags: {
       tags: [],
       logic: 'OR'
@@ -1365,6 +1016,10 @@ const createDefaultRule = (): Rule => ({
       emails: [],
       webhook: null
     },
+    inventory: {
+      zeroStock: false
+    },
+    customExpression: '',
     mutuallyExclusive: false,
     holdMode: 'permanent',
     holdDuration: {
@@ -1529,6 +1184,10 @@ const resetAllRules = () => {
           emails: [],
           webhook: null
         },
+        inventory: {
+          zeroStock: false
+        },
+        customExpression: '',
         mutuallyExclusive: false,
         holdMode: 'permanent',
         holdDuration: {

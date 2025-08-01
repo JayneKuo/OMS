@@ -1,12 +1,23 @@
 import { createRouter, createWebHistory, RouteRecordRaw } from 'vue-router'
 import MainLayout from '@/layouts/MainLayout.vue'
+import integrationRoutes from './modules/integration'
+import eventsRoutes from './modules/events'
 
 const routes: RouteRecordRaw[] = [
   {
     path: '/',
     component: MainLayout,
-    redirect: '/customs/isf',
+    redirect: '/dashboard',
     children: [
+      {
+        path: '/dashboard',
+        name: 'Dashboard',
+        component: () => import('@/views/dashboard/index.vue'),
+        meta: {
+          title: 'Dashboard',
+          icon: 'Monitor'
+        }
+      },
       {
         path: '/customs',
         name: 'Customs',
@@ -124,24 +135,6 @@ const routes: RouteRecordRaw[] = [
               title: '订单追踪',
               icon: 'Connection'
             }
-          },
-          {
-            path: 'updates',
-            name: 'OrderUpdates',
-            component: () => import('@/views/order/update/UpdateList.vue'),
-            meta: {
-              title: '更新记录',
-              icon: 'Refresh'
-            }
-          },
-          {
-            path: 'log',
-            name: 'OrderLog',
-            component: () => import('@/views/order/log/index.vue'),
-            meta: {
-              title: 'Order Logs',
-              icon: 'List'
-            }
           }
         ]
       },
@@ -172,9 +165,57 @@ const routes: RouteRecordRaw[] = [
         ]
       },
       {
+        path: '/purchase',
+        name: 'Purchase',
+        component: () => import('@/layouts/RouterView.vue'),
+        meta: {
+          title: 'Purchase',
+          icon: 'ShoppingBag'
+        },
+        children: [
+          {
+            path: 'orders',
+            name: 'PurchaseOrders',
+            component: () => import('@/views/purchase/orders/index.vue'),
+            meta: {
+              title: 'Purchase Orders'
+            }
+          },
+          {
+            path: 'transfer',
+            name: 'TransferOrders',
+            component: () => import('@/views/purchase/transfer/index.vue'),
+            meta: {
+              title: 'Transfer Orders'
+            }
+          },
+          {
+            path: 'arrivals',
+            name: 'Arrivals',
+            component: () => import('@/views/purchase/arrivals/index.vue'),
+            meta: {
+              title: 'Arrivals'
+            }
+          },
+          {
+            path: 'receipts',
+            name: 'Receipts',
+            component: () => import('@/views/purchase/receipts/index.vue'),
+            meta: {
+              title: 'Receipts'
+            }
+          }
+        ]
+      },
+      {
         path: '/settings',
         name: 'Settings',
         children: [
+          {
+            path: 'order-automations',
+            name: 'OrderAutomations',
+            component: () => import('@/views/settings/OrderAutomations.vue')
+          },
           {
             path: 'automation',
             name: 'Automation',
@@ -206,6 +247,16 @@ const routes: RouteRecordRaw[] = [
             path: 'list',
             name: 'WarehouseList',
             component: () => import('@/views/warehouse/WarehouseList.vue')
+          },
+          {
+            path: 'inventory',
+            name: 'WarehouseInventory',
+            component: () => import('@/views/warehouse/inventory/index.vue')
+          },
+          {
+            path: 'inventory/:id',
+            name: 'WarehouseInventoryDetail',
+            component: () => import('@/views/warehouse/inventory/detail.vue')
           },
           {
             path: 'zipcode-range',
@@ -309,7 +360,11 @@ const routes: RouteRecordRaw[] = [
 
 const router = createRouter({
   history: createWebHistory(),
-  routes
+  routes: [
+    ...routes,
+    ...integrationRoutes,
+    ...eventsRoutes
+  ]
 })
 
 // 添加路由调试信息

@@ -1,4 +1,5 @@
 import { ReturnOrderStatus, ReturnType, ReturnReason } from '@/views/return/types'
+import { ref, reactive, nextTick } from 'vue'
 
 // 订单状态枚举
 export enum OrderStatus {
@@ -332,3 +333,88 @@ export interface ExchangedProduct {
   exchangeTime: string
   priceDifference: number
 } 
+
+interface Rule {
+  id: number;
+  name: string;
+  description: string;
+  enabled: boolean;
+  conditions: ConditionGroup[];
+  actions: Action[];
+  lastModified: string;
+}
+
+interface ConditionGroup {
+  operator: 'all' | 'any';
+  conditions: Condition[];
+}
+
+interface Condition {
+  field: string;
+  operator: string;
+  value: string | number;
+}
+
+interface Action {
+  type: string;
+  config: ActionConfig;
+} 
+
+interface ActionConfig {
+  minutes?: number;
+  reason?: string;
+  property?: string;
+  value?: string;
+  tags?: string[];
+  method?: string;
+  recipients?: string;
+  message?: string;
+  warehouse?: string;
+  shippingMethod?: string;
+  trackingNumber?: string;
+  labelFormat?: string;
+  priority?: number;
+  splitRules?: {
+    type: 'quantity' | 'weight' | 'value' | 'custom';
+    value: number;
+  };
+  mergeRules?: {
+    maxOrders: number;
+    timeWindow: number;
+  };
+  stockRules?: {
+    quantity: number;
+    location: string;
+    expiryTime: number;
+  };
+  notificationTemplate?: string;
+  customFields?: Record<string, any>;
+} 
+
+const formRules = {
+  name: [
+    { required: true, message: 'Please enter rule name', trigger: 'blur' },
+    { min: 3, message: 'Length should be at least 3 characters', trigger: 'blur' }
+  ],
+  description: [
+    { min: 0, max: 200, message: 'Description cannot exceed 200 characters', trigger: 'blur' }
+  ],
+  conditions: [
+    {
+      type: 'array',
+      required: true,
+      message: 'At least one condition group is required',
+      trigger: 'change'
+    }
+  ],
+  actions: [
+    {
+      type: 'array',
+      required: true,
+      message: 'At least one action is required',
+      trigger: 'change'
+    }
+  ]
+}
+
+const saving = ref(false) 

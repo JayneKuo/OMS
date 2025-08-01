@@ -154,7 +154,7 @@
                 <div class="table-actions" v-if="isEditing">
                   <el-button type="primary" link @click="handleAddProduct">
                     <el-icon><Plus /></el-icon>
-                    添加商品
+                    Add Product
                   </el-button>
                 </div>
                 <OrderItemsTable
@@ -190,7 +190,7 @@
                         <div class="expanded-items-section">
                           <div class="items-title">
                             <el-icon><Box /></el-icon>
-                            <span>商品明细 (共{{ row.items.length }}个商品，{{ row.items.reduce((sum, item) => sum + item.quantity, 0) }}件)</span>
+                            <span>Product Details ({{ row.items.length }} products, {{ row.items.reduce((sum, item) => sum + item.quantity, 0) }} pieces)</span>
                           </div>
                           <div class="items-table-container">
                             <el-table :data="row.items" size="small" style="width: 100%;">
@@ -199,7 +199,7 @@
                                   <span>{{ item.sku }}</span>
                                 </template>
                               </el-table-column>
-                              <el-table-column label="商品名称" min-width="200">
+                              <el-table-column label="Product Name" min-width="200">
                                 <template #default="{ row: item }">
                                   <span class="item-name">{{ item.name || 'Product Name' }}</span>
                                 </template>
@@ -214,12 +214,12 @@
                                   <span class="number-highlight">{{ item.lotNo || 'LOT' + Math.random().toString().substr(2,6) }}</span>
                                 </template>
                               </el-table-column>
-                              <el-table-column label="数量" width="80" align="center">
+                              <el-table-column label="Quantity" width="80" align="center">
                                 <template #default="{ row: item }">
                                   <span class="item-quantity">{{ item.quantity }}</span>
                                 </template>
                               </el-table-column>
-                              <el-table-column label="单位" width="80" align="center">
+                              <el-table-column label="Unit" width="80" align="center">
                                 <template #default="{ row: item }">
                                   <span class="item-uom">{{ item.uom || 'PCS' }}</span>
                                 </template>
@@ -576,14 +576,14 @@
                 <div class="info-section">
                   <div class="section-title">
                     <div class="title-content">
-                      <h4>客户信息</h4>
+                      <h4>Customer Information</h4>
                     </div>
                   </div>
                   <div class="customer-info">
                     <div class="address-info">
                       <div class="address-section">
                         <div class="section-header">
-                          <h5>收货地址</h5>
+                          <h5>Shipping Address</h5>
                           <el-button 
                             v-if="isEditing" 
                             type="primary" 
@@ -592,34 +592,34 @@
                             @click="handleEditShippingAddress"
                           >
                             <el-icon><EditPen /></el-icon>
-                            编辑
+                            Edit
                           </el-button>
                         </div>
                         <div class="address-content">
                           <template v-if="isEditing">
                             <el-form :model="customerInfo.shippingAddress" label-position="top">
-                              <el-form-item label="收件人">
+                              <el-form-item label="Recipient">
                                 <el-input v-model="customerInfo.name" />
                               </el-form-item>
-                              <el-form-item label="电话">
+                              <el-form-item label="Phone">
                                 <el-input v-model="customerInfo.phone" />
                               </el-form-item>
-                              <el-form-item label="地址行1">
+                              <el-form-item label="Address Line 1">
                                 <el-input v-model="customerInfo.shippingAddress.line1" />
                               </el-form-item>
-                              <el-form-item label="地址行2">
+                              <el-form-item label="Address Line 2">
                                 <el-input v-model="customerInfo.shippingAddress.line2" />
                               </el-form-item>
-                              <el-form-item label="城市">
+                              <el-form-item label="City">
                                 <el-input v-model="customerInfo.shippingAddress.city" />
                               </el-form-item>
-                              <el-form-item label="州/省">
+                              <el-form-item label="State/Province">
                                 <el-input v-model="customerInfo.shippingAddress.state" />
                               </el-form-item>
-                              <el-form-item label="国家">
+                              <el-form-item label="Country">
                                 <el-input v-model="customerInfo.shippingAddress.country" />
                               </el-form-item>
-                              <el-form-item label="邮编">
+                              <el-form-item label="ZIP Code">
                                 <el-input v-model="customerInfo.shippingAddress.zipCode" />
                               </el-form-item>
                             </el-form>
@@ -636,7 +636,7 @@
                       </div>
                       <div class="address-section">
                         <div class="section-header">
-                          <h5>账单地址</h5>
+                          <h5>Billing Address</h5>
                           <el-button 
                             v-if="isEditing" 
                             type="primary" 
@@ -645,34 +645,34 @@
                             @click="handleEditBillingAddress"
                           >
                             <el-icon><EditPen /></el-icon>
-                            编辑
+                            Edit
                           </el-button>
                         </div>
                         <div class="address-content">
                           <template v-if="isEditing">
                             <el-form :model="customerInfo.billingAddress" label-position="top">
-                              <el-form-item label="收件人">
+                              <el-form-item label="Recipient">
                                 <el-input v-model="customerInfo.name" />
                               </el-form-item>
-                              <el-form-item label="电话">
+                              <el-form-item label="Phone">
                                 <el-input v-model="customerInfo.phone" />
                               </el-form-item>
-                              <el-form-item label="地址行1">
+                              <el-form-item label="Address Line 1">
                                 <el-input v-model="customerInfo.billingAddress.line1" />
                               </el-form-item>
-                              <el-form-item label="地址行2">
+                              <el-form-item label="Address Line 2">
                                 <el-input v-model="customerInfo.billingAddress.line2" />
                               </el-form-item>
-                              <el-form-item label="城市">
+                              <el-form-item label="City">
                                 <el-input v-model="customerInfo.billingAddress.city" />
                               </el-form-item>
-                              <el-form-item label="州/省">
+                              <el-form-item label="State/Province">
                                 <el-input v-model="customerInfo.billingAddress.state" />
                               </el-form-item>
-                              <el-form-item label="国家">
+                              <el-form-item label="Country">
                                 <el-input v-model="customerInfo.billingAddress.country" />
                               </el-form-item>
-                              <el-form-item label="邮编">
+                              <el-form-item label="ZIP Code">
                                 <el-input v-model="customerInfo.billingAddress.zipCode" />
                               </el-form-item>
                             </el-form>
@@ -694,69 +694,69 @@
                 <!-- 平台信息卡片 -->
                 <div class="info-section">
                   <div class="section-title">
-                    <h4>平台信息</h4>
+                    <h4>Platform Information</h4>
                     <el-tag type="info" effect="plain">{{ platformInfo.sourceChannel.split('→')[1].trim() }}</el-tag>
                   </div>
                   <div class="info-list">
-          <div class="info-item">
-                      <span class="label">渠道中转路径</span>
-                      <span class="value">{{ platformInfo.sourceChannel }}</span>
-          </div>
-          <div class="info-item">
-                      <span class="label">渠道订单号</span>
-                      <span class="value">{{ platformInfo.channelSalesOrderNo }}</span>
-          </div>
-          <div class="info-item">
-                      <span class="label">原始平台</span>
-                      <span class="value">{{ platformInfo.originalOrderSource }}</span>
-          </div>
-          <div class="info-item">
-                      <span class="label">原始平台订单号</span>
-                      <span class="value">{{ platformInfo.originalOrderId }}</span>
-          </div>
-          <div class="info-item">
-                      <span class="label">采购订单号</span>
-                      <span class="value">{{ platformInfo.purchaseOrderId }}</span>
-          </div>
                     <div class="info-item">
-                      <span class="label">引用编号 / 参考号</span>
+                      <span class="label">Channel Path</span>
+                      <span class="value">{{ platformInfo.sourceChannel }}</span>
+                    </div>
+                    <div class="info-item">
+                      <span class="label">Channel Order No.</span>
+                      <span class="value">{{ platformInfo.channelSalesOrderNo }}</span>
+                    </div>
+                    <div class="info-item">
+                      <span class="label">Original Platform</span>
+                      <span class="value">{{ platformInfo.originalOrderSource }}</span>
+                    </div>
+                    <div class="info-item">
+                      <span class="label">Original Order ID</span>
+                      <span class="value">{{ platformInfo.originalOrderId }}</span>
+                    </div>
+                    <div class="info-item">
+                      <span class="label">Purchase Order ID</span>
+                      <span class="value">{{ platformInfo.purchaseOrderId }}</span>
+                    </div>
+                    <div class="info-item">
+                      <span class="label">Reference No.</span>
                       <span class="value">{{ platformInfo.referenceNo }}</span>
-        </div>
-      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </el-tab-pane>
 
-            <el-tab-pane label="物流信息">
+            <el-tab-pane label="Logistics Information">
               <div class="tab-content">
                 <!-- 物流与发货信息卡片 -->
                 <div class="info-section">
                   <div class="section-title">
-                    <h4>物流与发货信息</h4>
+                    <h4>Logistics & Shipping Information</h4>
                     <el-tag type="primary" effect="plain">{{ shippingInfo.shipMethod }}</el-tag>
-        </div>
+                  </div>
                   <div class="info-list">
-          <div class="info-item">
-                      <span class="label">发货方式</span>
-                      <span class="value">{{ shippingInfo.shipMethod }}</span>
-          </div>
-          <div class="info-item">
-                      <span class="label">承运商</span>
-                      <span class="value">{{ shippingInfo.carrier }}</span>
-          </div>
                     <div class="info-item">
-                      <span class="label">配送服务等级</span>
+                      <span class="label">Shipping Method</span>
+                      <span class="value">{{ shippingInfo.shipMethod }}</span>
+                    </div>
+                    <div class="info-item">
+                      <span class="label">Carrier</span>
+                      <span class="value">{{ shippingInfo.carrier }}</span>
+                    </div>
+                    <div class="info-item">
+                      <span class="label">Delivery Service Level</span>
                       <span class="value">{{ shippingInfo.deliveryService }}</span>
-          </div>
+                    </div>
                     <div class="info-item tracking-numbers">
-                      <span class="label">追踪单号</span>
+                      <span class="label">Tracking Numbers</span>
                       <div class="tracking-list">
                         <div v-for="(tracking, index) in shippingInfo.trackingInfo" 
                              :key="index" 
                              class="tracking-item"
                         >
                           <div class="tracking-item-header">
-                            <span class="sub-order">子单号: {{ tracking.subOrderNo }}</span>
+                            <span class="sub-order">Sub Order: {{ tracking.subOrderNo }}</span>
                             <span class="carrier">{{ tracking.carrier }}</span>
                           </div>
                           <el-link 
@@ -770,81 +770,81 @@
                       </div>
                     </div>
                     <div class="info-item">
-                      <span class="label">原始发运编码</span>
+                      <span class="label">Original Shipping Code</span>
                       <span class="value">{{ shippingInfo.originalShippingCode }}</span>
                     </div>
-        </div>
-      </div>
+                  </div>
+                </div>
 
                 <!-- 发货时间信息卡片 -->
                 <div class="info-section">
                   <div class="section-title">
-                    <h4>发货时间信息</h4>
+                    <h4>Shipping Timeline</h4>
                     <el-tag 
                       :type="isOverdue ? 'danger' : 'success'" 
                       effect="plain"
                     >
-                      {{ isOverdue ? '已超时' : '正常' }}
+                      {{ isOverdue ? 'Overdue' : 'On Time' }}
                     </el-tag>
-        </div>
+                  </div>
                   <div class="info-list">
-          <div class="info-item">
-                      <span class="label">请求发货时间</span>
+                    <div class="info-item">
+                      <span class="label">Requested Ship Date</span>
                       <span class="value highlight-warning">{{ shippingTimeline.requestedShipDate }}</span>
-          </div>
-          <div class="info-item">
-                      <span class="label">预计发货时间</span>
+                    </div>
+                    <div class="info-item">
+                      <span class="label">Estimated Ship Date</span>
                       <span class="value">{{ shippingTimeline.estimatedShippingDate }}</span>
-          </div>
+                    </div>
                     <div class="info-item">
-                      <span class="label">装车日期</span>
+                      <span class="label">Loading Date</span>
                       <span class="value">{{ shippingTimeline.loadedDate || '-' }}</span>
-          </div>
+                    </div>
                     <div class="info-item">
-                      <span class="label">实际发货时间</span>
+                      <span class="label">Actual Ship Date</span>
                       <span class="value highlight-success">{{ shippingTimeline.shipDate || '-' }}</span>
-        </div>
-      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </el-tab-pane>
 
-            <el-tab-pane label="支付信息">
+            <el-tab-pane label="Payment Information">
               <div class="tab-content">
                 <div class="info-section">
                   <div class="section-title">
                     <div class="title-content">
-                      <h4>支付信息</h4>
+                      <h4>Payment Information</h4>
                       <el-tag 
                         :type="paymentInfo.status === 'paid' ? 'success' : paymentInfo.status === 'pending' ? 'warning' : 'danger'" 
                         effect="plain"
                         class="status-tag"
                       >
                         {{ paymentInfo.statusText }}
-          </el-tag>
-        </div>
+                      </el-tag>
+                    </div>
                   </div>
 
                   <!-- 金额信息 -->
                   <div class="amount-list">
-          <div class="info-item">
-                      <span class="label">商品小计</span>
+                    <div class="info-item">
+                      <span class="label">Subtotal</span>
                       <span class="value">${{ paymentInfo.subtotal.toFixed(2) }}</span>
-          </div>
-          <div class="info-item">
-                      <span class="label">折扣金额</span>
+                    </div>
+                    <div class="info-item">
+                      <span class="label">Discount</span>
                       <span class="value discount">-${{ paymentInfo.discount.toFixed(2) }}</span>
-          </div>
-          <div class="info-item">
-                      <span class="label">运费</span>
+                    </div>
+                    <div class="info-item">
+                      <span class="label">Shipping</span>
                       <span class="value">${{ paymentInfo.shippingCost.toFixed(2) }}</span>
-          </div>
-          <div class="info-item">
-                      <span class="label">税额</span>
+                    </div>
+                    <div class="info-item">
+                      <span class="label">Tax</span>
                       <span class="value">${{ paymentInfo.tax.toFixed(2) }}</span>
-          </div>
+                    </div>
                     <div class="info-item total">
-                      <span class="label">应付总额</span>
+                      <span class="label">Total</span>
                       <span class="value">${{ paymentInfo.total.toFixed(2) }}</span>
                     </div>
                   </div>
@@ -852,20 +852,20 @@
                   <!-- 支付详情 -->
                   <div class="payment-details">
                     <div class="info-group">
-          <div class="info-item">
-                        <span class="label">支付时间</span>
-                        <span class="value highlight">{{ paymentInfo.paymentTime }}</span>
-          </div>
-          <div class="info-item">
-                        <span class="label">支付流水号</span>
-                        <span class="value">{{ paymentInfo.transactionId }}</span>
-          </div>
                       <div class="info-item">
-                        <span class="label">发票号</span>
+                        <span class="label">Payment Time</span>
+                        <span class="value highlight">{{ paymentInfo.paymentTime }}</span>
+                      </div>
+                      <div class="info-item">
+                        <span class="label">Transaction ID</span>
+                        <span class="value">{{ paymentInfo.transactionId }}</span>
+                      </div>
+                      <div class="info-item">
+                        <span class="label">Invoice No.</span>
                         <span class="value">{{ paymentInfo.invoiceNo }}</span>
-        </div>
-      </div>
-    </div>
+                      </div>
+                    </div>
+                  </div>
 
                   <!-- 操作按钮 -->
                   <div class="action-group">
@@ -875,7 +875,7 @@
                       @click="handleViewInvoice"
                     >
                       <el-icon><Document /></el-icon>
-                      查看发票
+                      View Invoice
                     </el-button>
                     <el-button 
                       type="primary" 
@@ -883,19 +883,19 @@
                       @click="handleDownloadInvoice"
                     >
                       <el-icon><Download /></el-icon>
-                      下载发票
+                      Download Invoice
                     </el-button>
-                    </div>
-        </div>
+                  </div>
+                </div>
               </div>
             </el-tab-pane>
 
-            <el-tab-pane label="订单备注">
+            <el-tab-pane label="Order Notes">
               <div class="tab-content">
                 <div class="info-section">
                   <div class="section-title">
                     <div class="title-content">
-                      <h4>订单备注</h4>
+                      <h4>Order Notes</h4>
                       <el-button 
                         v-if="!isEditingNotes" 
                         type="primary" 
@@ -904,7 +904,7 @@
                         @click="startEditNotes"
                       >
                         <el-icon><EditPen /></el-icon>
-                        编辑
+                        Edit
                       </el-button>
                     </div>
                   </div>
@@ -912,8 +912,8 @@
                   <!-- 内部备注 -->
                   <div class="notes-section">
                     <div class="notes-header">
-                      <h5>内部备注</h5>
-                      <span class="notes-desc">仅内部可见</span>
+                      <h5>Internal Notes</h5>
+                      <span class="notes-desc">Internal Only</span>
                     </div>
                     <div class="notes-content">
                       <template v-if="isEditingNotes">
@@ -921,13 +921,13 @@
                           v-model="orderNotes.internal"
                           type="textarea"
                           :rows="4"
-                          placeholder="添加内部备注..."
+                          placeholder="Add internal notes..."
                           class="notes-textarea"
                         />
                       </template>
                       <template v-else>
                         <p v-if="orderNotes.internal" class="notes-text">{{ orderNotes.internal }}</p>
-                        <p v-else class="empty-notes">暂无内部备注</p>
+                        <p v-else class="empty-notes">No internal notes</p>
                       </template>
                     </div>
                   </div>
@@ -935,8 +935,8 @@
                   <!-- 客户备注 -->
                   <div class="notes-section">
                     <div class="notes-header">
-                      <h5>客户备注</h5>
-                      <span class="notes-desc">客户可见</span>
+                      <h5>Customer Notes</h5>
+                      <span class="notes-desc">Customer Visible</span>
                     </div>
                     <div class="notes-content">
                       <template v-if="isEditingNotes">
@@ -944,18 +944,16 @@
                           v-model="orderNotes.customer"
                           type="textarea"
                           :rows="3"
-                          placeholder="添加客户备注..."
+                          placeholder="Add customer notes..."
                           class="notes-textarea"
                         />
                       </template>
                       <template v-else>
                         <p v-if="orderNotes.customer" class="notes-text">{{ orderNotes.customer }}</p>
-                        <p v-else class="empty-notes">暂无客户备注</p>
+                        <p v-else class="empty-notes">No customer notes</p>
                       </template>
                     </div>
                   </div>
-
-
 
                   <!-- 编辑按钮 -->
                   <div v-if="isEditingNotes" class="notes-actions">
@@ -964,37 +962,37 @@
                       @click="saveNotes"
                     >
                       <el-icon><Check /></el-icon>
-                      保存
+                      Save
                     </el-button>
-                    <el-button @click="cancelEditNotes">取消</el-button>
+                    <el-button @click="cancelEditNotes">Cancel</el-button>
                   </div>
                 </div>
               </div>
             </el-tab-pane>
 
-            <el-tab-pane v-if="returnInfo.isReturn" label="退货信息">
+            <el-tab-pane v-if="returnInfo.isReturn" label="Return Information">
               <div class="tab-content">
                 <div class="section-title">
-                  <h4>退货信息</h4>
-                  <el-tag type="warning" effect="plain">退货单</el-tag>
-          </div>
+                  <h4>Return Information</h4>
+                  <el-tag type="warning" effect="plain">Return Order</el-tag>
+                </div>
                 <div class="info-list">
                   <div class="info-item">
-                    <span class="label">退货发起平台</span>
+                    <span class="label">Return Source Platform</span>
                     <span class="value">{{ returnInfo.returnSource }}</span>
-        </div>
+                  </div>
                   <div class="info-item">
-                    <span class="label">退货类型</span>
+                    <span class="label">Return Type</span>
                     <span class="value">{{ returnInfo.returnType }}</span>
-      </div>
+                  </div>
                   <div class="info-item">
-                    <span class="label">退货编号</span>
+                    <span class="label">Return Reference No.</span>
                     <span class="value">{{ returnInfo.returnReferenceNo }}</span>
-      </div>
+                  </div>
                   <div class="info-item">
-                    <span class="label">关联原始订单</span>
+                    <span class="label">Original Order ID</span>
                     <span class="value">{{ returnInfo.originOrderId }}</span>
-    </div>
+                  </div>
                 </div>
               </div>
             </el-tab-pane>
@@ -1003,80 +1001,9 @@
       </div>
     </div>
   </div>
-
-  <!-- 物流跟踪详情弹窗 -->
-  <el-dialog
-    v-model="trackingDialogVisible"
-    :title="`物流跟踪详情 - ${selectedTracking.trackingNumber}`"
-    width="800px"
-    class="tracking-dialog"
-  >
-    <div class="tracking-detail-content">
-      <!-- 基本信息 -->
-      <div class="tracking-header">
-        <div class="tracking-info">
-          <div class="info-row">
-            <span class="label">运单号:</span>
-            <span class="value">{{ selectedTracking.trackingNumber }}</span>
-          </div>
-          <div class="info-row">
-            <span class="label">承运商:</span>
-            <span class="value">{{ selectedTracking.carrier }}</span>
-          </div>
-          <div class="info-row">
-            <span class="label">子单号:</span>
-            <span class="value">{{ selectedTracking.subOrderNo }}</span>
-          </div>
-          <div class="info-row">
-            <span class="label">当前状态:</span>
-            <el-tag :type="getTrackingStatusType(selectedTracking.currentStatus)" size="small">
-              {{ selectedTracking.currentStatus }}
-            </el-tag>
-          </div>
-        </div>
-      </div>
-
-      <!-- 物流时间轴 -->
-      <div class="tracking-timeline">
-        <h4>物流轨迹</h4>
-        <el-timeline>
-          <el-timeline-item
-            v-for="(event, index) in selectedTracking.trackingEvents"
-            :key="index"
-            :timestamp="`${event.date} ${event.time}`"
-            :type="getTimelineEventType(event.status)"
-            :icon="getTimelineEventIcon(event.status)"
-            :color="getTimelineEventColor(event.status)"
-          >
-            <div class="timeline-event">
-              <div class="event-header">
-                <h5 class="event-status">{{ event.status }}</h5>
-                <span class="event-location">{{ event.location }}</span>
-              </div>
-              <p class="event-description">{{ event.description }}</p>
-              <div class="event-meta" v-if="event.facility">
-                <span class="facility">设施: {{ event.facility }}</span>
-              </div>
-            </div>
-          </el-timeline-item>
-        </el-timeline>
-      </div>
-    </div>
-
-    <template #footer>
-      <div class="dialog-footer">
-        <el-button 
-          type="primary" 
-          @click="openCarrierTracking(selectedTracking)"
-        >
-          <el-icon><Link /></el-icon>
-          查看承运商官网
-        </el-button>
-        <el-button @click="trackingDialogVisible = false">关闭</el-button>
-  </div>
-    </template>
-  </el-dialog>
 </template>
+
+
 
 <script setup lang="ts">
 import { ref, computed, watch, nextTick, onMounted } from 'vue'
