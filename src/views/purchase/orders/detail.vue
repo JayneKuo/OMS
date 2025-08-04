@@ -9,22 +9,22 @@
           </el-button>
           <div class="order-info-section">
             <div class="title-section">
-              <h2 class="order-id">#{{ orderNo }}</h2>
-              <el-tag 
-                :type="getStatusType(orderStatus)" 
-                size="small" 
-                effect="plain"
-              >
-                {{ getStatusLabel(orderStatus) }}
-              </el-tag>
-            </div>
+            <h2 class="order-id">#{{ orderNo }}</h2>
+          <el-tag 
+            :type="getStatusType(orderStatus)" 
+            size="small" 
+            effect="plain"
+          >
+            {{ getStatusLabel(orderStatus) }}
+          </el-tag>
+        </div>
             <div class="order-meta">
               <div class="meta-item">
-                <span class="label">Ordered:</span>
+              <span class="label">Ordered:</span>
                 <span class="value">{{ formatDate(orderDate) }}</span>
-              </div>
+            </div>
               <div class="meta-item">
-                <span class="label">Expected Arrival:</span>
+              <span class="label">Expected Arrival:</span>
                 <span class="value">{{ formatDate(requiredDate) }}</span>
               </div>
             </div>
@@ -1177,14 +1177,14 @@ watch(() => activeTab.value, (newTab) => {
             align-items: center;
             gap: 12px;
 
-            .order-id {
-              margin: 0;
-              font-size: 32px;
-              font-weight: 600;
-              background: linear-gradient(135deg, #fff, rgba(255, 255, 255, 0.6));
-              -webkit-background-clip: text;
-              -webkit-text-fill-color: transparent;
-              letter-spacing: -0.5px;
+          .order-id {
+        margin: 0;
+            font-size: 32px;
+            font-weight: 600;
+            background: linear-gradient(135deg, #fff, rgba(255, 255, 255, 0.6));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.5px;
               line-height: 1;
             }
 
@@ -1192,7 +1192,7 @@ watch(() => activeTab.value, (newTab) => {
               height: 24px;
               padding: 0 12px;
               border-radius: 12px;
-              font-size: 12px;
+            font-size: 12px;
               font-weight: 500;
               border: none;
               letter-spacing: 0.2px;
@@ -1331,6 +1331,98 @@ watch(() => activeTab.value, (newTab) => {
 
     .main-section {
       flex: 1;
+
+      .order-details-section {
+        .order-tabs {
+          background: transparent;
+          border: none;
+
+          :deep(.el-tabs__header) {
+            margin: 0;
+            padding: 0;
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 12px 12px 0 0;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-bottom: none;
+
+            .el-tabs__nav-wrap {
+              &::after {
+                display: none;
+              }
+            }
+
+            .el-tabs__nav {
+              border: none;
+            }
+
+            .el-tabs__item {
+              padding: 16px 24px;
+              height: auto;
+              color: rgba(255, 255, 255, 0.6);
+              font-size: 14px;
+              font-weight: 500;
+              border: none;
+              transition: all 0.3s ease;
+
+              &:hover {
+                color: rgba(255, 255, 255, 0.9);
+              }
+
+              &.is-active {
+                color: #6366F1;
+                background: rgba(99, 102, 241, 0.1);
+              }
+            }
+          }
+
+          :deep(.el-tabs__content) {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 0 0 12px 12px;
+            padding: 24px;
+
+            .tab-content {
+              .table-container {
+                :deep(.el-table) {
+                  background: transparent;
+                  
+                  &::before {
+                    display: none;
+                  }
+
+                  .el-table__header-wrapper {
+                    th {
+                      background: rgba(255, 255, 255, 0.03);
+                      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+                      color: rgba(255, 255, 255, 0.7);
+                      font-weight: 600;
+                      padding: 12px 8px;
+                    }
+                  }
+
+                  .el-table__body-wrapper {
+                    tr {
+                      background: transparent;
+                      
+                      &:hover > td {
+                        background: rgba(255, 255, 255, 0.03);
+                      }
+
+                      td {
+                        background: transparent;
+                        border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+                        color: rgba(255, 255, 255, 0.9);
+                        padding: 16px 8px;
+                        transition: background 0.3s ease;
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
     }
 
     .side-section {
