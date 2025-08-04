@@ -37,21 +37,18 @@
       </template>
     </nav>
     <div class="main-content">
-      <aside class="sidebar" :class="{ collapsed: isCollapsed }">
-        <el-menu
-          :collapse="isCollapsed"
-          :default-active="route.path"
-          class="sidebar-menu"
-          :unique-opened="true"
-          :collapse-transition="false"
-        >
-          <nav-menu 
-            :menu-items="currentMainMenu?.children || []" 
-            :is-collapsed="isCollapsed" 
-          />
-        </el-menu>
+      <aside 
+        v-if="shouldShowSidebar" 
+        class="sidebar" 
+        :class="{ collapsed: isCollapsed }"
+      >
+        <nav-menu 
+          :menu-items="currentMainMenu?.children || []" 
+          :is-collapsed="isCollapsed"
+          :active-path="route.path"
+        />
       </aside>
-      <main class="page-content">
+      <main class="page-content" :class="{ 'full-width': !shouldShowSidebar }">
         <router-view />
       </main>
     </div>
@@ -74,11 +71,35 @@ const mainMenus = menuConfig
 
 const currentMainMenu = ref(mainMenus.find(menu => route.path.startsWith(menu.path)))
 
-watch(route, (newRoute) => {
-  currentMainMenu.value = mainMenus.find(menu => newRoute.path.startsWith(menu.path))
-})
+watch(
+  () => route.path,
+  (newPath) => {
+    // First check if the route has meta.activeMenu
+    const activeMenuPath = route.meta?.activeMenu as string
+    if (activeMenuPath) {
+      const activeMainMenu = mainMenus.find(menu => menu.path === activeMenuPath)
+      if (activeMainMenu) {
+        currentMainMenu.value = activeMainMenu
+        return
+      }
+    }
+    
+    // Otherwise use the default path matching
+    const newMainMenu = mainMenus.find(menu => newPath.startsWith(menu.path))
+    if (newMainMenu && (!currentMainMenu.value || currentMainMenu.value.path !== newMainMenu.path)) {
+      currentMainMenu.value = newMainMenu
+    }
+  },
+  { immediate: true }
+)
 
 const isActiveMainMenu = (path: string) => {
+  // Check if the current route has meta.activeMenu pointing to this path
+  const activeMenuPath = route.meta?.activeMenu as string
+  if (activeMenuPath && activeMenuPath === path) {
+    return true
+  }
+  // Otherwise use the default path matching
   return route.path.startsWith(path)
 }
 
@@ -86,8 +107,11 @@ const handleMainMenuClick = (menu: any) => {
   if (menu.path === '/dashboard') {
     router.push(menu.path)
   } else if (menu.children && menu.children.length > 0) {
-    // Only navigate if there's no children, otherwise just select the menu
     currentMainMenu.value = menu
+    // Navigate to the first child route if not already on a child route
+    if (!route.path.startsWith(menu.path)) {
+      router.push(menu.children[0].path)
+    }
   } else {
     router.push(menu.path)
   }
@@ -96,6 +120,10 @@ const handleMainMenuClick = (menu: any) => {
 const toggleSidebar = () => {
   isCollapsed.value = !isCollapsed.value
 }
+
+const shouldShowSidebar = computed(() => {
+  return currentMainMenu.value?.children && currentMainMenu.value.children.length > 0
+})
 </script>
 
 <style lang="scss" scoped>
@@ -270,5 +298,9 @@ const toggleSidebar = () => {
   flex: 1;
   overflow-y: auto;
   background-color: #1a1d21;
+  
+  &.full-width {
+    width: 100%;
+  }
 }
 </style> 

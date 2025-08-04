@@ -6,31 +6,6 @@ const routes: RouteRecordRaw[] = [
     name: 'Events',
     component: () => import('@/layouts/MainLayout.vue'),
     children: [
-      // Temporarily commented out until the component is created
-      // {
-      //   path: 'list',
-      //   name: 'EventList',
-      //   component: () => import('@/views/events/list/index.vue'),
-      //   meta: {
-      //     title: 'Event List'
-      //   }
-      // },
-      {
-        path: 'rules',
-        name: 'EventRules',
-        component: () => import('@/views/events/rules/index.vue'),
-        meta: {
-          title: 'Event Rules'
-        }
-      },
-      {
-        path: 'logs',
-        name: 'EventLogs',
-        component: () => import('@/views/events/logs/index.vue'),
-        meta: {
-          title: 'Event Logs'
-        }
-      },
       {
         path: 'order-updates',
         name: 'OrderUpdateList',

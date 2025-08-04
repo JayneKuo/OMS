@@ -182,6 +182,14 @@ const routes: RouteRecordRaw[] = [
             }
           },
           {
+            path: 'orders/:id',
+            name: 'PurchaseOrderDetail',
+            component: () => import('@/views/purchase/orders/detail.vue'),
+            meta: {
+              title: 'Purchase Order Detail'
+            }
+          },
+          {
             path: 'transfer',
             name: 'TransferOrders',
             component: () => import('@/views/purchase/transfer/index.vue'),
@@ -198,11 +206,27 @@ const routes: RouteRecordRaw[] = [
             }
           },
           {
+            path: 'arrivals/create',
+            name: 'CreateArrival',
+            component: () => import('@/views/purchase/arrivals/index.vue'),
+            meta: {
+              title: 'Create Arrival'
+            }
+          },
+          {
             path: 'receipts',
             name: 'Receipts',
             component: () => import('@/views/purchase/receipts/index.vue'),
             meta: {
               title: 'Receipts'
+            }
+          },
+          {
+            path: 'receipts/create',
+            name: 'CreateReceipt',
+            component: () => import('@/views/purchase/receipts/index.vue'),
+            meta: {
+              title: 'Create Receipt'
             }
           }
         ]
@@ -229,7 +253,10 @@ const routes: RouteRecordRaw[] = [
           {
             path: 'email-logs',
             name: 'ExceptionLogs',
-            component: () => import('@/views/settings/EmailLogs.vue')
+            component: () => import('@/views/settings/EmailLogs.vue'),
+            meta: {
+              activeMenu: '/events'
+            }
           },
           {
             path: 'event-callback',
@@ -273,7 +300,10 @@ const routes: RouteRecordRaw[] = [
           {
             path: 'mapping',
             name: 'Mapping',
-            component: () => import('@/views/foundation-data/Mapping.vue')
+            component: () => import('@/views/foundation-data/Mapping.vue'),
+            meta: {
+              activeMenu: '/settings'
+            }
           },
           {
             path: 'inventory',
@@ -288,17 +318,26 @@ const routes: RouteRecordRaw[] = [
           {
             path: 'inventory-sync-rule',
             name: 'InventorySyncRule',
-            component: () => import('@/views/foundation-data/InventorySyncRule.vue')
+            component: () => import('@/views/foundation-data/InventorySyncRule.vue'),
+            meta: {
+              activeMenu: '/settings'
+            }
           },
           {
             path: 'query-tool',
             name: 'QueryTool',
-            component: () => import('@/views/foundation-data/QueryTool.vue')
+            component: () => import('@/views/foundation-data/QueryTool.vue'),
+            meta: {
+              activeMenu: '/events'
+            }
           },
           {
             path: 'order-update-control',
             name: 'OrderUpdateControl',
-            component: () => import('@/views/foundation-data/OrderUpdateControl.vue')
+            component: () => import('@/views/foundation-data/OrderUpdateControl.vue'),
+            meta: {
+              activeMenu: '/settings'
+            }
           }
         ]
       },

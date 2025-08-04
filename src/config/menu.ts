@@ -33,19 +33,7 @@ export const menuConfig: MenuItem[] = [
   {
     title: 'Dashboard',
     path: '/dashboard',
-    icon: Monitor,
-    children: [
-      {
-        title: 'Overview',
-        path: '/dashboard/overview',
-        icon: TrendCharts
-      },
-      {
-        title: 'Analytics',
-        path: '/dashboard/analytics',
-        icon: DataLine
-      }
-    ]
+    icon: Monitor
   },
   {
     title: 'Orders',
@@ -156,11 +144,6 @@ export const menuConfig: MenuItem[] = [
         icon: ShoppingCart
       },
       {
-        title: 'Stock Movement',
-        path: '/warehouse/stock-movement',
-        icon: Refresh
-      },
-      {
         title: 'Zipcode Range',
         path: '/warehouse/zipcode-range',
         icon: Location
@@ -212,11 +195,17 @@ export const menuConfig: MenuItem[] = [
       {
         title: 'Exception Logs',
         path: '/settings/email-logs',
+        meta: {
+          activeMenu: '/events'
+        },
         icon: List
       },
       {
         title: 'Query Tool',
         path: '/foundation-data/query-tool',
+        meta: {
+          activeMenu: '/events'
+        },
         icon: Search
       }
     ]
@@ -281,16 +270,25 @@ export const menuConfig: MenuItem[] = [
       {
         title: 'Mapping',
         path: '/foundation-data/mapping',
+        meta: {
+          activeMenu: '/settings'
+        },
         icon: Share
       },
       {
         title: 'Inventory Sync Rules',
         path: '/foundation-data/inventory-sync-rule',
+        meta: {
+          activeMenu: '/settings'
+        },
         icon: TrendCharts
       },
       {
         title: 'Order Update Settings',
         path: '/foundation-data/order-update-control',
+        meta: {
+          activeMenu: '/settings'
+        },
         icon: Edit
       }
     ]

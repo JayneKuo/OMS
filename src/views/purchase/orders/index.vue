@@ -329,58 +329,19 @@
       </template>
     </el-dialog>
 
-    <!-- 查看详情对话框 -->
-    <el-dialog
-      v-model="viewDialogVisible"
-      title="Purchase Order Details"
-      width="60%"
-    >
-      <div v-if="currentOrder" class="order-details">
-        <el-descriptions :column="2" border>
-          <el-descriptions-item label="Order No.">{{ currentOrder.orderNo }}</el-descriptions-item>
-          <el-descriptions-item label="Supplier">{{ currentOrder.supplier }}</el-descriptions-item>
-          <el-descriptions-item label="Warehouse">{{ currentOrder.warehouse }}</el-descriptions-item>
-          <el-descriptions-item label="Order Date">{{ formatDate(currentOrder.orderDate) }}</el-descriptions-item>
-          <el-descriptions-item label="Status">
-            <el-tag :type="getStatusType(currentOrder.status)">
-              {{ formatStatus(currentOrder.status) }}
-            </el-tag>
-          </el-descriptions-item>
-        </el-descriptions>
-
-        <div class="items-table">
-          <h3>Order Items</h3>
-          <el-table :data="currentOrder.items" border>
-            <el-table-column prop="sku" label="SKU" width="120" />
-            <el-table-column prop="name" label="Name" />
-            <el-table-column prop="quantity" label="Quantity" width="100" />
-            <el-table-column prop="price" label="Price" width="120">
-              <template #default="{ row }">
-                {{ formatCurrency(row.price) }}
-              </template>
-            </el-table-column>
-            <el-table-column label="Total" width="120">
-              <template #default="{ row }">
-                {{ formatCurrency(row.quantity * row.price) }}
-              </template>
-            </el-table-column>
-          </el-table>
-
-          <div class="order-total">
-            Total: {{ formatCurrency(currentOrder.total) }}
-          </div>
-        </div>
-      </div>
-    </el-dialog>
+    <!-- 删除查看详情弹窗，改为跳转到详情页面 -->
   </div>
 </template>
 
 <script lang="ts" setup>
 import { ref, reactive, computed } from 'vue'
+import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Delete } from '@element-plus/icons-vue'
 import { mockPurchaseData } from '@/mock/purchaseData'
 import type { PurchaseOrder, PurchaseOrderItem, Warehouse } from '@/mock/purchaseData'
+
+const router = useRouter()
 
 // 状态选项
 const statusOptions = [
@@ -476,10 +437,6 @@ const rules = {
   status: [{ required: true, message: 'Status is required' }]
 }
 
-// 查看详情相关
-const viewDialogVisible = ref(false)
-const currentOrder = ref<PurchaseOrder | null>(null)
-
 // 格式化函数
 const formatDate = (date: string) => {
   return new Date(date).toLocaleString()
@@ -568,8 +525,8 @@ const handleEdit = (row: PurchaseOrder) => {
 
 // 处理查看
 const handleView = (row: PurchaseOrder) => {
-  currentOrder.value = row
-  viewDialogVisible.value = true
+  // 跳转到详情页面
+  router.push(`/purchase/orders/${row.id}`)
 }
 
 // 处理删除
@@ -613,7 +570,7 @@ const handleSubmit = async () => {
     const selectedWarehouse = warehouses.find(w => w.id === form.warehouseId)
     const orderData = {
       id: form.id || Math.random().toString(36).substr(2, 9),
-      orderNo: form.id ? currentOrder.value?.orderNo || '' : Math.random().toString(36).substr(2, 8).toUpperCase(),
+      orderNo: form.id ? orders.value.find(order => order.id === form.id)?.orderNo || '' : Math.random().toString(36).substr(2, 8).toUpperCase(),
       supplier: form.supplier.name, // Assuming supplier name is enough for now
       warehouseId: form.warehouseId,
       warehouse: selectedWarehouse?.name || '',

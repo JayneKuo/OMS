@@ -45,22 +45,41 @@
         <!-- 物流基本信息 -->
         <div class="form-section">
           <div class="section-header">
-            <h3>Shipping Info</h3>
+            <h3>Basic Info</h3>
           </div>
           
           <el-row :gutter="20">
             <el-col :span="8">
-              <el-form-item label="Destination" prop="destination">
-                <el-select v-model="form.destination" style="width: 100%">
+              <el-form-item label="Purchase Order" prop="purchaseOrderId">
+                <el-select 
+                  v-model="form.purchaseOrderId" 
+                  style="width: 100%"
+                  placeholder="Select Purchase Order"
+                  @change="handlePurchaseOrderSelect"
+                  :disabled="dialogType === 'edit'"
+                >
                   <el-option
-                    v-for="warehouse in activeWarehouses"
-                    :key="warehouse.id"
-                    :label="warehouse.name"
-                    :value="warehouse.id"
+                    v-for="po in purchaseOrders"
+                    :key="po.id"
+                    :label="`${po.orderNo} - ${po.supplier}`"
+                    :value="po.id"
                   />
                 </el-select>
               </el-form-item>
             </el-col>
+            <el-col :span="8">
+              <el-form-item label="Destination" prop="destination">
+                <el-input v-model="form.destination" disabled />
+              </el-form-item>
+            </el-col>
+            <el-col :span="8">
+              <el-form-item label="Supplier" prop="supplier">
+                <el-input v-model="form.supplier" disabled />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          
+          <el-row :gutter="20">
             <el-col :span="8">
               <el-form-item label="External ID" prop="externalId">
                 <el-input v-model="form.externalId" placeholder="e.g. ASN-PO-0003-3" />
@@ -69,6 +88,16 @@
             <el-col :span="8">
               <el-form-item label="Sender's Name" prop="senderName">
                 <el-input v-model="form.senderName" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="8">
+              <el-form-item label="Expected Date" prop="expectedArrivalDate">
+                <el-date-picker
+                  v-model="form.expectedArrivalDate"
+                  type="date"
+                  style="width: 100%"
+                  placeholder="mm/dd/yyyy"
+                />
               </el-form-item>
             </el-col>
           </el-row>
@@ -92,36 +121,22 @@
 
         <!-- 商品明细 -->
         <div class="form-section">
+          <div class="section-header">
+            <h3>Items</h3>
+          </div>
+          
           <el-table :data="form.items" border style="width: 100%">
             <el-table-column label="Product Name and SKU" min-width="200">
-              <template #default="{ row, $index }">
-                <template v-if="row.isExisting">
-                  <div class="product-info">
-                    <div>{{ row.name }}</div>
-                    <div class="sku">{{ row.sku }}</div>
-                  </div>
-                </template>
-                <el-form-item 
-                  v-else
-                  :prop="'items.' + $index + '.sku'"
-                  :rules="{ required: true, message: 'Product is required' }"
-                  class="mb-0"
-                >
-                  <el-select 
-                    v-model="row.sku"
-                    filterable
-                    style="width: 100%"
-                    placeholder="Select product"
-                    @change="handleProductSelect($index, $event)"
-                  >
-                    <el-option
-                      v-for="product in productOptions"
-                      :key="product.sku"
-                      :label="product.name + ' (' + product.sku + ')'"
-                      :value="product.sku"
-                    />
-                  </el-select>
-                </el-form-item>
+              <template #default="{ row }">
+                <div class="product-info">
+                  <div>{{ row.name }}</div>
+                  <div class="sku">{{ row.sku }}</div>
+                </div>
+              </template>
+            </el-table-column>
+            <el-table-column label="Ordered" width="100" align="center">
+              <template #default="{ row }">
+                {{ row.orderedQty || 0 }}
               </template>
             </el-table-column>
             <el-table-column label="Quantity" width="120">
@@ -161,23 +176,13 @@
             </el-table-column>
             <el-table-column label="Purchase ID" width="150">
               <template #default="{ row }">
-                <el-input v-model="row.purchaseId" placeholder="Purchase ID" />
-              </template>
-            </el-table-column>
-            <el-table-column width="60" fixed="right">
-              <template #default="{ $index }">
-                <el-button type="danger" link @click="removeItem($index)">
-                  <el-icon><Delete /></el-icon>
-                </el-button>
+                <el-input v-model="row.purchaseId" disabled />
               </template>
             </el-table-column>
           </el-table>
 
-          <div class="table-footer">
-            <el-button type="primary" link @click="addItem">
-              <el-icon><Plus /></el-icon>
-              Add
-            </el-button>
+          <div v-if="form.items.length === 0" class="empty-items">
+            <p>Please select a purchase order to load items</p>
           </div>
         </div>
 
@@ -333,11 +338,26 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, reactive, computed } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
+import { useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Delete, Plus } from '@element-plus/icons-vue'
 import { mockPurchaseData } from '@/mock/purchaseData'
 import type { Arrival, ArrivalItem } from '@/mock/purchaseData'
+
+const route = useRoute()
+
+// 到货单列表
+const availableArrivals = computed(() => 
+  mockPurchaseData.arrivals.filter(arrival => 
+    arrival.status === 'shipped' || arrival.status === 'arrived'
+  )
+)
+
+// 采购订单列表
+const purchaseOrders = computed(() => 
+  mockPurchaseData.purchaseOrders.filter(po => po.status !== 'cancelled')
+)
 
 // 仓库列表
 const warehouses = mockPurchaseData.warehouses
@@ -359,6 +379,8 @@ const arrivals = ref<Arrival[]>(mockPurchaseData.arrivals)
 
 // 表单相关
 const dialogVisible = ref(false)
+const viewDialogVisible = ref(false)
+const currentArrival = ref<Arrival | null>(null)
 const dialogType = ref<'create' | 'edit'>('create')
 const formRef = ref()
 const showAdvancedFields = ref(false)
@@ -366,11 +388,14 @@ const showAdvancedFields = ref(false)
 // 表单数据
 const form = reactive({
   id: '',
+  purchaseOrderId: '',
   destination: '',
+  supplier: '',
   externalId: '',
   senderName: '',
   totalWeight: 0,
   weightUnit: 'lb',
+  expectedArrivalDate: '',
   items: [] as Array<{
     id: string
     sku: string
@@ -382,11 +407,11 @@ const form = reactive({
     upc: string
     purchaseId: string
     isExisting?: boolean
+    orderedQty?: number
   }>,
   // 高级物流信息
   extShipmentId: '',
   incoterms: '',
-  expectedArrivalDate: '',
   shippingCarrier: '',
   shippingMethod: '',
   shippingNote: '',
@@ -402,7 +427,7 @@ const form = reactive({
 
 // 表单校验规则
 const rules = {
-  destination: [{ required: true, message: 'Destination is required' }],
+  purchaseOrderId: [{ required: true, message: 'Purchase order is required' }],
   externalId: [{ required: true, message: 'External ID is required' }],
   senderName: [{ required: true, message: 'Sender name is required' }],
   totalWeight: [{ required: true, type: 'number', min: 0, message: 'Total weight is required' }],
@@ -434,7 +459,8 @@ const addItem = () => {
     palletQuantity: 0,
     upc: '',
     purchaseId: '',
-    isExisting: false
+    isExisting: false,
+    orderedQty: 0 // 新增订购数量
   })
 }
 
@@ -464,28 +490,20 @@ const toggleAdvancedFields = () => {
 // 处理创建
 const handleCreate = () => {
   dialogType.value = 'create'
+  // 重置表单
   form.id = ''
+  form.purchaseOrderId = ''
   form.destination = ''
+  form.supplier = ''
   form.externalId = ''
   form.senderName = ''
   form.totalWeight = 0
   form.weightUnit = 'lb'
-  form.items = [{
-    id: '',
-    sku: 'SKU001',
-    name: 'Product 1',
-    quantity: 0,
-    unit: 'pcs',
-    lotNumber: '',
-    palletQuantity: 0,
-    upc: '',
-    purchaseId: '',
-    isExisting: true
-  }]
+  form.items = []
+  form.expectedArrivalDate = ''
   // 重置高级物流信息
   form.extShipmentId = ''
   form.incoterms = ''
-  form.expectedArrivalDate = ''
   form.shippingCarrier = ''
   form.shippingMethod = ''
   form.shippingNote = ''
@@ -506,13 +524,29 @@ const handleCreate = () => {
 const handleEdit = (row: Arrival) => {
   dialogType.value = 'edit'
   form.id = row.id
+  form.purchaseOrderId = row.purchaseOrder || ''
   form.destination = row.destination
+  form.supplier = row.supplier || ''
   form.externalId = row.externalId || ''
   form.senderName = row.senderName || ''
   form.totalWeight = row.totalWeight || 0
   form.weightUnit = row.weightUnit || 'lb'
-  form.items = [...row.items]
-  form.customFields = [...(row.customFields || [])]
+  form.expectedArrivalDate = row.expectedDate || ''
+  form.items = [...(row.items || [])]
+  // 加载高级字段数据
+  form.extShipmentId = row.extShipmentId || ''
+  form.incoterms = row.incoterms || ''
+  form.shippingCarrier = row.shippingCarrier || ''
+  form.shippingMethod = row.shippingMethod || ''
+  form.shippingNote = row.shippingNote || ''
+  form.bol = row.bol || ''
+  form.seal = row.seal || ''
+  form.trailerNumber = row.trailerNumber || ''
+  form.trailerSize = row.trailerSize || ''
+  form.trailerType = row.trailerType || ''
+  form.containerNumber = row.containerNumber || ''
+  form.containerSize = row.containerSize || ''
+  form.containerType = row.containerType || ''
   dialogVisible.value = true
 }
 
@@ -536,6 +570,12 @@ const handleDelete = async (row: Arrival) => {
   }
 }
 
+// 格式化日期
+const formatDate = (date?: string) => {
+  if (!date) return ''
+  return new Date(date).toLocaleDateString()
+}
+
 // 处理保存
 const handleSave = async () => {
   if (!formRef.value) return
@@ -545,22 +585,38 @@ const handleSave = async () => {
     const arrivalData = {
       id: form.id || Math.random().toString(36).substr(2, 9),
       arrivalNo: form.id ? form.externalId : 'ARR-' + Math.random().toString(36).substr(2, 8).toUpperCase(),
+      purchaseOrder: form.purchaseOrderId,
       destination: form.destination,
+      supplier: form.supplier,
       externalId: form.externalId,
       senderName: form.senderName,
       totalWeight: form.totalWeight,
       weightUnit: form.weightUnit,
-      status: 'draft',
+      expectedDate: form.expectedArrivalDate,
+      status: 'ordered',
       items: form.items.map(item => ({
         ...item,
         id: item.id || Math.random().toString(36).substr(2, 9)
       })),
-      customFields: form.customFields
+      // 高级字段
+      extShipmentId: form.extShipmentId,
+      incoterms: form.incoterms,
+      shippingCarrier: form.shippingCarrier,
+      shippingMethod: form.shippingMethod,
+      shippingNote: form.shippingNote,
+      bol: form.bol,
+      seal: form.seal,
+      trailerNumber: form.trailerNumber,
+      trailerSize: form.trailerSize,
+      trailerType: form.trailerType,
+      containerNumber: form.containerNumber,
+      containerSize: form.containerSize,
+      containerType: form.containerType
     }
 
     if (dialogType.value === 'create') {
       arrivals.value.unshift(arrivalData)
-      ElMessage.success('Arrival saved successfully')
+      ElMessage.success('Arrival created successfully')
     } else {
       const index = arrivals.value.findIndex(arrival => arrival.id === form.id)
       if (index > -1) {
@@ -579,9 +635,31 @@ const handleSave = async () => {
 const handleSubmit = async () => {
   try {
     await handleSave()
-    ElMessage.success('Arrival submitted successfully')
   } catch (error) {
     console.error('Submit failed:', error)
+  }
+}
+
+// 处理采购订单选择
+const handlePurchaseOrderSelect = (poId: string) => {
+  const po = purchaseOrders.value.find(po => po.id === poId)
+  if (po) {
+    form.destination = po.warehouse
+    form.supplier = po.supplier
+    // 从采购订单加载商品
+    form.items = po.items.map(item => ({
+      id: '',
+      sku: item.sku,
+      name: item.name,
+      quantity: 0, // 到货数量，需要用户填写
+      unit: 'pcs',
+      lotNumber: '',
+      palletQuantity: 0,
+      upc: '',
+      purchaseId: po.orderNo,
+      isExisting: true,
+      orderedQty: item.quantity // 添加订购数量供参考
+    }))
   }
 }
 
@@ -671,6 +749,12 @@ const getStatusType = (status: string) => {
   }
 
   .empty-custom-fields {
+    text-align: center;
+    color: var(--el-text-color-secondary);
+    padding: 24px 0;
+  }
+
+  .empty-items {
     text-align: center;
     color: var(--el-text-color-secondary);
     padding: 24px 0;

@@ -42,6 +42,67 @@
       width="800px"
     >
       <el-form ref="formRef" :model="form" :rules="rules" label-width="120px">
+        <!-- 基本信息 -->
+        <div class="form-section">
+          <div class="section-header">
+            <h3>Basic Info</h3>
+          </div>
+          
+          <el-row :gutter="20">
+            <el-col :span="8">
+              <el-form-item label="Arrival" prop="arrivalId">
+                <el-select 
+                  v-model="form.arrivalId" 
+                  style="width: 100%"
+                  placeholder="Select Arrival"
+                  @change="handleArrivalSelect"
+                  :disabled="dialogType === 'edit'"
+                >
+                  <el-option
+                    v-for="arrival in availableArrivals"
+                    :key="arrival.id"
+                    :label="`${arrival.arrivalNo} - ${arrival.externalId}`"
+                    :value="arrival.id"
+                  />
+                </el-select>
+              </el-form-item>
+            </el-col>
+            <el-col :span="8">
+              <el-form-item label="Purchase Order" prop="purchaseOrder">
+                <el-input v-model="form.purchaseOrder" disabled />
+              </el-form-item>
+            </el-col>
+            <el-col :span="8">
+              <el-form-item label="External ID" prop="externalId">
+                <el-input v-model="form.externalId" placeholder="Enter external receipt ID" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+
+          <el-row :gutter="20">
+            <el-col :span="8">
+              <el-form-item label="Receipt Date" prop="receiptDate">
+                <el-date-picker
+                  v-model="form.receiptDate"
+                  type="date"
+                  style="width: 100%"
+                  placeholder="Select receipt date"
+                />
+              </el-form-item>
+            </el-col>
+            <el-col :span="8">
+              <el-form-item label="Shipping Carrier" prop="shippingCarrier">
+                <el-input v-model="form.shippingCarrier" placeholder="Enter shipping carrier" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="8">
+              <el-form-item label="Shipping Class" prop="shippingClass">
+                <el-input v-model="form.shippingClass" placeholder="Enter shipping class" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+        </div>
+
         <div class="form-header">
           <el-button @click="toggleAdvancedFields">
             {{ showAdvancedFields ? 'Hide' : 'Show' }} Advanced Fields
@@ -50,36 +111,17 @@
 
         <!-- 商品列表 -->
         <div class="form-section">
+          <div class="section-header">
+            <h3>Receipt Items</h3>
+          </div>
+          
           <el-table :data="form.items" border style="width: 100%">
-            <el-table-column label="Product Name and SKU" min-width="300">
-              <template #default="{ row, $index }">
-                <template v-if="row.isExisting">
-                  <div class="product-info">
-                    <div>{{ row.name }}</div>
-                    <div class="sku">{{ row.sku }}</div>
-                  </div>
-                </template>
-                <el-form-item 
-                  v-else
-                  :prop="'items.' + $index + '.sku'"
-                  :rules="{ required: true, message: 'Product is required' }"
-                  class="mb-0"
-                >
-                  <el-select 
-                    v-model="row.sku"
-                    filterable
-                    style="width: 100%"
-                    placeholder="Select product"
-                    @change="handleProductSelect($index, $event)"
-                  >
-                    <el-option
-                      v-for="product in productOptions"
-                      :key="product.sku"
-                      :label="product.name + ' (' + product.sku + ')'"
-                      :value="product.sku"
-                    />
-                  </el-select>
-                </el-form-item>
+            <el-table-column label="Product Name and SKU" min-width="200">
+              <template #default="{ row }">
+                <div class="product-info">
+                  <div>{{ row.name }}</div>
+                  <div class="sku">{{ row.sku }}</div>
+                </div>
               </template>
             </el-table-column>
             <el-table-column label="Shipped" width="100" align="center">
@@ -115,25 +157,10 @@
                 </el-select>
               </template>
             </el-table-column>
-            <el-table-column width="60">
-              <template #default="{ row, $index }">
-                <el-button 
-                  v-if="!row.isExisting"
-                  type="danger" 
-                  link 
-                  @click="removeItem($index)"
-                >
-                  <el-icon><Delete /></el-icon>
-                </el-button>
-              </template>
-            </el-table-column>
           </el-table>
 
-          <div class="table-footer">
-            <el-button type="primary" link @click="addItem">
-              <el-icon><Plus /></el-icon>
-              Add
-            </el-button>
+          <div v-if="form.items.length === 0" class="empty-items">
+            <p>Please select an arrival to load items</p>
           </div>
         </div>
 
@@ -224,11 +251,14 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, reactive, computed } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
+import { useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Delete, Plus } from '@element-plus/icons-vue'
 import { mockPurchaseData } from '@/mock/purchaseData'
 import type { Receipt, ReceiptItem, Warehouse } from '@/mock/purchaseData'
+
+const route = useRoute()
 
 // 采购订单选项（模拟数据）
 const purchaseOrderOptions = [
@@ -262,6 +292,13 @@ const productOptions = [
   { sku: 'SKU003', name: 'Product 3' }
 ]
 
+// 到货单列表
+const availableArrivals = computed(() => 
+  mockPurchaseData.arrivals.filter(arrival => 
+    arrival.status === 'shipped' || arrival.status === 'arrived'
+  )
+)
+
 // 列表数据
 const receipts = ref<Receipt[]>(mockPurchaseData.receipts)
 
@@ -278,28 +315,47 @@ const showAdvancedFields = ref(false)
 
 // 表单相关
 const dialogVisible = ref(false)
+const viewDialogVisible = ref(false)
+const currentReceipt = ref<Receipt | null>(null)
 const dialogType = ref<'create' | 'edit'>('create')
 const formRef = ref()
 const form = reactive({
   id: '',
+  arrivalId: '',
+  purchaseOrder: '',
   externalId: '',
-  actualArrivalDate: '',
+  receiptDate: '',
   shippingCarrier: '',
   shippingClass: '',
-  items: [] as Array<ReceiptItem & { isExisting?: boolean }>
+  items: [] as Array<{
+    id: string
+    sku: string
+    name: string
+    shippedQty: number
+    receivedQty: number
+    unit: string
+  }>
 })
 
 // 表单校验规则
 const rules = {
+  arrivalId: [{ required: true, message: 'Arrival is required' }],
   externalId: [{ required: true, message: 'External receipt ID is required' }],
-  actualArrivalDate: [{ required: true, message: 'Actual arrival date is required' }],
+  receiptDate: [{ required: true, message: 'Receipt date is required' }],
   shippingCarrier: [{ required: true, message: 'Shipping carrier is required' }],
   shippingClass: [{ required: true, message: 'Shipping class is required' }]
 }
 
-// 查看详情相关
-const viewDialogVisible = ref(false)
-const currentReceipt = ref<Receipt | null>(null)
+// 检查URL参数，如果有arrivalId则自动打开创建对话框
+onMounted(() => {
+  const arrivalId = route.query.arrivalId as string
+  if (arrivalId) {
+    handleCreate()
+    // 自动选择到货单
+    form.arrivalId = arrivalId
+    handleArrivalSelect(arrivalId)
+  }
+})
 
 // 格式化函数
 const formatDate = (date: string) => {
@@ -325,50 +381,36 @@ const toggleAdvancedFields = () => {
   showAdvancedFields.value = !showAdvancedFields.value
 }
 
-// 处理商品选择
-const handleProductSelect = (index: number, sku: string) => {
-  const product = productOptions.find(p => p.sku === sku)
-  if (product) {
-    form.items[index].name = product.name
-    form.items[index].shippedQty = 10 // 模拟数据
+// 处理到货单选择
+const handleArrivalSelect = (arrivalId: string) => {
+  const arrival = availableArrivals.value.find(a => a.id === arrivalId)
+  if (arrival) {
+    form.purchaseOrder = arrival.purchaseOrder || ''
+    form.shippingCarrier = arrival.shippingCarrier || ''
+    // 从到货单加载商品
+    form.items = (arrival.items || []).map(item => ({
+      id: '',
+      sku: item.sku,
+      name: item.name,
+      shippedQty: item.quantity,
+      receivedQty: 0,
+      unit: item.unit
+    }))
   }
-}
-
-// 添加商品
-const addItem = () => {
-  form.items.push({
-    id: '',
-    sku: '',
-    name: '',
-    shippedQty: 0,
-    receivedQty: 0,
-    unit: 'pcs',
-    isExisting: false
-  })
-}
-
-// 移除商品
-const removeItem = (index: number) => {
-  form.items.splice(index, 1)
 }
 
 // 处理创建
 const handleCreate = () => {
   dialogType.value = 'create'
+  // 重置表单
   form.id = ''
+  form.arrivalId = ''
+  form.purchaseOrder = ''
   form.externalId = ''
-  form.actualArrivalDate = ''
+  form.receiptDate = ''
   form.shippingCarrier = ''
   form.shippingClass = ''
-  form.items = [{
-    id: '',
-    sku: 'SKU001',
-    name: 'Product 1',
-    shippedQty: 10,
-    receivedQty: 0,
-    unit: 'pcs',
-    isExisting: true
-  }]
+  form.items = []
   showAdvancedFields.value = false
   dialogVisible.value = true
 }
@@ -377,13 +419,19 @@ const handleCreate = () => {
 const handleEdit = (row: Receipt) => {
   dialogType.value = 'edit'
   form.id = row.id
+  form.arrivalId = row.arrivalNo || ''
+  form.purchaseOrder = row.purchaseOrder || ''
   form.externalId = row.externalId || ''
-  form.actualArrivalDate = row.actualArrivalDate || ''
+  form.receiptDate = row.receiptDate || ''
   form.shippingCarrier = row.shippingCarrier || ''
   form.shippingClass = row.shippingClass || ''
-  form.items = row.items.map(item => ({
-    ...item,
-    isExisting: true
+  form.items = (row.items || []).map(item => ({
+    id: item.id,
+    sku: item.sku,
+    name: item.name,
+    shippedQty: item.shippedQty || 0,
+    receivedQty: item.receivedQty,
+    unit: item.unit
   }))
   showAdvancedFields.value = false
   dialogVisible.value = true
@@ -418,8 +466,10 @@ const handleSubmit = async () => {
     const receiptData = {
       id: form.id || Math.random().toString(36).substr(2, 9),
       receiptNo: form.id ? form.externalId : 'REC-' + Math.random().toString(36).substr(2, 8).toUpperCase(),
+      arrivalNo: form.arrivalId,
+      purchaseOrder: form.purchaseOrder,
       externalId: form.externalId,
-      actualArrivalDate: form.actualArrivalDate,
+      receiptDate: form.receiptDate,
       shippingCarrier: form.shippingCarrier,
       shippingClass: form.shippingClass,
       status: 'pending',
@@ -493,6 +543,25 @@ const handleSubmit = async () => {
       color: var(--el-text-color-secondary);
       margin-top: 4px;
     }
+  }
+
+  .section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+
+    h3 {
+      margin: 0;
+      font-size: 16px;
+      font-weight: 600;
+    }
+  }
+
+  .empty-items {
+    text-align: center;
+    color: var(--el-text-color-secondary);
+    padding: 24px 0;
   }
 }
 </style> 
