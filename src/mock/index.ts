@@ -8,6 +8,8 @@ import {
   queryInventory, 
   querySystemOrders 
 } from './queryToolData'
+import { MockMethod } from 'vite-plugin-mock'
+import { mockTrackingList, mockTrackingDetail } from './purchaseTracking'
 
 // Mock适配器类型
 interface MockConfig {
@@ -380,4 +382,53 @@ axios.interceptors.response.use(
   }
 );
 
-export default mock; 
+const mockHandlers = [
+  // Purchase Order Tracking
+  {
+    url: '/api/purchase/tracking',
+    method: 'get',
+    response: ({ query }) => {
+      const { page = 1, pageSize = 10 } = query
+      const start = (page - 1) * pageSize
+      const end = start + pageSize
+      
+      return {
+        code: 200,
+        data: {
+          total: mockTrackingList.length,
+          items: mockTrackingList.slice(start, end)
+        }
+      }
+    }
+  },
+  {
+    url: '/api/purchase/tracking/:id',
+    method: 'get',
+    response: ({ params }) => {
+      try {
+        const data = mockTrackingDetail(params.id)
+        return {
+          code: 200,
+          data
+        }
+      } catch (error) {
+        return {
+          code: 404,
+          message: 'Not found'
+        }
+      }
+    }
+  },
+  {
+    url: '/api/purchase/tracking/:id/status',
+    method: 'post',
+    response: ({ params }) => {
+      return {
+        code: 200,
+        data: mockTrackingDetail(params.id)
+      }
+    }
+  }
+] as MockMethod[]
+
+export default mockHandlers 

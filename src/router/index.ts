@@ -182,6 +182,22 @@ const routes: RouteRecordRaw[] = [
             }
           },
           {
+            path: 'tracking',
+            name: 'PurchaseTracking',
+            component: () => import('@/views/purchase/tracking/index.vue'),
+            meta: {
+              title: 'Order Tracking'
+            }
+          },
+          {
+            path: 'tracking/:id',
+            name: 'PurchaseTrackingDetail',
+            component: () => import('@/views/purchase/tracking/detail.vue'),
+            meta: {
+              title: 'Order Tracking Detail'
+            }
+          },
+          {
             path: 'orders/:id',
             name: 'PurchaseOrderDetail',
             component: () => import('@/views/purchase/orders/detail.vue'),

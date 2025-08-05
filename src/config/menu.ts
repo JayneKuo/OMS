@@ -85,6 +85,11 @@ export const menuConfig: MenuItem[] = [
         icon: Document
       },
       {
+        title: 'Order Tracking',
+        path: '/purchase/tracking',
+        icon: Location
+      },
+      {
         title: 'Transfer Orders',
         path: '/purchase/transfer',
         icon: Share
