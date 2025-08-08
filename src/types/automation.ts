@@ -56,6 +56,7 @@ export interface Action {
   type: string
   config: { [key: string]: any }
   order: number
+  enabled?: boolean
 }
 
 export interface ActionOption {
@@ -82,6 +83,7 @@ export interface Condition {
 export interface ConditionGroup {
   operator: OperatorType
   conditions: Condition[]
+  enabled?: boolean
 }
 
 export interface Rule {
@@ -93,4 +95,7 @@ export interface Rule {
   lastModified: string
   createdBy: string
   modifiedBy: string
+  enabled?: boolean
+  order?: number
+  source: string
 } 

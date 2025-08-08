@@ -59,6 +59,332 @@
       </div>
 
       <div class="toolbar-actions">
+        <el-tooltip content="Pull Orders" placement="top">
+          <el-button class="action-btn" @click="showPullDialog = true">
+            <el-icon><Download /></el-icon>
+          </el-button>
+        </el-tooltip>
+        
+        <!-- Pull Orders Dialog -->
+        <el-dialog
+          v-model="showPullDialog"
+          title="Pull Orders"
+          width="800px"
+          destroy-on-close
+        >
+          <div class="pull-dialog-content">
+            <!-- Channel Selection -->
+            <div class="pull-section">
+              <div class="section-title">
+                Channel
+                <span class="required-mark">*</span>
+              </div>
+              <div class="section-content">
+                <el-select
+                  v-model="pullForm.channel"
+                  placeholder="Select channel"
+                  class="w-full"
+                >
+                  <el-option-group label="Marketplaces">
+                    <el-option label="Amazon" value="amazon" />
+                    <el-option label="eBay" value="ebay" />
+                    <el-option label="Walmart" value="walmart" />
+                  </el-option-group>
+                  <el-option-group label="E-commerce">
+                    <el-option label="Shopify" value="shopify" />
+                    <el-option label="WooCommerce" value="woocommerce" />
+                  </el-option-group>
+                </el-select>
+              </div>
+            </div>
+
+            <!-- Order Numbers -->
+            <div class="pull-section">
+              <div class="section-title">Order Numbers</div>
+              <div class="section-content">
+                <el-input
+                  v-model="pullForm.orderNumbers"
+                  type="textarea"
+                  :rows="3"
+                  placeholder="Enter order numbers (one per line)"
+                />
+                <div class="text-gray-400 text-xs mt-1">
+                  Enter multiple order numbers, one per line
+                </div>
+              </div>
+            </div>
+
+            <!-- Date Range -->
+            <div class="pull-section">
+              <div class="section-title">Date Range</div>
+              <div class="section-content">
+                <el-date-picker
+                  v-model="pullForm.dateRange"
+                  type="daterange"
+                  range-separator="to"
+                  start-placeholder="Start date"
+                  end-placeholder="End date"
+                  class="w-full"
+                />
+              </div>
+            </div>
+
+            <!-- Status Selection -->
+            <div class="pull-section">
+              <div class="section-title">Order Status</div>
+              <div class="section-content">
+                <el-select
+                  v-model="pullForm.status"
+                  multiple
+                  placeholder="Select status"
+                  class="w-full"
+                >
+                  <el-option label="Pending" value="pending" />
+                  <el-option label="Processing" value="processing" />
+                  <el-option label="Shipped" value="shipped" />
+                  <el-option label="Delivered" value="delivered" />
+                  <el-option label="Cancelled" value="cancelled" />
+                </el-select>
+              </div>
+            </div>
+          </div>
+
+          <template #footer>
+            <div class="dialog-footer">
+              <el-button @click="showPullDialog = false">Cancel</el-button>
+              <el-button
+                type="primary"
+                plain
+                :loading="previewing"
+                @click="handlePreviewPull"
+              >
+                Preview
+              </el-button>
+              <el-button
+                type="primary"
+                :loading="pulling"
+                @click="handlePullOrders"
+              >
+                Pull Orders
+              </el-button>
+            </div>
+          </template>
+        </el-dialog>
+
+        <!-- Error Dialog -->
+        <el-dialog
+          v-model="showErrorDialog"
+          title="Pull Orders Failed"
+          width="600px"
+          :show-close="false"
+          :close-on-click-modal="false"
+          :close-on-press-escape="false"
+        >
+          <div class="error-dialog-content">
+            <div class="error-summary">
+              <el-alert
+                :title="pullErrorDetails.errorSummary"
+                type="error"
+                :closable="false"
+                show-icon
+              />
+            </div>
+
+            <div v-if="pullErrorDetails.failedOrders.length" class="failed-orders-list">
+              <div class="list-title">Failed Orders:</div>
+              <el-table :data="pullErrorDetails.failedOrders" max-height="300">
+                <el-table-column prop="orderNo" label="Order No." width="120" />
+                <el-table-column prop="channel" label="Channel" width="120" />
+                <el-table-column prop="error" label="Error" min-width="200">
+                  <template #default="{ row }">
+                    <el-tooltip 
+                      :content="row.error"
+                      placement="top"
+                      :show-after="200"
+                    >
+                      <div class="error-text">{{ row.error }}</div>
+                    </el-tooltip>
+                  </template>
+                </el-table-column>
+              </el-table>
+            </div>
+          </div>
+
+          <template #footer>
+            <div class="dialog-footer">
+              <el-button @click="showErrorDialog = false">Close</el-button>
+              <el-button
+                type="primary"
+                :loading="pulling"
+                @click="handleRetryPull"
+              >
+                Retry Pull
+              </el-button>
+            </div>
+          </template>
+        </el-dialog>
+
+        <!-- Preview Results Dialog -->
+        <el-dialog
+          v-model="showPreviewDialog"
+          title="Preview Pull Results"
+          width="1000px"
+          destroy-on-close
+          :close-on-click-modal="false"
+        >
+          <div class="preview-dialog-content">
+            <div class="preview-summary mb-4">
+              <div class="summary-item">
+                <span class="label">Total Orders:</span>
+                <span class="value">{{ previewResults.total }}</span>
+              </div>
+              <div class="summary-item">
+                <span class="label">New Orders:</span>
+                <span class="value text-success">{{ previewResults.newOrders.length }}</span>
+              </div>
+              <div class="summary-item">
+                <span class="label">Duplicate Orders:</span>
+                <span class="value text-warning">{{ previewResults.duplicateOrders.length }}</span>
+              </div>
+            </div>
+
+            <!-- New Orders Table -->
+            <div v-if="previewResults.newOrders.length" class="preview-section mb-4">
+              <div class="section-title">New Orders</div>
+              <el-table 
+                :data="previewResults.newOrders" 
+                max-height="300"
+                @selection-change="handleNewOrdersSelectionChange"
+              >
+                <el-table-column type="selection" width="55" />
+                <el-table-column prop="orderNo" label="Order No." width="180" />
+                <el-table-column prop="channel" label="Channel" width="120" />
+                <el-table-column prop="orderDate" label="Order Date" width="180" />
+                <el-table-column prop="status" label="Status" width="120" />
+                <el-table-column prop="total" label="Total" width="120">
+                  <template #default="{ row }">
+                    {{ formatCurrency(row.total) }}
+                  </template>
+                </el-table-column>
+                <el-table-column prop="items" label="Items">
+                  <template #default="{ row }">
+                    {{ row.items.length }} items
+                  </template>
+                </el-table-column>
+              </el-table>
+            </div>
+
+            <!-- Duplicate Orders Table -->
+            <div v-if="previewResults.duplicateOrders.length" class="preview-section">
+              <div class="section-title">Duplicate Orders</div>
+              <el-table 
+                :data="previewResults.duplicateOrders" 
+                max-height="300"
+                @selection-change="handleDuplicateOrdersSelectionChange"
+              >
+                <el-table-column type="selection" width="55" />
+                <el-table-column prop="orderNo" label="Order No." width="180" />
+                <el-table-column prop="channel" label="Channel" width="120" />
+                <el-table-column prop="orderDate" label="Order Date" width="180" />
+                <el-table-column prop="status" label="Status" width="120" />
+                <el-table-column prop="total" label="Total" width="120">
+                  <template #default="{ row }">
+                    {{ formatCurrency(row.total) }}
+                  </template>
+                </el-table-column>
+                <el-table-column prop="items" label="Items">
+                  <template #default="{ row }">
+                    {{ row.items.length }} items
+                  </template>
+                </el-table-column>
+              </el-table>
+            </div>
+
+            <!-- Failed Orders Table -->
+            <div v-if="previewResults.failedOrders.length" class="preview-section">
+              <div class="section-header">
+                <div class="section-title text-danger">Failed Orders</div>
+                <el-button
+                  type="primary"
+                  size="small"
+                  :loading="retrying"
+                  @click="handleRetryFailed"
+                >
+                  Retry Failed Orders
+                </el-button>
+              </div>
+              <el-table 
+                ref="failedTableRef"
+                :data="previewResults.failedOrders" 
+                max-height="300"
+                @selection-change="handleFailedOrdersSelectionChange"
+              >
+                <el-table-column type="selection" width="55" />
+                <el-table-column prop="orderNo" label="Order No." width="180" />
+                <el-table-column prop="channel" label="Channel" width="120" />
+                <el-table-column prop="orderDate" label="Order Date" width="180" />
+                <el-table-column prop="status" label="Status" width="120" />
+                <el-table-column prop="error" label="Error" min-width="200">
+                  <template #default="{ row }">
+                    <el-tooltip 
+                      v-if="row.error"
+                      :content="row.error"
+                      placement="top"
+                      :show-after="200"
+                    >
+                      <div class="error-text">{{ row.error }}</div>
+                    </el-tooltip>
+                  </template>
+                </el-table-column>
+                <el-table-column label="Actions" width="100" fixed="right">
+                  <template #default="{ row }">
+                    <el-button
+                      type="primary"
+                      link
+                      :loading="retryingOrder === row.orderNo"
+                      @click="handleRetrySingleOrder(row)"
+                    >
+                      Retry
+                    </el-button>
+                  </template>
+                </el-table-column>
+              </el-table>
+            </div>
+
+            <!-- Selection Summary -->
+            <div class="selection-summary">
+              <div class="summary-text">
+                Selected: 
+                <span class="text-primary">{{ selectedNewOrders.length + selectedDuplicateOrders.length }}</span> orders
+                (<span class="text-success">{{ selectedNewOrders.length }}</span> new,
+                <span class="text-warning">{{ selectedDuplicateOrders.length }}</span> duplicate)
+                <template v-if="previewResults.failedOrders.length">
+                  <span class="text-danger ml-2">
+                    {{ previewResults.failedOrders.length }} orders failed to process
+                    <template v-if="selectedFailedOrders.length">
+                      ({{ selectedFailedOrders.length }} selected for retry)
+                    </template>
+                  </span>
+                </template>
+              </div>
+            </div>
+          </div>
+
+          <template #footer>
+            <div class="dialog-footer">
+              <el-button @click="showPreviewDialog = false">Cancel</el-button>
+              <el-button
+                type="primary"
+                :loading="pulling"
+                :disabled="!selectedNewOrders.length"
+                @click="handleConfirmPull"
+              >
+                Pull {{ selectedNewOrders.length }} Orders
+              </el-button>
+            </div>
+          </template>
+        </el-dialog>
+
         <el-tooltip content="Refresh" placement="top">
           <el-button class="action-btn" @click="refreshTable">
             <el-icon><Refresh /></el-icon>
@@ -238,9 +564,10 @@ import {
   Connection,
   Upload,
   Close,
-  RefreshRight
+  RefreshRight,
+  Download
 } from '@element-plus/icons-vue'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import ColumnRenderer from './components/ColumnRenderer.vue'
 import { DEFAULT_COLUMNS, type OrderItem, type OrderColumn } from './types'
 import draggable from 'vuedraggable'
@@ -274,8 +601,58 @@ const mockData: OrderItem[] = Array.from({ length: 20 }, (_, index) => ({
   company: 'ACME Corp'
 }))
 
-// 状态变量
+// 状态管理
 const loading = ref(false)
+const pulling = ref(false)
+const previewing = ref(false)
+const retrying = ref(false)
+const retryingOrder = ref<string>('')
+const showPullDialog = ref(false)
+const showPreviewDialog = ref(false)
+const showErrorDialog = ref(false)
+const pullErrorDetails = ref<{
+  failedOrders: {
+    orderNo: string
+    channel: string
+    error: string
+  }[]
+  errorSummary: string
+}>({
+  failedOrders: [],
+  errorSummary: ''
+})
+const failedTableRef = ref<InstanceType<typeof import('element-plus').ElTable>>()
+
+interface PreviewOrder {
+  orderNo: string
+  channel: string
+  orderDate: string
+  status: string
+  total: number
+  items: any[]
+  error?: string // 添加错误信息字段
+}
+
+interface PreviewResults {
+  total: number
+  newOrders: PreviewOrder[]
+  duplicateOrders: PreviewOrder[]
+  failedOrders: PreviewOrder[] // 添加失败订单
+}
+
+const previewResults = ref<PreviewResults>({
+  total: 0,
+  newOrders: [],
+  duplicateOrders: [],
+  failedOrders: []
+})
+
+const pullForm = ref({
+  channel: '',
+  orderNumbers: '',
+  dateRange: [] as [Date | null, Date | null],
+  status: [] as string[]
+})
 const searchKeyword = ref('')
 const selectedRows = ref<OrderItem[]>([])
 const showColumnSettings = ref(false)
@@ -562,6 +939,214 @@ const handleCreateCommand = (command: string) => {
   }
 }
 
+// 拉取订单
+const handlePullOrders = async () => {
+  try {
+    // 表单验证
+    if (!validatePullForm()) {
+      return
+    }
+
+    pulling.value = true
+    const params = formatPullParams()
+    
+    // TODO: 调用拉取订单的API
+    await new Promise(resolve => setTimeout(resolve, 1000)) // 模拟API调用
+    
+    // 模拟拉取失败
+    const mockError = {
+      errorSummary: 'Failed to connect to channel API',
+      failedOrders: [
+        {
+          orderNo: '#10001',
+          channel: 'Amazon',
+          error: 'Network timeout'
+        },
+        {
+          orderNo: '#10002',
+          channel: 'Amazon',
+          error: 'Invalid response format'
+        }
+      ]
+    }
+
+    // 处理失败情况
+    if (mockError.failedOrders.length > 0) {
+      pullErrorDetails.value = mockError
+      showErrorDialog.value = true
+      return
+    }
+
+    ElMessage.success('Orders pulled successfully')
+    showPullDialog.value = false
+    refreshTable() // 刷新表格数据
+  } catch (error) {
+    console.error('Error pulling orders:', error)
+    pullErrorDetails.value = {
+      errorSummary: 'Unexpected error occurred while pulling orders',
+      failedOrders: []
+    }
+    showErrorDialog.value = true
+  } finally {
+    pulling.value = false
+  }
+}
+
+// 重试拉取订单
+const handleRetryPull = async () => {
+  showErrorDialog.value = false
+  await handlePullOrders()
+}
+
+// 预览拉单
+const handlePreviewPull = async () => {
+  previewing.value = true
+  try {
+    // 表单验证
+    if (!validatePullForm()) {
+      previewing.value = false
+      return
+    }
+
+    const params = formatPullParams()
+    
+    // TODO: 调用预览拉取订单的API
+    await new Promise(resolve => setTimeout(resolve, 1000)) // 模拟API调用
+    
+    // 模拟预览结果
+    previewResults.value = {
+      total: 10,
+      newOrders: Array.from({ length: 5 }, (_, i) => ({
+        orderNo: `#${10000 + i}`,
+        channel: ['Amazon', 'eBay', 'Walmart'][i % 3],
+        orderDate: '07/18/2025',
+        status: 'Ready For Fulfillment',
+        total: 1234.56,
+        items: 5
+      })),
+      duplicateOrders: Array.from({ length: 2 }, (_, i) => ({
+        orderNo: `#${10000 + i}`,
+        channel: ['Shopify', 'WooCommerce'][i % 2],
+        orderDate: '07/17/2025',
+        status: 'Shipped',
+        total: 789.01,
+        items: 3
+      })),
+      failedOrders: Array.from({ length: 1 }, (_, i) => ({
+        orderNo: `#${10000 + i}`,
+        channel: ['Amazon'][i % 1],
+        orderDate: '07/17/2025',
+        status: 'Failed',
+        total: 0,
+        items: 0,
+        error: 'Failed to fetch order details'
+      }))
+    }
+    showPreviewDialog.value = true
+  } catch (error) {
+    console.error('Error previewing orders:', error)
+    ElMessage.error('Failed to preview orders')
+  } finally {
+    previewing.value = false
+  }
+}
+
+// 确认拉单
+const handleConfirmPull = async () => {
+  try {
+    // 表单验证
+    if (!validatePullForm()) {
+      return
+    }
+
+    pulling.value = true
+    const params = formatPullParams()
+    
+    // TODO: 调用拉取订单的API
+    await new Promise(resolve => setTimeout(resolve, 1000)) // 模拟API调用
+    
+    // 模拟部分订单拉取失败
+    const results = {
+      success: selectedNewOrders.value.slice(0, -1),
+      failed: [{
+        ...selectedNewOrders.value[selectedNewOrders.value.length - 1],
+        error: 'Failed to connect to channel API'
+      }]
+    }
+
+    if (results.failed.length > 0) {
+      ElMessageBox.alert(
+        `${results.success.length} orders pulled successfully.<br/>
+         ${results.failed.length} orders failed:<br/>
+         ${results.failed.map(order => `${order.orderNo}: ${order.error}`).join('<br/>')}`,
+        'Pull Results',
+        {
+          type: 'warning',
+          dangerouslyHtml: true,
+          confirmButtonText: 'OK'
+        }
+      )
+    } else {
+      ElMessage.success('All orders pulled successfully')
+    }
+
+    showPullDialog.value = false
+    refreshTable() // 刷新表格数据
+  } catch (error) {
+    console.error('Error pulling orders:', error)
+    ElMessage.error('Failed to pull orders')
+  } finally {
+    pulling.value = false
+  }
+}
+
+// 验证拉单表单
+const validatePullForm = () => {
+  const { channel, orderNumbers, dateRange, status } = pullForm.value
+  
+  if (!channel) {
+    ElMessage.warning('Please select a channel')
+    return false
+  }
+
+  const hasAdditionalFilter = orderNumbers.trim() || 
+                            (dateRange[0] && dateRange[1]) || 
+                            status.length > 0
+
+  if (!hasAdditionalFilter) {
+    ElMessage.warning('Please set at least one additional filter condition')
+    return false
+  }
+  
+  return true
+}
+
+// 格式化拉单参数
+const formatPullParams = () => {
+  const { channel, orderNumbers, dateRange, status } = pullForm.value
+  
+  const params: Record<string, any> = {}
+
+  if (channel.length > 0) {
+    params.channel = channel
+  }
+
+  if (orderNumbers.trim()) {
+    params.orderNumbers = orderNumbers.split('\n').map(no => no.trim()).filter(Boolean)
+  }
+
+  if (dateRange[0] && dateRange[1]) {
+    params.startDate = dateRange[0]
+    params.endDate = dateRange[1]
+  }
+
+  if (status.length > 0) {
+    params.status = status
+  }
+
+  return params
+}
+
 // 生命周期钩子
 onMounted(() => {
   // 加载保存的列设置
@@ -647,6 +1232,140 @@ const handleSavedColumnSettings = (saved: string) => {
     console.error('Failed to load column settings:', error)
     // 如果加载失败，使用默认列
     columnsList.value = DEFAULT_COLUMNS
+  }
+}
+
+// 预览表格选择相关
+const selectedNewOrders = ref<PreviewOrder[]>([])
+const selectedDuplicateOrders = ref<PreviewOrder[]>([])
+
+const handleNewOrdersSelectionChange = (selection: PreviewOrder[]) => {
+  selectedNewOrders.value = selection
+}
+
+const handleDuplicateOrdersSelectionChange = (selection: PreviewOrder[]) => {
+  selectedDuplicateOrders.value = selection
+}
+
+// 格式化货币
+const formatCurrency = (value: number) => {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  }).format(value)
+}
+
+const selectedFailedOrders = ref<PreviewOrder[]>([])
+
+const handleFailedOrdersSelectionChange = (selection: PreviewOrder[]) => {
+  selectedFailedOrders.value = selection
+}
+
+// 重试单个失败订单
+const handleRetrySingleOrder = async (order: PreviewOrder) => {
+  try {
+    retryingOrder.value = order.orderNo
+    
+    // TODO: 调用重试单个订单的API
+    await new Promise(resolve => setTimeout(resolve, 1000)) // 模拟API调用
+    
+    // 模拟重试成功
+    const retrySuccess = Math.random() > 0.3 // 70%成功率
+
+    if (retrySuccess) {
+      // 从失败列表中移除
+      const index = previewResults.value.failedOrders.findIndex(o => o.orderNo === order.orderNo)
+      if (index > -1) {
+        const [retried] = previewResults.value.failedOrders.splice(index, 1)
+        // 添加到新订单列表
+        previewResults.value.newOrders.push({
+          ...retried,
+          error: undefined
+        })
+      }
+      ElMessage.success(`Order ${order.orderNo} retried successfully`)
+    } else {
+      // 更新错误信息
+      const failedOrder = previewResults.value.failedOrders.find(o => o.orderNo === order.orderNo)
+      if (failedOrder) {
+        failedOrder.error = 'Retry failed: Network timeout'
+      }
+      ElMessage.error(`Failed to retry order ${order.orderNo}`)
+    }
+  } catch (error) {
+    console.error('Error retrying order:', error)
+    ElMessage.error(`Failed to retry order ${order.orderNo}`)
+  } finally {
+    retryingOrder.value = ''
+  }
+}
+
+// 重试选中的失败订单
+const handleRetryFailed = async () => {
+  if (!selectedFailedOrders.value.length) {
+    ElMessage.warning('Please select orders to retry')
+    return
+  }
+
+  try {
+    retrying.value = true
+    
+    // TODO: 调用批量重试API
+    await new Promise(resolve => setTimeout(resolve, 1000)) // 模拟API调用
+    
+    // 模拟部分重试成功
+    const results = {
+      success: selectedFailedOrders.value.slice(0, -1),
+      failed: [selectedFailedOrders.value[selectedFailedOrders.value.length - 1]]
+    }
+
+    // 处理成功的订单
+    for (const order of results.success) {
+      const index = previewResults.value.failedOrders.findIndex(o => o.orderNo === order.orderNo)
+      if (index > -1) {
+        const [retried] = previewResults.value.failedOrders.splice(index, 1)
+        // 添加到新订单列表
+        previewResults.value.newOrders.push({
+          ...retried,
+          error: undefined
+        })
+      }
+    }
+
+    // 更新失败订单的错误信息
+    for (const order of results.failed) {
+      const failedOrder = previewResults.value.failedOrders.find(o => o.orderNo === order.orderNo)
+      if (failedOrder) {
+        failedOrder.error = 'Retry failed: Network timeout'
+      }
+    }
+
+    // 清除选择
+    failedTableRef.value?.clearSelection()
+
+    // 显示结果
+    if (results.failed.length > 0) {
+      ElMessageBox.alert(
+        `${results.success.length} orders retried successfully.<br/>
+         ${results.failed.length} orders failed:<br/>
+         ${results.failed.map(order => `${order.orderNo}: ${order.error}`).join('<br/>')}`,
+        'Retry Results',
+        {
+          type: 'warning',
+          dangerouslyHtml: true,
+          confirmButtonText: 'OK'
+        }
+      )
+    } else {
+      ElMessage.success('All selected orders retried successfully')
+    }
+  } catch (error) {
+    console.error('Error retrying orders:', error)
+    ElMessage.error('Failed to retry orders')
+  } finally {
+    retrying.value = false
   }
 }
 </script>
@@ -2008,6 +2727,164 @@ const handleSavedColumnSettings = (saved: string) => {
     &.cell-lineItemCount {
       justify-content: flex-end;
     }
+  }
+}
+
+.dialog-footer {
+  padding: 20px 0 0;
+  text-align: right;
+  border-top: 1px solid var(--el-border-color-lighter);
+}
+
+.pull-dialog-content {
+  padding: 0 20px;
+}
+
+.pull-section {
+  margin-bottom: 24px;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.section-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--el-text-color-primary);
+  margin-bottom: 12px;
+}
+
+.section-content {
+  padding: 0 12px;
+}
+
+.pull-type-group {
+  width: 100%;
+  display: flex;
+  
+  :deep(.el-radio-button__inner) {
+    flex: 1;
+    text-align: center;
+  }
+}
+
+.preview-dialog-content {
+  padding: 0 20px;
+}
+
+.preview-summary {
+  display: flex;
+  gap: 32px;
+  padding: 16px;
+  background-color: var(--el-fill-color-light);
+  border-radius: 8px;
+}
+
+.summary-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  .label {
+    font-size: 14px;
+    color: var(--el-text-color-regular);
+  }
+
+  .value {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--el-text-color-primary);
+
+    &.text-success {
+      color: var(--el-color-success);
+    }
+
+    &.text-warning {
+      color: var(--el-color-warning);
+    }
+  }
+}
+
+.preview-section {
+  margin-bottom: 24px;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+
+  .section-title {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--el-text-color-primary);
+    margin-bottom: 0;
+
+    &.text-danger {
+      color: var(--el-color-danger);
+    }
+  }
+}
+
+.selection-summary {
+  margin-top: 16px;
+  padding: 12px 16px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+
+  .summary-text {
+    font-size: 13px;
+    color: #8b949e;
+  }
+}
+
+.error-text {
+  color: #ff4d4f;
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 150px;
+  text-align: left;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.required-mark {
+  color: var(--el-color-danger);
+  margin-left: 4px;
+}
+
+.section-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--el-text-color-primary);
+  margin-bottom: 0;
+  display: flex;
+  align-items: center;
+
+  &.text-danger {
+    color: var(--el-color-danger);
+  }
+}
+
+.error-dialog-content {
+  padding: 20px;
+}
+
+.failed-orders-list {
+  margin-top: 16px;
+
+  .list-title {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--el-text-color-primary);
+    margin-bottom: 8px;
   }
 }
 </style> 

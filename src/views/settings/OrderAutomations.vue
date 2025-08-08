@@ -1,18 +1,20 @@
 /// <reference types="element-plus/global" />
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, nextTick } from 'vue'
 import type { Rule, Condition, ConditionGroup, Action } from '@/types/automation'
 import { FIELD_GROUPS, OPERATOR_OPTIONS, ACTION_GROUPS } from '@/constants/automation'
 import { mockResponse } from '@/mock/automationRules'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance } from 'element-plus'
 import * as ElementPlusIconsVue from '@element-plus/icons-vue'
+import Sortable from 'sortablejs'
 
 // 图标组件
 const icons = ElementPlusIconsVue
 
 // 组件引用
 const ruleFormRef = ref<FormInstance>()
+const tableRef = ref<InstanceType<typeof import('element-plus').ElTable>>()
 
 // 状态管理
 const rules = ref<Rule[]>([])
@@ -35,8 +37,71 @@ const ruleForm = ref<Rule>({
   }],
   lastModified: new Date().toLocaleString(),
   createdBy: '',
-  modifiedBy: ''
+  modifiedBy: '',
+  source: 'simple' // Added source field
 })
+
+// 拖拽相关状态
+const dragging = ref(false)
+let sortable: Sortable | null = null
+
+// 初始化拖拽排序
+const initSortable = () => {
+  const el = tableRef.value?.$el.querySelector('.el-table__body-wrapper tbody')
+  if (!el) return
+
+  sortable?.destroy()
+  sortable = new Sortable(el, {
+    animation: 300,
+    handle: '.drag-handle',
+    ghostClass: 'sortable-ghost',
+    chosenClass: 'sortable-chosen',
+    dragClass: 'sortable-drag',
+    onStart: () => {
+      dragging.value = true
+    },
+    onEnd: (evt) => {
+      dragging.value = false
+      const { oldIndex, newIndex } = evt
+      if (oldIndex !== newIndex) {
+        const currRow = rules.value.splice(oldIndex!, 1)[0]
+        rules.value.splice(newIndex!, 0, currRow)
+        
+        // 更新所有规则的顺序
+        rules.value = rules.value.map((rule, index) => ({
+          ...rule,
+          order: index + 1,
+          lastModified: new Date().toLocaleString()
+        }))
+        
+        ElMessage.success('Rule order updated successfully')
+      }
+    }
+  })
+}
+
+// 处理拖拽排序
+const handleDragStart = () => {
+  dragging.value = true
+}
+
+const handleDragEnd = () => {
+  dragging.value = false
+}
+
+const handleSort = ({ oldIndex, newIndex }: { oldIndex: number, newIndex: number }) => {
+  const currRow = rules.value.splice(oldIndex, 1)[0]
+  rules.value.splice(newIndex, 0, currRow)
+  
+  // 更新所有规则的顺序
+  rules.value = rules.value.map((rule, index) => ({
+    ...rule,
+    order: index + 1,
+    lastModified: new Date().toLocaleString()
+  }))
+  
+  ElMessage.success('Rule order updated successfully')
+}
 
 const editingRule = ref<Rule | null>(null)
 const dialogVisible = ref(false)
@@ -85,7 +150,8 @@ const handleCreateRule = () => {
     }],
     lastModified: new Date().toLocaleString(),
     createdBy: '',
-    modifiedBy: ''
+    modifiedBy: '',
+    source: 'simple' // Added source field
   }
   dialogVisible.value = true
 }
@@ -296,8 +362,10 @@ const handleStatusChange = async (rule: Rule) => {
 }
 
 // 初始化
-onMounted(() => {
-  loadRules()
+onMounted(async () => {
+  await loadRules()
+  await nextTick()
+  initSortable()
 })
 </script>
 
@@ -328,10 +396,24 @@ onMounted(() => {
     <!-- Rules List -->
     <el-card class="rules-card">
       <el-table
+        ref="tableRef"
         :data="rules"
         style="width: 100%"
         v-loading="loading"
+        row-key="id"
+        :row-class-name="'draggable-row'"
+        :class="{ 'is-dragging': dragging }"
+        @dragstart="handleDragStart"
+        @dragend="handleDragEnd"
+        @sort-end="handleSort"
       >
+        <!-- Order Column -->
+        <el-table-column width="60" align="center">
+          <template #default="{ row }">
+            <el-icon class="drag-handle"><component :is="icons.Operation" /></el-icon>
+          </template>
+        </el-table-column>
+        
         <!-- Rule Name & Description -->
         <el-table-column label="Rule" min-width="300">
           <template #default="{ row }">
@@ -391,21 +473,12 @@ onMounted(() => {
         <!-- Status -->
         <el-table-column label="Status" width="120" align="center">
           <template #default="{ row }">
-            <div class="status-section">
-              <el-switch
-                v-model="row.enabled"
-                :active-value="true"
-                :inactive-value="false"
-                @change="() => handleStatusChange(row)"
-              />
-              <el-tag 
-                :type="row.enabled ? 'success' : 'info'"
-                size="small"
-                class="status-tag"
-              >
-                {{ row.enabled ? 'Active' : 'Inactive' }}
-              </el-tag>
-            </div>
+            <el-switch
+              v-model="row.enabled"
+              :active-value="true"
+              :inactive-value="false"
+              @change="() => handleStatusChange(row)"
+            />
           </template>
         </el-table-column>
 
@@ -489,23 +562,58 @@ onMounted(() => {
         <div class="form-section">
           <div class="section-header">
             <div class="section-title">
-              <h3>Conditions</h3>
-              <p class="text-gray-500">Define when this rule should be triggered</p>
+              <h3>Filter Conditions</h3>
             </div>
           </div>
 
           <div class="section-content">
+            <!-- Order Source -->
+            <div class="source-selection mb-6">
+              <div class="source-label mb-2">
+                <span class="text-sm font-medium">Order Source</span>
+                <el-tooltip content="Select the source of orders this rule will apply to">
+                  <el-icon class="text-gray-400 ml-1"><component :is="icons.InfoFilled" /></el-icon>
+                </el-tooltip>
+              </div>
+              <el-select 
+                v-model="ruleForm.source" 
+                placeholder="Select order source"
+                class="w-full"
+              >
+                <el-option label="Simple" value="simple" />
+                <el-option-group label="Marketplaces">
+                  <el-option label="Amazon" value="amazon" />
+                  <el-option label="eBay" value="ebay" />
+                  <el-option label="Walmart" value="walmart" />
+                </el-option-group>
+                <el-option-group label="E-commerce">
+                  <el-option label="Shopify" value="shopify" />
+                  <el-option label="WooCommerce" value="woocommerce" />
+                </el-option-group>
+              </el-select>
+            </div>
+
+            <!-- Condition Groups -->
+            <div class="filter-label mb-4">
+              <span class="text-sm font-medium">Filter Conditions</span>
+              <el-tooltip content="Set specific conditions for when this rule should apply">
+                <el-icon class="text-gray-400 ml-1"><component :is="icons.InfoFilled" /></el-icon>
+              </el-tooltip>
+            </div>
+            
             <div 
               v-for="(group, groupIndex) in ruleForm.conditions" 
               :key="groupIndex"
               class="condition-group"
             >
-              <div class="group-header">
-                <div class="flex items-center gap-4">
-                  <el-select v-model="group.operator" class="w-40">
-                    <el-option label="Match ALL conditions" value="all" />
-                    <el-option label="Match ANY condition" value="any" />
+              <div class="condition-group-header">
+                <div class="flex items-center gap-2">
+                  <span class="text-sm">If</span>
+                  <el-select v-model="group.operator" class="operator-select">
+                    <el-option label="Any" value="any" />
+                    <el-option label="All" value="all" />
                   </el-select>
+                  <span class="text-sm">of the following conditions are met</span>
                 </div>
               </div>
 
@@ -515,76 +623,80 @@ onMounted(() => {
                   :key="condIndex"
                   class="condition-row"
                 >
-                  <el-select 
-                    v-model="condition.field" 
-                    placeholder="Select field"
-                    class="field-select"
-                  >
-                    <el-option-group 
-                      v-for="group in FIELD_GROUPS"
-                      :key="group.key"
-                      :label="group.label"
+                  <div class="condition-content">
+                    <el-select 
+                      v-model="condition.field" 
+                      placeholder="Select field"
+                      class="field-select"
+                    >
+                      <el-option-group 
+                        v-for="group in FIELD_GROUPS"
+                        :key="group.key"
+                        :label="group.label"
+                      >
+                        <el-option
+                          v-for="field in group.fields"
+                          :key="field.value"
+                          :label="field.label"
+                          :value="field.value"
+                        >
+                          <div class="field-option">
+                            <div class="field-label">{{ field.label }}</div>
+                            <div class="field-description">{{ field.description }}</div>
+                          </div>
+                        </el-option>
+                      </el-option-group>
+                    </el-select>
+
+                    <el-select 
+                      v-model="condition.operator" 
+                      placeholder="Select operator"
+                      class="operator-select"
                     >
                       <el-option
-                        v-for="field in group.fields"
-                        :key="field.value"
-                        :label="field.label"
-                        :value="field.value"
-                      >
-                        <div>
-                          <div>{{ field.label }}</div>
-                          <div class="text-gray-400 text-xs">{{ field.description }}</div>
-                        </div>
-                      </el-option>
-                    </el-option-group>
-                  </el-select>
+                        v-for="op in getOperatorOptions(
+                          FIELD_GROUPS
+                            .flatMap(g => g.fields)
+                            .find(f => f.value === condition.field)?.type || ''
+                        )"
+                        :key="op.value"
+                        :label="op.label"
+                        :value="op.value"
+                      />
+                    </el-select>
 
-                  <el-select 
-                    v-model="condition.operator" 
-                    placeholder="Select operator"
-                    class="operator-select"
-                  >
-                    <el-option
-                      v-for="op in getOperatorOptions(
-                        FIELD_GROUPS
-                          .flatMap(g => g.fields)
-                          .find(f => f.value === condition.field)?.type || ''
-                      )"
-                      :key="op.value"
-                      :label="op.label"
-                      :value="op.value"
+                    <el-input 
+                      v-model="condition.value" 
+                      placeholder="Enter value"
+                      class="value-input"
+                    />
+                  </div>
+
+                  <div class="condition-actions">
+                    <el-button
+                      type="danger"
+                      circle
+                      plain
+                      size="small"
+                      @click="removeCondition(groupIndex, condIndex)"
                     >
-                      <div>
-                        <div>{{ op.label }}</div>
-                        <div class="text-gray-400 text-xs">{{ op.description }}</div>
-                        <div class="text-gray-400 text-xs">Example: {{ op.example }}</div>
-                      </div>
-                    </el-option>
-                  </el-select>
-
-                  <el-input 
-                    v-model="condition.value" 
-                    placeholder="Enter value"
-                    class="value-input"
-                  />
-
-                  <el-button
-                    type="danger"
-                    link
-                    @click="removeCondition(groupIndex, condIndex)"
-                  >
-                    <el-icon><component :is="icons.Delete" /></el-icon>
-                  </el-button>
+                      <el-icon><component :is="icons.Delete" /></el-icon>
+                    </el-button>
+                  </div>
                 </div>
 
-                <el-button
-                  type="primary"
-                  link
-                  @click="handleAddCondition(groupIndex)"
-                >
-                  <el-icon><component :is="icons.Plus" /></el-icon>
-                  Add Condition
-                </el-button>
+                <div class="add-condition">
+                  <el-button
+                    type="primary"
+                    plain
+                    size="small"
+                    class="add-condition-btn"
+                    @click="handleAddCondition(groupIndex)"
+                  >
+                    <el-icon><component :is="icons.Plus" /></el-icon>
+                    Add Rule
+                  </el-button>
+                </div>
               </div>
             </div>
           </div>
@@ -828,6 +940,54 @@ onMounted(() => {
   min-height: 100vh;
 }
 
+/* 拖拽相关样式 */
+.draggable-row {
+  cursor: move;
+}
+
+.draggable-row:hover .drag-handle {
+  opacity: 1;
+}
+
+.drag-handle {
+  opacity: 0.3;
+  transition: opacity 0.2s;
+  cursor: move;
+  color: var(--el-text-color-secondary);
+}
+
+.is-dragging .el-table__row:not(.dragging) {
+  opacity: 0.5;
+}
+
+.is-dragging .el-table__row.dragging {
+  background-color: var(--el-color-primary-light-9);
+  border: 1px dashed var(--el-color-primary);
+}
+
+/* 覆盖Element Plus表格样式以支持拖拽 */
+:deep(.el-table__row) {
+  cursor: move;
+}
+
+:deep(.el-table__body) {
+  transition: all 0.3s ease;
+}
+
+:deep(.el-table__row.sortable-ghost) {
+  background-color: var(--el-color-primary-light-9) !important;
+  opacity: 0.5;
+}
+
+:deep(.el-table__row.sortable-chosen) {
+  background-color: var(--el-color-primary-light-8);
+}
+
+:deep(.el-table__row.sortable-drag) {
+  background-color: var(--el-color-primary-light-7);
+  opacity: 0.8;
+}
+
 .page-header {
   margin-bottom: 24px;
   background-color: var(--el-bg-color);
@@ -875,18 +1035,6 @@ onMounted(() => {
   display: flex;
   align-items: flex-start;
   gap: 16px;
-}
-
-.status-section {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-}
-
-.status-tag {
-  min-width: 64px;
-  text-align: center;
 }
 
 .rule-details {
@@ -948,14 +1096,30 @@ onMounted(() => {
   margin-bottom: 16px;
 }
 
-.group-header {
+.condition-group-header {
   display: flex;
-  justify-content: space-between;
   align-items: center;
   padding: 12px 16px;
   background: var(--el-fill-color-light);
   border-bottom: 1px solid var(--el-border-color);
   border-radius: 4px 4px 0 0;
+}
+
+.condition-operator {
+  .el-radio-button__inner {
+    padding: 8px 16px;
+  }
+}
+
+.operator-summary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.operator-tag {
+  font-size: 13px;
+  padding: 6px 12px;
 }
 
 .conditions-container {
@@ -969,6 +1133,19 @@ onMounted(() => {
   margin-bottom: 8px;
 }
 
+.condition-content {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+}
+
+.condition-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .field-select {
   width: 240px;
 }
@@ -980,6 +1157,17 @@ onMounted(() => {
 .value-input {
   flex: 1;
   min-width: 200px;
+}
+
+.add-condition {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 16px;
+}
+
+.add-condition-btn {
+  font-size: 14px;
+  padding: 8px 16px;
 }
 
 .action-item {
@@ -1025,6 +1213,26 @@ onMounted(() => {
   gap: 4px;
 }
 
+.field-option {
+  display: flex;
+  flex-direction: column;
+}
+
+.field-label {
+  font-size: 14px;
+  color: var(--el-text-color-regular);
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.field-description {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  margin-top: 4px;
+}
+
 .dialog-footer {
   padding: 20px 0 0;
   border-top: 1px solid var(--el-border-color-light);
@@ -1042,5 +1250,42 @@ onMounted(() => {
 
 .nested-field:last-child {
   margin-bottom: 0;
+}
+
+.source-selection {
+  margin-bottom: 24px;
+}
+
+.source-label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.filter-label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.filter-radio-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.filter-radio-item:hover {
+  background-color: var(--el-color-primary-light-9);
+}
+
+.filter-radio-item.is-checked {
+  background-color: var(--el-color-primary-light-8);
+  font-weight: bold;
 }
 </style> 

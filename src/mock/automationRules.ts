@@ -6,6 +6,7 @@ export const mockRules: Rule[] = [
     name: 'High Value Order Priority',
     description: 'When order total is over $1000, set high priority and add VIP tag',
     enabled: true,
+    order: 1,
     conditions: [
       {
         operator: 'all',
@@ -39,6 +40,7 @@ export const mockRules: Rule[] = [
     name: 'Out of Stock Hold',
     description: 'Check inventory and hold order if out of stock',
     enabled: true,
+    order: 2,
     conditions: [
       {
         operator: 'all',
@@ -72,6 +74,7 @@ export const mockRules: Rule[] = [
     name: 'International Order Routing',
     description: 'Route international orders to specific warehouse',
     enabled: true,
+    order: 3,
     conditions: [
       {
         operator: 'any',

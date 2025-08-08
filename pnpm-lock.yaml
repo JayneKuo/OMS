@@ -97,7 +97,7 @@ importers:
         specifier: ^20.17.25
         version: 20.17.25
       '@types/sortablejs':
-        specifier: ^1.15.1
+        specifier: ^1.15.8
         version: 1.15.8
       '@types/uuid':
         specifier: ^10.0.0
