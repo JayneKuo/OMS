@@ -454,7 +454,7 @@ export const FIELD_GROUPS = [
 ]
 
 // Action definitions
-export const ACTION_GROUPS = [
+export const ACTION_GROUPS: ActionGroup[] = [
   {
     key: 'update_order',
     label: 'Update Order Field',
@@ -473,93 +473,17 @@ export const ACTION_GROUPS = [
               description: 'Select field to update',
               required: true,
               options: [
-                // Status Information
-                { label: 'Status', value: 'status', fieldType: 'enum', options: ['open', 'closed'] },
-                
-                // Basic Information
-                { label: 'Tags', value: 'tags', fieldType: 'string' },
-                { label: 'Currency', value: 'currency', fieldType: 'string' },
-                { label: 'Order Note', value: 'order_note', fieldType: 'string' },
-                
-                // Billing Address
-                { label: 'Billing Address - Address 1', value: 'billing_address.address1', fieldType: 'string' },
-                { label: 'Billing Address - Address 2', value: 'billing_address.address2', fieldType: 'string' },
-                { label: 'Billing Address - City', value: 'billing_address.city', fieldType: 'string' },
-                { label: 'Billing Address - Company', value: 'billing_address.company', fieldType: 'string' },
-                { label: 'Billing Address - Country', value: 'billing_address.country', fieldType: 'string' },
-                { label: 'Billing Address - Email', value: 'billing_address.email', fieldType: 'string' },
-                { label: 'Billing Address - First Name', value: 'billing_address.first_name', fieldType: 'string' },
-                { label: 'Billing Address - Last Name', value: 'billing_address.last_name', fieldType: 'string' },
-                { label: 'Billing Address - Phone', value: 'billing_address.phone', fieldType: 'string' },
-                { label: 'Billing Address - State/Province', value: 'billing_address.state', fieldType: 'string' },
-                { label: 'Billing Address - ZIP/Postal Code', value: 'billing_address.zip', fieldType: 'string' },
-
-                // Shipping Address
-                { label: 'Shipping Address - Address 1', value: 'shipping_address.address1', fieldType: 'string' },
-                { label: 'Shipping Address - Address 2', value: 'shipping_address.address2', fieldType: 'string' },
-                { label: 'Shipping Address - City', value: 'shipping_address.city', fieldType: 'string' },
-                { label: 'Shipping Address - Company', value: 'shipping_address.company', fieldType: 'string' },
-                { label: 'Shipping Address - Country', value: 'shipping_address.country', fieldType: 'string' },
-                { label: 'Shipping Address - Email', value: 'shipping_address.email', fieldType: 'string' },
-                { label: 'Shipping Address - First Name', value: 'shipping_address.first_name', fieldType: 'string' },
-                { label: 'Shipping Address - Last Name', value: 'shipping_address.last_name', fieldType: 'string' },
-                { label: 'Shipping Address - Phone', value: 'shipping_address.phone', fieldType: 'string' },
-                { label: 'Shipping Address - State/Province', value: 'shipping_address.state', fieldType: 'string' },
-                { label: 'Shipping Address - ZIP/Postal Code', value: 'shipping_address.zip', fieldType: 'string' },
-
-                // External Customer Information
-                { label: 'External Customer Company', value: 'external_customer.company', fieldType: 'string' },
-                { label: 'External Customer First Name', value: 'external_customer.first_name', fieldType: 'string' },
-                { label: 'External Customer Last Name', value: 'external_customer.last_name', fieldType: 'string' },
-
-                // System Information
-                { label: 'Warehouse ID', value: 'location_id', fieldType: 'string' },
-                { label: 'Order Source', value: 'order_source', fieldType: 'string' },
-
-                // Financial Information
-                { label: 'Order Discount', value: 'order_discount', fieldType: 'number' },
-                { label: 'Tax Amount', value: 'order_tax', fieldType: 'number' },
-                { label: 'Subtotal', value: 'sub_total_price', fieldType: 'number' },
-                { label: 'Total Amount', value: 'total_price', fieldType: 'number' },
-
-                // Payment Information
-                { label: 'Payment Status', value: 'payment_status', fieldType: 'enum', options: ['Paid', 'Unpaid'] },
-
-                // Shipping Information
-                { label: 'Requires Shipping Labels', value: 'require_shipping_labels', fieldType: 'boolean' },
-                { label: 'Respect Warehouse ID', value: 'respect_location_id', fieldType: 'boolean' },
-                { label: 'Delivery Service', value: 'delivery_service', fieldType: 'string' },
-                { label: 'Shipping Method', value: 'ship_method', fieldType: 'string' },
-                { label: 'Carrier', value: 'carrier', fieldType: 'string' },
-                { label: 'Freight Terms', value: 'freight_term', fieldType: 'enum', options: ['Prepaid', 'Collect'] },
-                { label: 'Shipment Type', value: 'shipment_type', fieldType: 'enum', options: ['Partial', 'Complete'] },
-
-                // Original Order Information
-                { label: 'Original Order ID', value: 'original_order_id', fieldType: 'string' },
-
-                // Return Information
-                { label: 'Refund Amount', value: 'refund_amount', fieldType: 'number' },
-                { label: 'Refund Reason', value: 'refund_reason', fieldType: 'string' },
-                { label: 'Return Status', value: 'return_status', fieldType: 'enum', options: ['Returned', 'Pending'] },
-                { label: 'Return Quantity', value: 'return_quantity', fieldType: 'number' },
-                { label: 'Return Date', value: 'return_date', fieldType: 'datetime' }
-              ]
-            },
-            {
-              name: 'operation',
-              type: 'enum',
-              label: 'Operation',
-              description: 'Operation type',
-              required: true,
-              options: [
-                { label: 'Set', value: 'set' }
+                { label: 'Status', value: 'status' },
+                { label: 'Tags', value: 'tags' },
+                { label: 'Currency', value: 'currency' },
+                { label: 'Order Note', value: 'order_note' }
               ]
             },
             {
               name: 'value',
-              type: 'dynamic',
+              type: 'string',
               label: 'Value',
-              description: 'New value',
+              description: 'New value for the selected field',
               required: true
             }
           ]
@@ -787,6 +711,84 @@ export const ACTION_GROUPS = [
               type: 'string',
               label: 'Exception Note',
               description: 'Additional details about the exception',
+              required: false
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    key: 'inventory',
+    label: 'Inventory Check',
+    description: 'Check product inventory and take corresponding actions',
+    actions: [
+      {
+        label: 'Hold Order on Low Stock',
+        value: 'check_inventory_hold',
+        description: 'Check order items inventory and put order on hold if stock is insufficient',
+        config: {
+          fields: [
+            {
+              name: 'hold_type',
+              type: 'enum',
+              label: 'Hold Type',
+              description: 'Choose whether to hold the entire order or only items with insufficient stock',
+              required: true,
+              options: [
+                { 
+                  label: 'Hold Entire Order', 
+                  value: 'entire_order',
+                  description: 'Put the entire order on hold when any item is out of stock'
+                },
+                { 
+                  label: 'Hold Items Only', 
+                  value: 'items_only',
+                  description: 'Only hold items that are out of stock, allow fulfillment of other items'
+                }
+              ]
+            },
+            {
+              name: 'auto_release',
+              type: 'boolean',
+              label: 'Auto Release',
+              description: 'Automatically release hold when inventory becomes sufficient',
+              required: true,
+              default: true
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    key: 'order_close',
+    label: 'Order Close',
+    description: 'Mark order as closed',
+    actions: [
+      {
+        label: 'Close Order',
+        value: 'close_order',
+        description: 'Update order status to closed',
+        config: {
+          fields: [
+            {
+              name: 'close_reason',
+              type: 'enum',
+              label: 'Close Reason',
+              description: 'Select reason for closing the order',
+              required: true,
+              options: [
+                { label: 'No Fulfillment Needed', value: 'no_fulfillment_needed' },
+                { label: 'Customer Cancelled', value: 'customer_cancelled' },
+                { label: 'System Auto Close', value: 'system_auto_close' }
+              ]
+            },
+            {
+              name: 'close_note',
+              type: 'string',
+              label: 'Close Note',
+              description: 'Add note when closing the order',
               required: false
             }
           ]

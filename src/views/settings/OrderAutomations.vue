@@ -9,6 +9,9 @@ import type { FormInstance } from 'element-plus'
 import * as ElementPlusIconsVue from '@element-plus/icons-vue'
 import Sortable from 'sortablejs'
 
+// Debug log
+console.log('ACTION_GROUPS:', ACTION_GROUPS)
+
 // 图标组件
 const icons = ElementPlusIconsVue
 
@@ -311,6 +314,13 @@ const formatAction = (action: Action): string => {
     case 'create_exception':
       result += ` (${action.config.exception_type})`
       break
+    case 'check_inventory_hold':
+      const holdType = action.config.hold_type === 'entire_order' ? 'Entire Order' : 'Items Only'
+      result += ` (Threshold: ${action.config.min_stock_threshold}, Type: ${holdType})`
+      break
+    case 'close_order':
+      result += ` (Reason: ${action.config.close_reason})`
+      break
   }
 
   return result
@@ -325,21 +335,52 @@ const getOperatorOptions = (fieldType: string) => {
 
 // 获取动作配置字段
 const getActionConfigFields = (actionType: string) => {
+  console.log('Getting config fields for action type:', actionType)
+  console.log('Available groups:', ACTION_GROUPS)
+  
   for (const group of ACTION_GROUPS) {
+    console.log('Checking group:', group.key)
     const action = group.actions.find(a => a.value === actionType)
     if (action?.config?.fields) {
+      console.log('Found fields:', action.config.fields)
       return action.config.fields
     }
   }
+  console.log('No fields found for action type:', actionType)
   return []
 }
 
 // 处理动作类型变化
 const handleActionTypeChange = (actionIndex: number) => {
   const action = ruleForm.value.actions[actionIndex]
+  console.log('Action type changed:', action.type)
   if (action.type) {
-    // 如果动作类型已改变，则清空配置
+    // 初始化配置对象
     action.config = {}
+    
+    // 获取字段定义
+    const fields = getActionConfigFields(action.type)
+    console.log('Initializing fields:', fields)
+    
+    // 递归初始化字段值
+    const initFieldValue = (field: any) => {
+      if (field.type === 'object' && field.fields) {
+        // 如果是对象类型，初始化一个空对象
+        action.config[field.name] = {}
+        // 递归初始化子字段
+        field.fields.forEach((subField: any) => {
+          if (subField.default !== undefined) {
+            action.config[field.name][subField.name] = subField.default
+          }
+        })
+      } else if (field.default !== undefined) {
+        // 对于普通字段，直接设置默认值
+        action.config[field.name] = field.default
+      }
+    }
+
+    // 初始化所有字段
+    fields.forEach(initFieldValue)
   }
 }
 
@@ -734,6 +775,7 @@ onMounted(async () => {
                       :key="act.value"
                       :label="act.label"
                       :value="act.value"
+                      :disabled="false"
                     >
                       <div>
                         <div>{{ act.label }}</div>
@@ -742,6 +784,10 @@ onMounted(async () => {
                     </el-option>
                   </el-option-group>
                 </el-select>
+
+                <div v-if="action.type" class="text-xs text-gray-400 mt-1">
+                  Selected action: {{ action.type }}
+                </div>
 
                 <el-button
                   type="danger"
@@ -797,7 +843,12 @@ onMounted(async () => {
                           :key="opt.value"
                           :label="opt.label"
                           :value="opt.value"
-                        />
+                        >
+                          <div>
+                            <div>{{ opt.label }}</div>
+                            <div v-if="opt.description" class="text-gray-400 text-xs">{{ opt.description }}</div>
+                          </div>
+                        </el-option>
                       </el-select>
                     </template>
 
@@ -814,14 +865,6 @@ onMounted(async () => {
                           :value="opt.value"
                         />
                       </el-select>
-                    </template>
-
-                    <template v-else-if="field.type === 'date'">
-                      <el-date-picker
-                        v-model="action.config[field.name]"
-                        type="date"
-                        :placeholder="field.label"
-                      />
                     </template>
 
                     <template v-else-if="field.type === 'object' && field.fields">
@@ -887,14 +930,6 @@ onMounted(async () => {
                                   :value="opt.value"
                                 />
                               </el-select>
-                            </template>
-
-                            <template v-else-if="subField.type === 'date'">
-                              <el-date-picker
-                                v-model="action.config[field.name][subField.name]"
-                                type="date"
-                                :placeholder="subField.label"
-                              />
                             </template>
                           </div>
                         </template>

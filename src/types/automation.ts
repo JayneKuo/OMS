@@ -1,64 +1,50 @@
 // Basic types
 export type OperatorType = 'all' | 'any'
 export type MessageType = 'success' | 'warning' | 'error'
-export type FieldType = 'string' | 'number' | 'boolean' | 'enum' | 'array' | 'date' | 'object' | 'text' | 'dynamic'
+export type FieldType = 'string' | 'number' | 'boolean' | 'enum' | 'array' | 'object' | 'date' | 'datetime' | 'text' | 'dynamic'
 
-// Dynamic field type definition
-export interface DynamicTypeConfig {
-  type: FieldType
-  options?: { label: string; value: string | number | boolean }[]
-  itemType?: string
-  fields?: CustomField[]
-  min?: number
-  max?: number
+// Operator related interfaces
+export interface OperatorOption {
+  label: string
+  value: string
+  applicableTypes: FieldType[]
+  description: string
+  example: string
 }
 
-export interface DynamicField extends CustomField {
-  type: 'dynamic'
-  dynamicType: { [key: string]: DynamicTypeConfig }
+// Field option interface
+export interface FieldOption {
+  label: string
+  value: string | number | boolean
+  description?: string
+  fieldType?: string
+  options?: string[]
 }
 
-// Field related interfaces
-export interface CustomField {
+// Field configuration interface
+export interface FieldConfig {
   name: string
   type: FieldType
   label: string
-  description: string
+  description?: string
   required?: boolean
-  options?: { label: string; value: string | number | boolean }[]
-  fields?: CustomField[]
   min?: number
   max?: number
   default?: any
+  options?: FieldOption[]
+  fields?: FieldConfig[]
+  show_when?: {
+    field: string
+    value: any
+  }
 }
 
-export interface FieldOption {
-  label: string
-  value: string
-  type: FieldType
-  description: string
-  options?: { label: string; value: string }[]
-}
-
-export interface FieldGroup {
-  key: string
-  label: string
-  description: string
-  fields: FieldOption[]
-}
-
-// Action related interfaces
+// Action configuration interface
 export interface ActionConfig {
-  fields: CustomField[]
+  fields: FieldConfig[]
 }
 
-export interface Action {
-  type: string
-  config: { [key: string]: any }
-  order: number
-  enabled?: boolean
-}
-
+// Action option interface
 export interface ActionOption {
   label: string
   value: string
@@ -66,6 +52,7 @@ export interface ActionOption {
   config: ActionConfig
 }
 
+// Action group interface
 export interface ActionGroup {
   key: string
   label: string
@@ -73,7 +60,14 @@ export interface ActionGroup {
   actions: ActionOption[]
 }
 
-// Rule related interfaces
+// Action interface
+export interface Action {
+  type: string
+  config: Record<string, any>
+  order: number
+}
+
+// Condition interfaces
 export interface Condition {
   field: string
   operator: string
@@ -83,19 +77,26 @@ export interface Condition {
 export interface ConditionGroup {
   operator: OperatorType
   conditions: Condition[]
-  enabled?: boolean
 }
 
+// Rule interface
 export interface Rule {
   id: number
   name: string
   description: string
   conditions: ConditionGroup[]
   actions: Action[]
+  enabled?: boolean
   lastModified: string
   createdBy: string
   modifiedBy: string
-  enabled?: boolean
-  order?: number
   source: string
+}
+
+// Field group interface
+export interface FieldGroup {
+  key: string
+  label: string
+  description: string
+  fields: FieldOption[]
 } 
