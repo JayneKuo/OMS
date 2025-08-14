@@ -356,37 +356,16 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { InfoFilled, MoreFilled, Sort, Link, User, Location, House, Timer, Search, Check, ArrowLeft, Document } from '@element-plus/icons-vue'
 import { useIntegration } from '@/composables/useIntegration'
 import type { Integration } from '@/types/integration'
-import { IntegrationType, IntegrationSubType, MOCK_INTEGRATIONS, AVAILABLE_INTEGRATIONS, AUTH_CONFIGS } from '@/constants/integration'
+import { IntegrationType, IntegrationSubType, MOCK_INTEGRATIONS, AVAILABLE_INTEGRATIONS, AUTH_CONFIGS, INTEGRATION_LOGOS } from '@/constants/integration'
 import type { FormInstance } from 'element-plus'
 
 // 导入图片
-import amazonLogo from '@/assets/integration/logos/amazon.png'
-import walmartLogo from '@/assets/integration/logos/walmart.png'
-import tiktokLogo from '@/assets/integration/logos/tiktok.png'
-import shopifyLogo from '@/assets/integration/logos/shopify.png'
-import wooLogo from '@/assets/integration/logos/woo.png'
-import quickbooksLogo from '@/assets/integration/logos/quickbooks.png'
-import unisLogo from '@/assets/integration/logos/unis.png'
-import ebayLogo from '@/assets/integration/logos/ebay.png'
-import upsLogo from '@/assets/integration/logos/ups.png'
-
-// 图片映射
-const logoMap: Record<string, string> = {
-  amazon: amazonLogo,
-  walmart: walmartLogo,
-  tiktok: tiktokLogo,
-  shopify: shopifyLogo,
-  woocommerce: wooLogo,
-  quickbooks: quickbooksLogo,
-  'unis-wms': unisLogo,
-  ebay: ebayLogo,
-  ups: upsLogo
-}
+import defaultLogo from '@/assets/logo.svg'
 
 // 获取logo URL
 const getLogoUrl = (integration: Integration) => {
-  const id = integration.id.toString().split('-')[0] // 处理 'amazon-1' 这样的ID
-  return logoMap[id] || ''
+  const id = integration.id.toString().split('-')[0].toUpperCase() // 处理 'amazon-1' 这样的ID
+  return INTEGRATION_LOGOS[id] || ''
 }
 
 const router = useRouter()
