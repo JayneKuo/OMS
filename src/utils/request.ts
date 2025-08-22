@@ -30,13 +30,9 @@ service.interceptors.response.use(
   response => {
     const res = response.data
 
-    // 如果自定义code不是200，则判断为错误
-    if (res.code && res.code !== 200) {
-      ElMessage({
-        message: res.message || '网络请求错误',
-        type: 'error',
-        duration: 5 * 1000
-      })
+    // 如果自定义code不是0或200，则判断为错误
+    if (res.code !== undefined && res.code !== 0 && res.code !== 200) {
+      ElMessage.error(res.message || '网络请求错误')
 
       // 根据错误码处理特定错误
       if (res.code === 401) {
@@ -102,15 +98,12 @@ service.interceptors.response.use(
       message = '网络连接失败，请检查网络'
     }
     
-    ElMessage({
-      message,
-      type: 'error',
-      duration: 5 * 1000
-    })
+    ElMessage.error(message)
     
     return Promise.reject(error)
   }
 )
 
 // 导出请求方法
+export const request = service
 export default service 

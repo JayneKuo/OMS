@@ -10,6 +10,18 @@ import {
 } from './queryToolData'
 import { MockMethod } from 'vite-plugin-mock'
 import { mockTrackingList, mockTrackingDetail } from './purchaseTracking'
+import { getMockProducts, mockDeleteProduct } from './productData'
+import {
+  mockSafetyStockConfigs,
+  mockFlexibleSafetyStockConfigs,
+  mockStockAlerts,
+  mockSafetyStockStats,
+  mockChannels,
+  mockStores,
+  mockWarehouses,
+  mockSkus,
+  mockPresets
+} from './safetyStockData'
 
 // Mock适配器类型
 interface MockConfig {
@@ -24,137 +36,68 @@ class SimpleMockAdapter {
   private handlers: Record<string, (config: MockConfig) => [number, any]> = {};
   private getHandlers: Record<string, (config: MockConfig) => [number, any]> = {};
   private postHandlers: Record<string, (config: MockConfig) => [number, any]> = {};
+  private deleteHandlers: Record<string, (config: MockConfig) => [number, any]> = {};
   private regexHandlers: Array<{method: string, regex: RegExp, handler: (config: MockConfig) => [number, any]}> = [];
   private delay: number;
 
-  constructor(private axiosInstance: any, options?: {delayResponse?: number}) {
+  private handleRequest(handler: (config: MockConfig) => [number, any], config: any) {
+    return new Promise((resolve, reject) => {
+      setTimeout(() => {
+        const [status, response] = handler(config);
+        if (status >= 200 && status < 300) {
+          resolve({
+            data: response,
+            status,
+            statusText: 'OK',
+            headers: {},
+            config
+          });
+        } else {
+          reject({
+            response: {
+              data: response,
+              status,
+              statusText: 'ERROR',
+              headers: {},
+              config
+            }
+          });
+        }
+      }, this.delay);
+    });
+  }
+
+  constructor(axiosInstance: any, options?: {delayResponse?: number}) {
     this.delay = options?.delayResponse || 0;
-    
-    // 拦截GET请求
     axiosInstance.interceptors.request.use((config: any) => {
-      if (config.method === 'get') {
-        const handler = this.getHandlers[config.url];
-        if (handler) {
-          return new Promise((resolve, reject) => {
-            setTimeout(() => {
-              const [status, response] = handler(config);
-              if (status >= 200 && status < 300) {
-                resolve({
-                  data: response,
-                  status,
-                  statusText: 'OK',
-                  headers: {},
-                  config
-                });
-              } else {
-                reject({
-                  response: {
-                    data: response,
-                    status,
-                    statusText: 'ERROR',
-                    headers: {},
-                    config
-                  }
-                });
-              }
-            }, this.delay);
-          });
-        }
-        
-        // 检查正则表达式处理器
-        for (const {method, regex, handler} of this.regexHandlers) {
-          if (method === 'get' && regex.test(config.url)) {
-            return new Promise((resolve, reject) => {
-              setTimeout(() => {
-                const [status, response] = handler({...config});
-                if (status >= 200 && status < 300) {
-                  resolve({
-                    data: response,
-                    status,
-                    statusText: 'OK',
-                    headers: {},
-                    config
-                  });
-                } else {
-                  reject({
-                    response: {
-                      data: response,
-                      status,
-                      statusText: 'ERROR',
-                      headers: {},
-                      config
-                    }
-                  });
-                }
-              }, this.delay);
-            });
-          }
+      const method = config.method?.toLowerCase();
+      let handler;
+
+      // 根据请求方法获取对应的处理器
+      switch (method) {
+        case 'get':
+          handler = this.getHandlers[config.url];
+          break;
+        case 'post':
+          handler = this.postHandlers[config.url];
+          break;
+        case 'delete':
+          handler = this.deleteHandlers[config.url];
+          break;
+      }
+
+      // 如果找到了直接匹配的处理器
+      if (handler) {
+        return this.handleRequest(handler, config);
+      }
+
+      // 检查正则表达式处理器
+      for (const {method: handlerMethod, regex, handler: regexHandler} of this.regexHandlers) {
+        if (handlerMethod === method && regex.test(config.url)) {
+          return this.handleRequest(regexHandler, config);
         }
       }
-      return config;
-    }, undefined);
-    
-    // 拦截POST请求
-    axiosInstance.interceptors.request.use((config: any) => {
-      if (config.method === 'post') {
-        const handler = this.postHandlers[config.url];
-        if (handler) {
-          return new Promise((resolve, reject) => {
-            setTimeout(() => {
-              const [status, response] = handler(config);
-              if (status >= 200 && status < 300) {
-                resolve({
-                  data: response,
-                  status,
-                  statusText: 'OK',
-                  headers: {},
-                  config
-                });
-              } else {
-                reject({
-                  response: {
-                    data: response,
-                    status,
-                    statusText: 'ERROR',
-                    headers: {},
-                    config
-                  }
-                });
-              }
-            }, this.delay);
-          });
-        }
-        
-        // 检查正则表达式处理器
-        for (const {method, regex, handler} of this.regexHandlers) {
-          if (method === 'post' && regex.test(config.url)) {
-            return new Promise((resolve, reject) => {
-              setTimeout(() => {
-                const [status, response] = handler({...config});
-                if (status >= 200 && status < 300) {
-                  resolve({
-                    data: response,
-                    status,
-                    statusText: 'OK',
-                    headers: {},
-                    config
-                  });
-                } else {
-                  reject({
-                    response: {
-                      data: response,
-                      status,
-                      statusText: 'ERROR',
-                      headers: {},
-                      config
-                    }
-                  });
-                }
-              }, this.delay);
-            });
-          }
-        }
-      }
+
       return config;
     }, undefined);
   }
@@ -173,6 +116,15 @@ class SimpleMockAdapter {
       this.postHandlers[urlOrRegex] = handler;
     } else {
       this.regexHandlers.push({method: 'post', regex: urlOrRegex, handler});
+    }
+    return this;
+  }
+
+  onDelete(urlOrRegex: string | RegExp, handler: (config: MockConfig) => [number, any]): SimpleMockAdapter {
+    if (typeof urlOrRegex === 'string') {
+      this.deleteHandlers[urlOrRegex] = handler;
+    } else {
+      this.regexHandlers.push({method: 'delete', regex: urlOrRegex, handler});
     }
     return this;
   }
@@ -382,6 +334,49 @@ axios.interceptors.response.use(
   }
 );
 
+// 添加产品相关的mock接口
+mock.onGet('/api/products', (config: MockConfig) => {
+  try {
+    const params = config.params || {};
+    const response = getMockProducts({
+      page: Number(params.page) || 1,
+      pageSize: Number(params.pageSize) || 20,
+      search: params.search,
+      type: params.type,
+      integration: params.integration,
+    });
+    return [200, {
+      code: 0,
+      data: response.data,
+      total: response.total,
+      message: 'success'
+    }];
+  } catch (error) {
+    console.error('Mock API Error:', error);
+    return [500, { code: 1, message: '服务器内部错误', data: null }];
+  }
+});
+
+mock.onDelete(/\/api\/products\/\w+/, (config: MockConfig) => {
+  try {
+    const url = config.url || '';
+    const productId = url.split('/').pop() || '';
+    if (!productId) {
+      return [400, { code: 1, message: '产品ID不能为空', data: null }];
+    }
+    
+    mockDeleteProduct(productId);
+    return [200, {
+      code: 0,
+      data: null,
+      message: 'success'
+    }];
+  } catch (error) {
+    console.error('Mock API Error:', error);
+    return [500, { code: 1, message: '服务器内部错误', data: null }];
+  }
+});
+
 const mockHandlers = [
   // Purchase Order Tracking
   {
@@ -427,6 +422,232 @@ const mockHandlers = [
         code: 200,
         data: mockTrackingDetail(params.id)
       }
+    }
+  },
+  
+  // ========================
+  // 安全库存设置相关Mock API
+  // ========================
+  
+  // 获取安全库存配置列表
+  {
+    url: '/api/safety-stock/configs',
+    method: 'get',
+    response: (req: any) => {
+      const { level, status, channelId, storeId, sku, keyword, page = 1, pageSize = 20 } = req.query || {}
+      
+      let filteredConfigs = [...mockSafetyStockConfigs]
+      
+      // 过滤逻辑
+      if (level) {
+        filteredConfigs = filteredConfigs.filter(c => c.level === level)
+      }
+      if (status) {
+        filteredConfigs = filteredConfigs.filter(c => c.status === status)
+      }
+      if (channelId) {
+        filteredConfigs = filteredConfigs.filter(c => 
+          ('channelId' in c && c.channelId === channelId)
+        )
+      }
+      if (storeId) {
+        filteredConfigs = filteredConfigs.filter(c => 
+          ('storeId' in c && c.storeId === storeId)
+        )
+      }
+      if (sku) {
+        filteredConfigs = filteredConfigs.filter(c => 
+          ('sku' in c && c.sku === sku)
+        )
+      }
+      if (keyword) {
+        filteredConfigs = filteredConfigs.filter(c => 
+          c.description?.includes(keyword) ||
+          ('productName' in c && c.productName?.includes(keyword))
+        )
+      }
+      
+      // 分页
+      const start = (page - 1) * pageSize
+      const end = start + pageSize
+      const paginatedData = filteredConfigs.slice(start, end)
+      
+      return {
+        code: 0,
+        message: 'success',
+        data: {
+          data: paginatedData,
+          total: filteredConfigs.length,
+          page: parseInt(page),
+          pageSize: parseInt(pageSize)
+        }
+      }
+    }
+  },
+  
+  // 获取安全库存配置详情
+  {
+    url: '/api/safety-stock/configs/:id',
+    method: 'get',
+    response: (req: any) => {
+      const { id } = req.params
+      const configItem = mockSafetyStockConfigs.find(c => c.id === id)
+      
+      if (configItem) {
+        return { code: 0, message: 'success', data: configItem }
+      } else {
+        return { code: 404, message: 'Config not found' }
+      }
+    }
+  },
+  
+  // 创建安全库存配置
+  {
+    url: '/api/safety-stock/configs',
+    method: 'post',
+    response: (req: any) => {
+      const requestData = req.body
+      const newConfigs = requestData.configs.map((configData: any) => ({
+        id: `SSC-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        ...configData,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        createdBy: 'current_user',
+        updatedBy: 'current_user'
+      }))
+      
+      mockSafetyStockConfigs.push(...newConfigs)
+      return { code: 0, message: 'success', data: newConfigs }
+    }
+  },
+  
+  // 获取库存预警列表
+  {
+    url: '/api/safety-stock/alerts',
+    method: 'get',
+    response: (req: any) => {
+      const { page = 1, pageSize = 20, level, alertType, status, storeId, channelId, sku } = req.query || {}
+      
+      let filteredAlerts = [...mockStockAlerts]
+      
+      if (level) filteredAlerts = filteredAlerts.filter(a => a.level === level)
+      if (alertType) filteredAlerts = filteredAlerts.filter(a => a.alertType === alertType)
+      if (status) filteredAlerts = filteredAlerts.filter(a => a.status === status)
+      if (storeId) filteredAlerts = filteredAlerts.filter(a => a.storeId === storeId)
+      if (channelId) filteredAlerts = filteredAlerts.filter(a => a.channelId === channelId)
+      if (sku) filteredAlerts = filteredAlerts.filter(a => a.sku === sku)
+      
+      const start = (page - 1) * pageSize
+      const end = start + pageSize
+      const paginatedData = filteredAlerts.slice(start, end)
+      
+      return {
+        code: 0,
+        message: 'success',
+        data: {
+          data: paginatedData,
+          total: filteredAlerts.length
+        }
+      }
+    }
+  },
+  
+  // 获取统计数据
+  {
+    url: '/api/safety-stock/stats',
+    method: 'get',
+    response: () => {
+      return { code: 0, message: 'success', data: mockSafetyStockStats }
+    }
+  },
+  
+  // 获取渠道列表
+  {
+    url: '/api/safety-stock/channels',
+    method: 'get',
+    response: () => {
+      return { code: 0, message: 'success', data: mockChannels }
+    }
+  },
+  
+  // 获取店铺列表
+  {
+    url: '/api/safety-stock/stores',
+    method: 'get',
+    response: (req: any) => {
+      const { channelId } = req.query || {}
+      
+      let filteredStores = [...mockStores]
+      if (channelId) {
+        filteredStores = filteredStores.filter(s => s.channelId === channelId)
+      }
+      
+      return { code: 0, message: 'success', data: filteredStores }
+    }
+  },
+  
+  // 获取仓库列表
+  {
+    url: '/api/safety-stock/warehouses',
+    method: 'get',
+    response: () => {
+      return { code: 0, message: 'success', data: mockWarehouses }
+    }
+  },
+  
+  // 搜索SKU
+  {
+    url: '/api/safety-stock/skus/search',
+    method: 'get',
+    response: (req: any) => {
+      const { keyword, storeId, channelId, page = 1, pageSize = 20 } = req.query || {}
+      
+      let filteredSkus = [...mockSkus]
+      
+      if (keyword) {
+        filteredSkus = filteredSkus.filter(s => 
+          s.sku.toLowerCase().includes(keyword.toLowerCase()) ||
+          s.productName.toLowerCase().includes(keyword.toLowerCase())
+        )
+      }
+      
+      const start = (page - 1) * pageSize
+      const end = start + pageSize
+      const paginatedData = filteredSkus.slice(start, end)
+      
+      return {
+        code: 0,
+        message: 'success',
+        data: {
+          data: paginatedData,
+          total: filteredSkus.length
+        }
+      }
+    }
+  },
+  
+  // 获取SKU信息
+  {
+    url: '/api/safety-stock/skus/:sku',
+    method: 'get',
+    response: (req: any) => {
+      const { sku } = req.params
+      const skuInfo = mockSkus.find(s => s.sku === sku)
+      
+      if (skuInfo) {
+        return { code: 0, message: 'success', data: skuInfo }
+      } else {
+        return { code: 404, message: 'SKU not found' }
+      }
+    }
+  },
+  
+  // 获取预设配置列表
+  {
+    url: '/api/safety-stock/presets',
+    method: 'get',
+    response: () => {
+      return { code: 0, message: 'success', data: mockPresets }
     }
   }
 ] as MockMethod[]

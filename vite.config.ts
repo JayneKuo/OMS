@@ -21,13 +21,14 @@ export default defineConfig({
     })
   ],
   server: {
-    port: 3000,
-    proxy: {
-      '/api': {
-        target: 'http://localhost:3000',
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api/, '')
-      }
-    }
+    port: 3001
+    // 注释掉API代理，使用mock数据
+    // proxy: {
+    //   '/api': {
+    //     target: 'http://localhost:3000',
+    //     changeOrigin: true,
+    //     rewrite: (path) => path.replace(/^\/api/, '')
+    //   }
+    // }
   }
 }) 

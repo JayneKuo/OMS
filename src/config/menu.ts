@@ -25,7 +25,8 @@ import {
   ShoppingBag,
   Calendar,
   Link,
-  Monitor
+  Monitor,
+  Menu
 } from '@element-plus/icons-vue'
 import type { MenuItem } from '@/types/menu'
 
@@ -172,13 +173,13 @@ export const menuConfig: MenuItem[] = [
       },
       {
         title: 'Categories',
-        path: '/product/categories',
-        icon: Grid
+        path: '/product/category',
+        icon: Menu
       },
       {
-        title: 'Attributes',
-        path: '/product/attributes',
-        icon: List
+        title: 'Brands',
+        path: '/product/brand',
+        icon: ShoppingBag
       }
     ]
   },
@@ -295,9 +296,63 @@ export const menuConfig: MenuItem[] = [
           activeMenu: '/settings'
         },
         icon: Edit
+      },
+      {
+        title: 'Safety Stock Settings',
+        path: '/settings/safety-stock',
+        icon: Warning
+      }
+    ]
+  },
+  {
+    title: 'Customer Management',
+    path: '/customer',
+    icon: List,
+    children: [
+      {
+        title: 'Customer List',
+        path: '/customer/list',
+        icon: Files
+      },
+      {
+        title: 'Customer Groups',
+        path: '/customer/groups',
+        icon: Grid
+      },
+      {
+        title: 'Customer Levels',
+        path: '/customer/level',
+        icon: TrendCharts
+      },
+      {
+        title: 'Customer Tags',
+        path: '/customer/tags',
+        icon: Operation
+      },
+      {
+        title: 'Customer Analytics',
+        path: '/customer/analysis',
+        icon: DataLine
+      },
+      {
+        title: 'Import/Export',
+        path: '/customer/import-export',
+        icon: Share
+      }
+    ]
+  },
+  {
+    title: 'Merchant Management',
+    path: '/merchant',
+    icon: ShoppingBag,
+    children: [
+      {
+        title: 'Merchant List',
+        path: '/merchant/list',
+        icon: Files
       }
     ]
   }
 ]
 
-export default menuConfig 
+export default menuConfig

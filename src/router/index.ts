@@ -2,6 +2,8 @@ import { createRouter, createWebHistory, RouteRecordRaw } from 'vue-router'
 import MainLayout from '@/layouts/MainLayout.vue'
 import integrationRoutes from './modules/integration'
 import eventsRoutes from './modules/events'
+import productRoutes from './modules/product'
+
 
 const routes: RouteRecordRaw[] = [
   {
@@ -250,6 +252,7 @@ const routes: RouteRecordRaw[] = [
       {
         path: '/settings',
         name: 'Settings',
+        component: () => import('@/layouts/RouterView.vue'),
         children: [
           {
             path: 'order-automations',
@@ -278,6 +281,11 @@ const routes: RouteRecordRaw[] = [
             path: 'event-callback',
             name: 'EventCallbackRouting',
             component: () => import('@/views/settings/EventCallbackRouting.vue')
+          },
+          {
+            path: 'safety-stock',
+            name: 'SafetyStockSettings',
+            component: () => import('@/views/settings/SafetyStockSettings/index.vue')
           }
         ]
       },
@@ -408,7 +416,93 @@ const routes: RouteRecordRaw[] = [
             component: () => import('@/views/data-reports/SlowMovingRules.vue')
           }
         ]
+      },
+      {
+        path: '/customer',
+        name: 'Customer',
+        component: () => import('@/layouts/RouterView.vue'),
+        meta: {
+          title: 'Customer',
+          icon: 'List'
+        },
+        children: [
+          {
+            path: 'list',
+            name: 'CustomerList',
+            component: () => import('@/views/customer/list.vue'),
+            meta: {
+              title: 'Customer List',
+              icon: 'Files'
+            }
+          },
+          {
+            path: 'groups',
+            name: 'CustomerGroups',
+            component: () => import('@/views/customer/groups.vue'),
+            meta: {
+              title: 'Customer Groups',
+              icon: 'Grid'
+            }
+          },
+          {
+            path: 'level',
+            name: 'CustomerLevel',
+            component: () => import('@/views/customer/level.vue'),
+            meta: {
+              title: 'Customer Level',
+              icon: 'TrendCharts'
+            }
+          },
+          {
+            path: 'tags',
+            name: 'CustomerTags',
+            component: () => import('@/views/customer/tags.vue'),
+            meta: {
+              title: 'Customer Tags',
+              icon: 'Operation'
+            }
+          },
+          {
+            path: 'analysis',
+            name: 'CustomerAnalysis',
+            component: () => import('@/views/customer/analysis.vue'),
+            meta: {
+              title: 'Customer Analysis',
+              icon: 'DataLine'
+            }
+          },
+          {
+            path: 'import-export',
+            name: 'CustomerImportExport',
+            component: () => import('@/views/customer/import-export.vue'),
+            meta: {
+              title: 'Import/Export',
+              icon: 'Share'
+            }
+          }
+        ]
+      },
+      {
+        path: '/merchant',
+        name: 'Merchant',
+        component: () => import('@/layouts/RouterView.vue'),
+        meta: {
+          title: 'Merchant Management',
+          icon: 'ShoppingBag'
+        },
+        children: [
+          {
+            path: 'list',
+            name: 'MerchantList',
+            component: () => import('@/views/merchant/list.vue'),
+            meta: {
+              title: 'Merchant List',
+              icon: 'Files'
+            }
+          }
+        ]
       }
+
     ]
   }
 ]
@@ -418,7 +512,8 @@ const router = createRouter({
   routes: [
     ...routes,
     ...integrationRoutes,
-    ...eventsRoutes
+    ...eventsRoutes,
+    productRoutes
   ]
 })
 

@@ -11,6 +11,9 @@ importers:
       '@element-plus/icons-vue':
         specifier: ^2.3.1
         version: 2.3.1(vue@3.5.13(typescript@4.9.5))
+      '@tinymce/tinymce-vue':
+        specifier: ^6.3.0
+        version: 6.3.0(tinymce@8.0.2)(vue@3.5.13(typescript@4.9.5))
       '@types/google.maps':
         specifier: ^3.53.4
         version: 3.58.1
@@ -23,6 +26,9 @@ importers:
       '@vue/shared':
         specifier: ^3.5.18
         version: 3.5.18
+      '@vueuse/core':
+        specifier: ^13.7.0
+        version: 13.7.0(vue@3.5.13(typescript@4.9.5))
       axios:
         specifier: ^1.8.4
         version: 1.9.0
@@ -62,6 +68,9 @@ importers:
       pinia:
         specifier: ^2.1.7
         version: 2.3.1(typescript@4.9.5)(vue@3.5.13(typescript@4.9.5))
+      tinymce:
+        specifier: ^8.0.2
+        version: 8.0.2
       uuid:
         specifier: ^11.1.0
         version: 11.1.0
@@ -122,7 +131,7 @@ importers:
         version: 4.9.5
       unplugin-auto-import:
         specifier: ^19.3.0
-        version: 19.3.0(@vueuse/core@9.13.0(vue@3.5.13(typescript@4.9.5)))
+        version: 19.3.0(@vueuse/core@13.7.0(vue@3.5.13(typescript@4.9.5)))
       unplugin-icons:
         specifier: ^22.2.0
         version: 22.2.0(@vue/compiler-sfc@3.5.13)(vue-template-compiler@2.7.16)
@@ -605,6 +614,15 @@ packages:
   '@sxzz/popperjs-es@2.11.7':
     resolution: {integrity: sha512-Ccy0NlLkzr0Ex2FKvh2X+OyERHXJ88XJ1MXtsI9y9fGexlaXaVTPzBCRBwIxFkORuOb+uBqeu+RqnpgYTEZRUQ==}
 
+  '@tinymce/tinymce-vue@6.3.0':
+    resolution: {integrity: sha512-DSP8Jhd3XqCCliTnusfbmz3D8GqQ4iRzkc4aadYHDcJPVjkaqopJ61McOdH82CSy599vGLkPjGzqJYWJkRMiUA==}
+    peerDependencies:
+      tinymce: ^8.0.0 || ^7.0.0 || ^6.0.0 || ^5.5.1
+      vue: ^3.0.0
+    peerDependenciesMeta:
+      tinymce:
+        optional: true
+
   '@types/echarts@4.9.22':
     resolution: {integrity: sha512-7Fo6XdWpoi8jxkwP7BARUOM7riq8bMhmsCtSG8gzUcJmFhLo387tihoBYS/y5j7jl3PENT5RxeWZdN9RiwO7HQ==}
 
@@ -658,6 +676,9 @@ packages:
 
   '@types/web-bluetooth@0.0.16':
     resolution: {integrity: sha512-oh8q2Zc32S6gd/j50GowEjKLoOVOwHP/bWVjKJInBwQqdOYMdPrf1oVlelTlyfFK3CKxL1uahMDAr+vy8T7yMQ==}
+
+  '@types/web-bluetooth@0.0.21':
+    resolution: {integrity: sha512-oIQLCGWtcFZy2JW77j9k8nHzAOpqMHLQejDA48XXMWH6tjCQHz5RCFz1bzsmROyL6PUm+LLnUiI4BCn221inxA==}
 
   '@types/zrender@5.0.0':
     resolution: {integrity: sha512-70NLuJssk1cp5+8l18zk/z6kpcxKw4/vTbeFKh0R1TIv7/XF7+U7wkGvUOCEzIJv3Px3L1HaUM5ASP0mqKJPKQ==}
@@ -737,11 +758,24 @@ packages:
   '@vue/shared@3.5.18':
     resolution: {integrity: sha512-cZy8Dq+uuIXbxCZpuLd2GJdeSO/lIzIspC2WtkqIpje5QyFbvLaI5wZtdUjLHjGZrlVX6GilejatWwVYYRc8tA==}
 
+  '@vueuse/core@13.7.0':
+    resolution: {integrity: sha512-myagn09+c6BmS6yHc1gTwwsdZilAovHslMjyykmZH3JNyzI5HoWhv114IIdytXiPipdHJ2gDUx0PB93jRduJYg==}
+    peerDependencies:
+      vue: ^3.5.0
+
   '@vueuse/core@9.13.0':
     resolution: {integrity: sha512-pujnclbeHWxxPRqXWmdkKV5OX4Wk4YeK7wusHqRwU0Q7EFusHoqNA/aPhB6KCh9hEqJkLAJo7bb0Lh9b+OIVzw==}
 
+  '@vueuse/metadata@13.7.0':
+    resolution: {integrity: sha512-8okFhS/1ite8EwUdZZfvTYowNTfXmVCOrBFlA31O0HD8HKXhY+WtTRyF0LwbpJfoFPc+s9anNJIXMVrvP7UTZg==}
+
   '@vueuse/metadata@9.13.0':
     resolution: {integrity: sha512-gdU7TKNAUVlXXLbaF+ZCfte8BjRJQWPCa2J55+7/h+yDtzw3vOoGQDRXzI6pyKyo6bXFT5/QoPE4hAknExjRLQ==}
+
+  '@vueuse/shared@13.7.0':
+    resolution: {integrity: sha512-Wi2LpJi4UA9kM0OZ0FCZslACp92HlVNw1KPaDY6RAzvQ+J1s7seOtcOpmkfbD5aBSmMn9NvOakc8ZxMxmDXTIg==}
+    peerDependencies:
+      vue: ^3.5.0
 
   '@vueuse/shared@9.13.0':
     resolution: {integrity: sha512-UrnhU+Cnufu4S6JLCPZnkWh0WwZGUp72ktOF2DFptMlOs3TOdVv8xJN53zhHGARmVOsz5KqOls09+J1NR6sBKw==}
@@ -1583,6 +1617,9 @@ packages:
     resolution: {integrity: sha512-tX5e7OM1HnYr2+a2C/4V0htOcSQcoSTH9KgJnVvNm5zm/cyEWKJ7j7YutsH9CxMdtOkkLFy2AHrMci9IM8IPZQ==}
     engines: {node: '>=12.0.0'}
 
+  tinymce@8.0.2:
+    resolution: {integrity: sha512-Gkvn5mRcZCAK1EKP7hnk3VBzwqPbqpZU2AN0T08BMtvmY9Sg0C0ZqmMghJCQ3vgo+LWA38pDOPiaM8EW7BZEow==}
+
   to-regex-range@5.0.1:
     resolution: {integrity: sha512-65P7iz6X5yEr1cwcgvQxbbIw7Uk3gOy5dIdtZ4rDveLqhrdJP+Li/Hx6tyK0NEb+2GCyneCMJiGqrADCSNk8sQ==}
     engines: {node: '>=8.0'}
@@ -2412,6 +2449,12 @@ snapshots:
 
   '@sxzz/popperjs-es@2.11.7': {}
 
+  '@tinymce/tinymce-vue@6.3.0(tinymce@8.0.2)(vue@3.5.13(typescript@4.9.5))':
+    dependencies:
+      vue: 3.5.13(typescript@4.9.5)
+    optionalDependencies:
+      tinymce: 8.0.2
+
   '@types/echarts@4.9.22':
     dependencies:
       '@types/zrender': 5.0.0
@@ -2462,6 +2505,8 @@ snapshots:
   '@types/uuid@10.0.0': {}
 
   '@types/web-bluetooth@0.0.16': {}
+
+  '@types/web-bluetooth@0.0.21': {}
 
   '@types/zrender@5.0.0':
     dependencies:
@@ -2577,6 +2622,13 @@ snapshots:
 
   '@vue/shared@3.5.18': {}
 
+  '@vueuse/core@13.7.0(vue@3.5.13(typescript@4.9.5))':
+    dependencies:
+      '@types/web-bluetooth': 0.0.21
+      '@vueuse/metadata': 13.7.0
+      '@vueuse/shared': 13.7.0(vue@3.5.13(typescript@4.9.5))
+      vue: 3.5.13(typescript@4.9.5)
+
   '@vueuse/core@9.13.0(vue@3.5.13(typescript@4.9.5))':
     dependencies:
       '@types/web-bluetooth': 0.0.16
@@ -2587,7 +2639,13 @@ snapshots:
       - '@vue/composition-api'
       - vue
 
+  '@vueuse/metadata@13.7.0': {}
+
   '@vueuse/metadata@9.13.0': {}
+
+  '@vueuse/shared@13.7.0(vue@3.5.13(typescript@4.9.5))':
+    dependencies:
+      vue: 3.5.13(typescript@4.9.5)
 
   '@vueuse/shared@9.13.0(vue@3.5.13(typescript@4.9.5))':
     dependencies:
@@ -3426,6 +3484,8 @@ snapshots:
       fdir: 6.4.6(picomatch@4.0.3)
       picomatch: 4.0.3
 
+  tinymce@8.0.2: {}
+
   to-regex-range@5.0.1:
     dependencies:
       is-number: 7.0.0
@@ -3461,7 +3521,7 @@ snapshots:
 
   unpipe@1.0.0: {}
 
-  unplugin-auto-import@19.3.0(@vueuse/core@9.13.0(vue@3.5.13(typescript@4.9.5))):
+  unplugin-auto-import@19.3.0(@vueuse/core@13.7.0(vue@3.5.13(typescript@4.9.5))):
     dependencies:
       local-pkg: 1.1.1
       magic-string: 0.30.17
@@ -3470,7 +3530,7 @@ snapshots:
       unplugin: 2.3.5
       unplugin-utils: 0.2.4
     optionalDependencies:
-      '@vueuse/core': 9.13.0(vue@3.5.13(typescript@4.9.5))
+      '@vueuse/core': 13.7.0(vue@3.5.13(typescript@4.9.5))
 
   unplugin-icons@22.2.0(@vue/compiler-sfc@3.5.13)(vue-template-compiler@2.7.16):
     dependencies:
