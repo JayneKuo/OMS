@@ -419,7 +419,7 @@ const loadColumnConfig = () => {
 
 // Product operations
 const handleCreate = () => {
-  router.push({ name: 'ProductCreate' });
+  router.push({ name: 'SelectCategory' });
 };
 
 const handleView = (row: Product) => {

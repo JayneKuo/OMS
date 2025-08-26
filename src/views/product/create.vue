@@ -151,13 +151,21 @@
 
 <script setup lang="ts">
 import { ref } from 'vue';
-import { useRouter } from 'vue-router';
+import { useRouter, useRoute } from 'vue-router';
 import type { Product } from '@/types/product';
 import BasicInfo from './components/basics/BasicInfo.vue';
 
 const router = useRouter();
+const route = useRoute();
 const activeTab = ref('basic');
 const formRef = ref();
+
+// 获取URL中的分类参数
+const categoryFromRoute = route.query.category as string;
+if (!categoryFromRoute) {
+  // 如果没有分类参数，重定向到分类选择页面
+  router.replace({ name: 'SelectCategory' });
+}
 
 // 创建默认的尺寸对象
 const defaultDimensions = {
@@ -178,10 +186,29 @@ const form = ref<Product>({
   generalInfo: {
     productName: '',
     sku: '',
+    parentSku: '',
     type: 'Physical',
-    category: [],
+    category: categoryFromRoute ? categoryFromRoute.split('/') : [],
     status: 'Draft',
-    isSample: false
+    isSample: false,
+    description: '',
+    attributes: {
+      occasion: '',
+      type: '',
+      style: '',
+      details: '',
+      material: '',
+      pattern: '',
+      hazardCategory: '',
+      features: [],
+      batteryType: '',
+      strapType: '',
+      magnetic: false,
+      closureType: '',
+      coating: [],
+      composition: [],
+      quantity: 1
+    }
   },
   mediaInfo: {
     mainImages: [],

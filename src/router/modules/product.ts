@@ -79,6 +79,14 @@ const productRoutes: RouteRecordRaw = {
       },
     },
     {
+      path: 'select-category',
+      name: 'SelectCategory',
+      component: () => import('../../views/product/components/CategorySelector.vue'),
+      meta: {
+        title: '选择商品分类',
+      },
+    },
+    {
       path: 'create',
       name: 'ProductCreate',
       component: () => import('../../views/product/create.vue'),

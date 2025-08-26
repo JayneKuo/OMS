@@ -45,6 +45,31 @@ export interface CategoryAttribute {
   validation?: CategoryAttributeValidation;
 }
 
+// 商品属性
+export interface ProductAttributes {
+  occasion?: string;
+  type?: string;
+  style?: string;
+  details?: string;
+  material?: string;
+  pattern?: string;
+  hazardCategory?: string;
+  features?: string[];
+  batteryType?: string;
+  strapType?: string;
+  magnetic?: boolean;
+  closureType?: string;
+  coating?: Array<{
+    type: string;
+    percentage: number;
+  }>;
+  composition?: Array<{
+    type: string;
+    percentage: number;
+  }>;
+  quantity?: number;
+}
+
 // 基本资料
 export interface GeneralInfo {
   productName: string;
@@ -55,6 +80,8 @@ export interface GeneralInfo {
   brand?: string;
   status: ProductStatus;
   isSample: boolean;
+  description?: string;
+  attributes?: ProductAttributes;
 }
 
 // 图片与媒体
