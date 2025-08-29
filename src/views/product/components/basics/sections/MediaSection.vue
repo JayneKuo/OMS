@@ -1,163 +1,173 @@
-# 图片与媒体部分组件
+# Media Resources Component
 <template>
   <div class="section">
     <div class="section-header">
-      <h3>图片与媒体</h3>
-      <el-tooltip content="用于商品前台展示和平台审核">
+      <h3>Media Resources</h3>
+      <el-tooltip content="For product display and platform review">
         <el-icon><InfoFilled /></el-icon>
       </el-tooltip>
     </div>
 
     <div class="section-body">
-      <!-- 主图 -->
-      <el-form-item
-        label="主图"
-        prop="mediaInfo.mainImages"
-        required
-        class="main-images"
-      >
-        <div class="upload-container">
-          <el-upload
-            v-model:file-list="mainImageFiles"
-            :action="uploadAction"
-            list-type="picture-card"
-            :limit="5"
-            :before-upload="beforeUploadImage"
-            :on-success="handleMainImageSuccess"
-            :on-preview="handlePictureCardPreview"
-            :on-remove="handleMainImageRemove"
+      <el-row :gutter="20">
+        <!-- Main Images -->
+        <el-col :span="16">
+          <el-form-item
+            label="Main Images"
+            prop="mediaInfo.mainImages"
+            required
+            class="main-images"
           >
-            <template #default>
-              <el-icon class="upload-icon"><Plus /></el-icon>
-              <div class="upload-text">上传主图</div>
-            </template>
-            <template #tip>
+            <div class="upload-container">
+              <el-upload
+                v-model:file-list="mainImageFiles"
+                :action="uploadAction"
+                list-type="picture-card"
+                :limit="5"
+                :before-upload="beforeUploadImage"
+                :on-success="handleMainImageSuccess"
+                :on-preview="handlePictureCardPreview"
+                :on-remove="handleMainImageRemove"
+              >
+                <template #default>
+                  <el-icon class="upload-icon"><Plus /></el-icon>
+                  <div class="upload-text">Upload Main Images</div>
+                </template>
+              </el-upload>
+
               <div class="upload-tip">
                 <el-alert
-                  title="主图要求"
+                  title="Main Image Requirements"
                   type="info"
                   :closable="false"
                   show-icon
                 >
                   <template #default>
                     <ul class="upload-requirements">
-                      <li>至少1张，建议5张</li>
-                      <li>白底图片，无水印</li>
-                      <li>分辨率≥800×800px</li>
-                      <li>文件大小≤5MB</li>
-                      <li>支持jpg、png格式</li>
+                      <li>Minimum 1 image, recommended 5 images</li>
+                      <li>White background, no watermark</li>
+                      <li>Resolution ≥ 800×800px</li>
+                      <li>File size ≤ 5MB</li>
+                      <li>Formats: JPG, PNG</li>
                     </ul>
                   </template>
                 </el-alert>
               </div>
-            </template>
-          </el-upload>
 
-          <!-- 图片预览 -->
-          <el-image-viewer
-            v-if="previewVisible"
-            :url-list="previewUrls"
-            :initial-index="previewIndex"
-            @close="previewVisible = false"
-          />
-
-          <!-- 图片检查结果 -->
-          <div class="image-check-results" v-if="imageCheckResults.length">
-            <el-alert
-              v-for="(result, index) in imageCheckResults"
-              :key="index"
-              :title="result.message"
-              :type="result.type"
-              :closable="false"
-              show-icon
-            />
-          </div>
-        </div>
-      </el-form-item>
-
-      <!-- 附图 -->
-      <el-form-item
-        label="附图"
-        prop="mediaInfo.additionalImages"
-        class="additional-images"
-      >
-        <div class="upload-container">
-          <el-upload
-            v-model:file-list="additionalImageFiles"
-            :action="uploadAction"
-            list-type="picture-card"
-            :limit="8"
-            :before-upload="beforeUploadImage"
-            :on-success="handleAdditionalImageSuccess"
-            :on-preview="handlePictureCardPreview"
-            :on-remove="handleAdditionalImageRemove"
-          >
-            <template #default>
-              <el-icon class="upload-icon"><Plus /></el-icon>
-              <div class="upload-text">上传附图</div>
-            </template>
-            <template #tip>
-              <div class="upload-tip">
-                支持多张排序，建议展示商品细节、包装、使用场景等
+              <!-- Image Check Results -->
+              <div class="image-check-results" v-if="imageCheckResults.length">
+                <el-alert
+                  v-for="(result, index) in imageCheckResults"
+                  :key="index"
+                  :title="result.message"
+                  :type="result.type"
+                  :closable="false"
+                  show-icon
+                />
               </div>
-            </template>
-          </el-upload>
-        </div>
-      </el-form-item>
+            </div>
+          </el-form-item>
+        </el-col>
 
-      <!-- 视频 -->
-      <el-form-item
-        label="视频"
-        prop="mediaInfo.video"
-        class="video-upload"
-      >
-        <div class="upload-container">
-          <el-upload
-            v-model:file-list="videoFiles"
-            :action="uploadAction"
-            :limit="1"
-            :before-upload="beforeUploadVideo"
-            :on-success="handleVideoSuccess"
-            :on-remove="handleVideoRemove"
+        <!-- Additional Images -->
+        <el-col :span="8">
+          <el-form-item
+            label="Additional Images"
+            prop="mediaInfo.additionalImages"
+            class="additional-images"
           >
-            <template #default>
-              <el-button type="primary">
-                <el-icon><VideoCamera /></el-icon>
-                上传视频
-              </el-button>
-            </template>
-            <template #tip>
+            <div class="upload-container">
+              <el-upload
+                v-model:file-list="additionalImageFiles"
+                :action="uploadAction"
+                list-type="picture-card"
+                :limit="8"
+                :before-upload="beforeUploadImage"
+                :on-success="handleAdditionalImageSuccess"
+                :on-preview="handlePictureCardPreview"
+                :on-remove="handleAdditionalImageRemove"
+              >
+                <template #default>
+                  <el-icon class="upload-icon"><Plus /></el-icon>
+                  <div class="upload-text">Upload Additional</div>
+                </template>
+              </el-upload>
+              <div class="upload-tip">
+                Show product details, packaging, and usage scenarios
+              </div>
+            </div>
+          </el-form-item>
+        </el-col>
+      </el-row>
+
+      <el-row :gutter="20">
+        <!-- Video Upload -->
+        <el-col :span="12">
+          <el-form-item
+            label="Product Video"
+            prop="mediaInfo.video"
+            class="video-upload"
+          >
+            <div class="upload-container">
+              <el-upload
+                v-model:file-list="videoFiles"
+                :action="uploadAction"
+                :limit="1"
+                :before-upload="beforeUploadVideo"
+                :on-success="handleVideoSuccess"
+                :on-remove="handleVideoRemove"
+                class="video-uploader"
+              >
+                <template #default>
+                  <el-button type="primary">
+                    <el-icon><VideoCamera /></el-icon>
+                    Upload Video
+                  </el-button>
+                </template>
+              </el-upload>
+
               <div class="upload-tip">
                 <el-alert
-                  title="视频要求"
+                  title="Video Requirements"
                   type="info"
                   :closable="false"
                   show-icon
                 >
                   <template #default>
                     <ul class="upload-requirements">
-                      <li>时长≤60秒</li>
-                      <li>分辨率≥720p</li>
-                      <li>格式：MP4/WebM</li>
-                      <li>大小≤100MB</li>
+                      <li>Duration ≤ 60 seconds</li>
+                      <li>Resolution ≥ 720p</li>
+                      <li>Format: MP4/WebM</li>
+                      <li>Size ≤ 100MB</li>
                     </ul>
                   </template>
                 </el-alert>
               </div>
-            </template>
-          </el-upload>
+            </div>
+          </el-form-item>
+        </el-col>
 
-          <!-- 视频预览 -->
+        <!-- Video Preview -->
+        <el-col :span="12">
           <div class="video-preview" v-if="form.mediaInfo.video?.url">
+            <div class="preview-header">Video Preview</div>
             <video
               :src="form.mediaInfo.video.url"
               controls
-              style="max-width: 100%; max-height: 300px;"
+              class="preview-player"
             />
           </div>
-        </div>
-      </el-form-item>
+        </el-col>
+      </el-row>
     </div>
+
+    <!-- Image Preview Dialog -->
+    <el-image-viewer
+      v-if="previewVisible"
+      :url-list="previewUrls"
+      :initial-index="previewIndex"
+      @close="previewVisible = false"
+    />
   </div>
 </template>
 
@@ -349,30 +359,44 @@ function handlePictureCardPreview(file: UploadFile) {
 }
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 .section {
-  padding: 16px;
+  padding: 24px;
   background-color: var(--el-bg-color-overlay);
-  border-radius: 4px;
-  border: 1px solid var(--el-border-color-darker);
+  border-radius: 8px;
+  border: 1px solid var(--el-border-color-lighter);
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.05);
 }
 
 .section-header {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 16px;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
 
   h3 {
     margin: 0;
-    font-size: 16px;
-    font-weight: 500;
+    font-size: 18px;
+    font-weight: 600;
     color: var(--el-text-color-primary);
   }
 
   .el-icon {
-    font-size: 16px;
+    font-size: 18px;
     color: var(--el-text-color-secondary);
+    cursor: help;
+  }
+}
+
+.section-body {
+  .el-row {
+    margin-bottom: 24px;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
   }
 }
 
@@ -380,55 +404,146 @@ function handlePictureCardPreview(file: UploadFile) {
   display: flex;
   flex-direction: column;
   gap: 16px;
-}
-
-.upload-tip {
-  font-size: 12px;
-  color: var(--el-text-color-secondary);
-}
-
-.upload-requirements {
-  margin: 8px 0 0;
-  padding-left: 20px;
-  font-size: 12px;
-  color: var(--el-text-color-regular);
-}
-
-.image-check-results {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.video-preview {
-  border: 1px solid var(--el-border-color);
+  padding: 16px;
+  background-color: var(--el-bg-color);
   border-radius: 4px;
-  padding: 8px;
-  background-color: var(--el-bg-color);
-}
-
-:deep(.el-upload--picture-card) {
-  --el-upload-picture-card-size: 120px;
-  background-color: var(--el-bg-color);
-  border-color: var(--el-border-color-darker);
+  border: 1px dashed var(--el-border-color);
+  transition: all 0.3s;
 
   &:hover {
     border-color: var(--el-color-primary);
   }
 }
 
+.upload-tip {
+  font-size: 13px;
+  color: var(--el-text-color-secondary);
+  line-height: 1.5;
+}
+
+.upload-requirements {
+  margin: 8px 0 0;
+  padding-left: 20px;
+  font-size: 13px;
+  color: var(--el-text-color-regular);
+  line-height: 1.8;
+}
+
+.image-check-results {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.video-preview {
+  height: 100%;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 4px;
+  overflow: hidden;
+  background-color: var(--el-bg-color);
+
+  .preview-header {
+    padding: 12px 16px;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--el-text-color-primary);
+    background-color: var(--el-bg-color-overlay);
+    border-bottom: 1px solid var(--el-border-color-lighter);
+  }
+
+  .preview-player {
+    width: 100%;
+    height: 300px;
+    object-fit: contain;
+    background-color: #000;
+  }
+}
+
+.video-uploader {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 24px;
+  background-color: var(--el-fill-color-lighter);
+  border-radius: 4px;
+  transition: background-color 0.3s;
+
+  &:hover {
+    background-color: var(--el-fill-color-dark);
+  }
+
+  .el-button {
+    padding: 12px 24px;
+    font-size: 14px;
+
+    .el-icon {
+      font-size: 18px;
+      margin-right: 8px;
+    }
+  }
+}
+
+:deep(.el-upload--picture-card) {
+  --el-upload-picture-card-size: 140px;
+  background-color: var(--el-bg-color);
+  border: 2px dashed var(--el-border-color);
+  border-radius: 8px;
+  transition: all 0.3s;
+
+  &:hover {
+    border-color: var(--el-color-primary);
+    transform: translateY(-2px);
+  }
+}
+
 :deep(.el-upload-list--picture-card) {
-  --el-upload-list-picture-card-size: 120px;
+  --el-upload-list-picture-card-size: 140px;
+
+  .el-upload-list__item {
+    border-radius: 8px;
+    overflow: hidden;
+    transition: all 0.3s;
+
+    &:hover {
+      transform: translateY(-2px);
+    }
+  }
 }
 
 .upload-icon {
-  font-size: 24px;
+  font-size: 28px;
   color: var(--el-text-color-secondary);
+  margin-bottom: 8px;
 }
 
 .upload-text {
-  margin-top: 8px;
-  font-size: 12px;
+  font-size: 13px;
   color: var(--el-text-color-regular);
+}
+
+// Dark theme optimizations
+:deep(.dark) {
+  .upload-container {
+    background-color: var(--el-bg-color-overlay);
+  }
+
+  .video-preview {
+    border-color: var(--el-border-color-darker);
+    
+    .preview-header {
+      background-color: var(--el-bg-color);
+      border-color: var(--el-border-color-darker);
+    }
+  }
+
+  .video-uploader {
+    background-color: var(--el-bg-color);
+
+    &:hover {
+      background-color: var(--el-bg-color-overlay);
+    }
+  }
 }
 </style>

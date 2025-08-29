@@ -1,50 +1,113 @@
-export type WarehouseType = 'SELF_OPERATED' | 'FBA' | 'WFS' | '3PL';
-export type AllocationStrategy = 'FIFO' | 'LIFO' | 'FEFO' | 'PRIORITY';
-export type OutOfStockAction = 'ALLOW_BACKORDER' | 'PREVENT_SALE' | 'WAIT_FOR_RESTOCK';
-export type StockAlertRule = 'LOW_STOCK' | 'OUT_OF_STOCK' | 'EXCESS_STOCK' | 'EXPIRY';
-export type PackagingType = 'STANDARD' | 'BUBBLE' | 'SHOCK_PROOF' | 'WATER_PROOF';
-export type DangerousGoodsClass = 'NONE' | 'CLASS_1' | 'CLASS_2' | 'CLASS_3';
-export type TemperatureControl = 'ROOM_TEMP' | 'REFRIGERATED' | 'FROZEN';
+// 仓库设置相关类型定义
+export interface DimensionsInfo {
+  length: number;
+  width: number;
+  height: number;
+  unit: 'cm' | 'in';
+}
 
-export interface WarehouseLocation {
+export interface WeightInfo {
+  net: number;
+  gross: number;
+  unit: 'kg' | 'lb';
+}
+
+export interface UOMLevel {
+  type: string;
+  quantity: number;
+  barcode: string;
+  dimensions: DimensionsInfo;
+  weight: WeightInfo;
+  palletRules?: {
+    tie: number;
+    high: number;
+  };
+}
+
+export interface BarcodeInfo {
+  type: string;
+  value: string;
+  verified: boolean;
+}
+
+export interface LotTrackingSettings {
+  enabled: boolean;
+  shelfLifeDays: number;
+  fifoRule: 'FIFO' | 'FEFO' | 'LIFO' | 'STRICT_LOT';
+  minReceivingLife: number;
+  minShippingLife: number;
+}
+
+export interface SerialTrackingSettings {
+  enabled: boolean;
+  receivingRequired: boolean;
+  shippingRequired: boolean;
+}
+
+export interface BarcodeStrategy {
+  mode: 'EA_REQUIRED' | 'CS_CONFIRM' | 'PLT_CONFIRM';
+  points: string[];
+}
+
+export interface DangerousGoodsInfo {
+  isDangerous: boolean;
+  unCode: string;
+  hazardClass: string;
+}
+
+export interface StorageConditions {
+  temperature: 'ROOM_TEMP' | 'REFRIGERATED' | 'FROZEN' | 'CLIMATE_CONTROLLED';
+  stackable: boolean;
+  tiltable: boolean;
+  moistureSensitive: boolean;
+}
+
+export interface WarehouseAssignment {
+  type: string;
   warehouseId: string;
-  warehouseName: string;
   location: string;
   initialStock: number;
   minStock: number;
   maxStock: number;
-  type: WarehouseType;
   priority: number;
 }
 
 export interface FBASettings {
   enabled: boolean;
-  fulfillmentCenter: string;
+  fulfillmentCenter?: string;
   prepCenter?: string;
-  labelingRequired: boolean;
-  packagingRequired: boolean;
-  hazmatEligible: boolean;
-  expirationDateRequired: boolean;
+  labelingRequired?: boolean;
+  packagingRequired?: boolean;
+  hazmatEligible?: boolean;
   preparationInstructions?: string;
 }
 
 export interface WFSSettings {
   enabled: boolean;
-  fulfillmentCenter: string;
-  shippingTemplate: string;
-  handlingTime: number;
-  returnPolicy: string;
+  fulfillmentCenter?: string;
+  shippingTemplate?: string;
+  handlingTime?: number;
+  returnPolicy?: string;
 }
 
-export interface ThirdPartyLogistics {
+export interface ThirdPLSettings {
   provider: string;
   warehouse: string;
   accountNumber: string;
-  apiKey?: string;
-  integrationSettings: Record<string, any>;
+  apiKey: string;
 }
 
-export interface InventoryForecast {
+export interface ReplenishmentRules {
+  type: 'min-max' | 'periodic' | 'demand-driven';
+  minQuantity: number;
+  maxQuantity: number;
+  orderPoint: number;
+  orderQuantity: number;
+  reviewPeriod?: number;
+  safetyStock: number;
+}
+
+export interface InventoryForecasts {
   period: 'daily' | 'weekly' | 'monthly';
   forecastedDemand: number;
   confidenceLevel: number;
@@ -52,65 +115,47 @@ export interface InventoryForecast {
   trendFactor: number;
 }
 
-export interface ReplenishmentRule {
-  type: 'min-max' | 'periodic' | 'demand-driven';
-  minQuantity: number;
-  maxQuantity: number;
-  orderPoint: number;
-  orderQuantity: number;
-  reviewPeriod?: number;
-  leadTime: number;
+export interface PackageLevel {
+  level: string;
+  spec: string;
+  barcode: string;
+  length: number;
+  width: number;
+  height: number;
+  weight: number;
+}
+
+export interface DangerousInfo {
+  unCode: string;
+  class: string;
+  packingGroup: string;
+}
+
+export interface WMSProductSettings {
+  // 基础信息
+  wmsCode: string;
+  baseUnit: string;
+  wmsCategory: string[];
+  attributes: string[];
+
+  // 包装信息
+  packageLevels: PackageLevel[];
+
+  // 存储要求
+  storageType: string;
+  abcClass: string;
+  turnoverType: string;
+  storageConditions: string[];
+  specialRequirements: string[];
+  dangerousInfo?: DangerousInfo;
+
+  // 库存控制
+  inventoryStrategy: string;
+  replenishStrategy: string;
+  stockoutAction: string;
   safetyStock: number;
-}
-
-export interface BatchControl {
-  enabled: boolean;
-  batchNumberRequired: boolean;
-  expiryDateRequired: boolean;
-  manufactureDateRequired: boolean;
-  serialNumberRequired: boolean;
-  batchAttributes: string[];
-}
-
-export interface StorageRequirement {
-  temperatureRange?: {
-    min: number;
-    max: number;
-    unit: 'C' | 'F';
-  };
-  humidity?: {
-    min: number;
-    max: number;
-    unit: '%';
-  };
-  specialHandling: string[];
-  stackable: boolean;
-  stackingHeight?: number;
-  hazmatClass?: string;
-  storageIncompatibilities?: string[];
-}
-
-export interface WarehouseSettings {
-  trackInventory: boolean;
-  safetyStock: number;
-  reorderPoint: number;
+  minStock: number;
   maxStock: number;
-  economicOrderQuantity: number;
-  leadTime: number;
-  warehouses: WarehouseLocation[];
-  allocationStrategy: AllocationStrategy;
-  outOfStockAction: OutOfStockAction;
-  stockAlertRules: StockAlertRule[];
-  packagingType: PackagingType;
-  dangerousGoodsClass: DangerousGoodsClass;
-  temperatureControl: TemperatureControl;
-  stackingTier: number;
-  shelfLife?: number;
-  fba?: FBASettings;
-  wfs?: WFSSettings;
-  thirdPartyLogistics?: ThirdPartyLogistics[];
-  inventoryForecasts?: InventoryForecast[];
-  replenishmentRules?: ReplenishmentRule[];
-  batchControl?: BatchControl;
-  storageRequirements?: StorageRequirement;
+  reorderPoint: number;
+  stockAlerts: string[];
 }

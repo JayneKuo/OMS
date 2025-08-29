@@ -4,29 +4,144 @@
       ref="formRef"
       :model="form"
       :rules="rules"
-      label-width="120px"
+      label-width="160px"
       class="compliance-form"
     >
+      <!-- Basic Declaration Info -->
       <el-card class="form-card" shadow="never">
         <template #header>
           <div class="card-header">
-            <span>海关信息</span>
+            <span>Basic Declaration Information</span>
+          </div>
+        </template>
+
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="Chinese Name" prop="basic.chineseName">
+              <el-input
+                v-model="form.basic.chineseName"
+                placeholder="Enter Chinese declaration name"
+              />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="English Name" prop="basic.englishName">
+              <el-input
+                v-model="form.basic.englishName"
+                placeholder="Enter English declaration name"
+              />
+            </el-form-item>
+          </el-col>
+        </el-row>
+
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="Chinese Material" prop="basic.chineseMaterial">
+              <el-input
+                v-model="form.basic.chineseMaterial"
+                placeholder="Enter Chinese material description"
+              />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="English Material" prop="basic.englishMaterial">
+              <el-input
+                v-model="form.basic.englishMaterial"
+                placeholder="Enter English material description"
+              />
+            </el-form-item>
+          </el-col>
+        </el-row>
+
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="Chinese Usage" prop="basic.chineseUsage">
+              <el-input
+                v-model="form.basic.chineseUsage"
+                placeholder="Enter Chinese usage description"
+              />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="English Usage" prop="basic.englishUsage">
+              <el-input
+                v-model="form.basic.englishUsage"
+                placeholder="Enter English usage description"
+              />
+            </el-form-item>
+          </el-col>
+        </el-row>
+
+        <el-row :gutter="20">
+          <el-col :span="8">
+            <el-form-item label="Brand Type" prop="basic.brandType">
+              <el-select 
+                v-model="form.basic.brandType" 
+                placeholder="Select brand type"
+                class="full-width-select"
+              >
+                <el-option label="OEM" value="OEM" />
+                <el-option label="ODM" value="ODM" />
+                <el-option label="Own Brand" value="OWN" />
+                <el-option label="No Brand" value="NONE" />
+              </el-select>
+            </el-form-item>
+          </el-col>
+          <el-col :span="8">
+            <el-form-item label="Export Benefits" prop="basic.exportBenefits">
+              <el-select 
+                v-model="form.basic.exportBenefits" 
+                placeholder="Select export benefits"
+                class="full-width-select"
+              >
+                <el-option label="None" value="NONE" />
+                <el-option label="VAT Refund" value="VAT_REFUND" />
+                <el-option label="Duty Free" value="DUTY_FREE" />
+                <el-option label="Preferential Tariff" value="PREF_TARIFF" />
+              </el-select>
+            </el-form-item>
+          </el-col>
+          <el-col :span="8">
+            <el-form-item label="Special Properties" prop="basic.specialProperties">
+              <el-select
+                v-model="form.basic.specialProperties"
+                multiple
+                collapse-tags
+                collapse-tags-tooltip
+                placeholder="Select special properties"
+                class="full-width-select"
+              >
+                <el-option label="Fragile" value="FRAGILE" />
+                <el-option label="Flammable" value="FLAMMABLE" />
+                <el-option label="Temperature Sensitive" value="TEMP_SENSITIVE" />
+                <el-option label="Moisture Sensitive" value="MOIST_SENSITIVE" />
+                <el-option label="Light Sensitive" value="LIGHT_SENSITIVE" />
+              </el-select>
+            </el-form-item>
+          </el-col>
+        </el-row>
+      </el-card>
+
+      <el-card class="form-card" shadow="never">
+        <template #header>
+          <div class="card-header">
+            <span>Import Information</span>
           </div>
         </template>
 
         <el-row :gutter="20">
           <el-col :span="8">
-            <el-form-item label="海关编码" prop="hsCode">
-              <el-input v-model="form.hsCode" placeholder="请输入HS编码">
-                <template #append>
-                  <el-button @click="handleHsCodeLookup">查询</el-button>
-                </template>
-              </el-input>
-            </el-form-item>
+                         <el-form-item label="HS Code" prop="customs.hsCode">
+               <el-input v-model="form.customs.hsCode" placeholder="Enter HS code">
+                 <template #append>
+                   <el-button @click="handleHsCodeLookup">Search</el-button>
+                 </template>
+               </el-input>
+             </el-form-item>
           </el-col>
           <el-col :span="8">
-            <el-form-item label="原产国" prop="countryOfOrigin">
-              <el-select v-model="form.countryOfOrigin" placeholder="请选择原产国">
+            <el-form-item label="Country of Origin" prop="customs.countryOfOrigin">
+              <el-select v-model="form.customs.countryOfOrigin" placeholder="Select country of origin">
                 <el-option
                   v-for="country in countries"
                   :key="country.code"
@@ -37,13 +152,13 @@
             </el-form-item>
           </el-col>
           <el-col :span="8">
-            <el-form-item label="申报价值" prop="declaredValue">
+            <el-form-item label="Declared Value" prop="customs.declaredValue">
               <el-input-number
-                v-model="form.declaredValue"
+                v-model="form.customs.declaredValue"
                 :precision="2"
                 :step="0.01"
                 :min="0"
-                placeholder="请输入申报价值"
+                placeholder="Enter declared value"
               />
             </el-form-item>
           </el-col>
@@ -51,60 +166,92 @@
 
         <el-row :gutter="20">
           <el-col :span="8">
-            <el-form-item label="关税率" prop="dutyRate">
+            <el-form-item label="Duty Rate" prop="customs.dutyRate">
               <el-input-number
-                v-model="form.dutyRate"
+                v-model="form.customs.dutyRate"
                 :precision="2"
                 :step="0.01"
                 :min="0"
                 :max="100"
-                placeholder="请输入关税率"
+                placeholder="Enter duty rate"
               >
                 <template #append>%</template>
               </el-input-number>
             </el-form-item>
           </el-col>
           <el-col :span="8">
-            <el-form-item label="增值税率" prop="vatRate">
+            <el-form-item label="VAT Rate" prop="customs.vatRate">
               <el-input-number
-                v-model="form.vatRate"
+                v-model="form.customs.vatRate"
                 :precision="2"
                 :step="0.01"
                 :min="0"
                 :max="100"
-                placeholder="请输入增值税率"
+                placeholder="Enter VAT rate"
               >
                 <template #append>%</template>
               </el-input-number>
             </el-form-item>
           </el-col>
           <el-col :span="8">
-            <el-form-item label="申报单位" prop="declaredUnit">
-              <el-select v-model="form.declaredUnit" placeholder="请选择申报单位">
-                <el-option label="件" value="PCS" />
-                <el-option label="套" value="SET" />
-                <el-option label="千克" value="KG" />
-                <el-option label="米" value="M" />
+            <el-form-item label="Declared Unit" prop="customs.declaredUnit">
+              <el-select v-model="form.customs.declaredUnit" placeholder="Select declared unit">
+                <el-option label="Pieces" value="PCS" />
+                <el-option label="Sets" value="SET" />
+                <el-option label="Kilograms" value="KG" />
+                <el-option label="Meters" value="M" />
               </el-select>
             </el-form-item>
           </el-col>
         </el-row>
 
-        <el-form-item label="申报描述" prop="declaredDescription">
+        <el-form-item label="Declared Description" prop="customs.declaredDescription">
           <el-input
-            v-model="form.declaredDescription"
+            v-model="form.customs.declaredDescription"
             type="textarea"
             :rows="3"
-            placeholder="请输入申报描述"
+            placeholder="Enter declared description"
           />
         </el-form-item>
+
+        <el-divider content-position="left">Required Certificates</el-divider>
+
+        <!-- 进口证书上传区域 -->
+        <div v-if="requiredCertificates.import.length > 0" class="certificate-list">
+          <div v-for="cert in requiredCertificates.import" :key="cert.key" class="certificate-item">
+            <span class="certificate-name">{{ cert.name }}</span>
+            <el-upload
+              class="certificate-upload"
+              action="#"
+              :auto-upload="false"
+              :on-change="(file) => handleCertificateUpload('import', cert.key, file)"
+            >
+              <el-button type="primary">Upload</el-button>
+            </el-upload>
+          </div>
+        </div>
+
+        <!-- CIQ证书上传区域 -->
+        <div v-if="requiredCertificates.ciq.length > 0" class="certificate-list">
+          <div v-for="cert in requiredCertificates.ciq" :key="cert.key" class="certificate-item">
+            <span class="certificate-name">{{ cert.name }}</span>
+            <el-upload
+              class="certificate-upload"
+              action="#"
+              :auto-upload="false"
+              :on-change="(file) => handleCertificateUpload('ciq', cert.key, file)"
+            >
+              <el-button type="primary">Upload</el-button>
+            </el-upload>
+          </div>
+        </div>
       </el-card>
 
       <el-card class="form-card" shadow="never">
         <template #header>
           <div class="card-header">
             <div class="left">
-              <span>合规认证</span>
+              <span>Compliance Certification</span>
               <el-tag :type="getComplianceStatusType(form.complianceStatus)">
                 {{ getComplianceStatusText(form.complianceStatus) }}
               </el-tag>
@@ -117,7 +264,7 @@
                   :icon="Refresh"
                   @click="refreshComplianceStatus"
                 >
-                  刷新状态
+                  Refresh Status
                 </el-button>
                 <el-button
                   type="primary"
@@ -125,7 +272,7 @@
                   :icon="InfoFilled"
                   @click="showComplianceGuide"
                 >
-                  合规指南
+                  Compliance Guide
                 </el-button>
               </el-button-group>
             </div>
@@ -133,7 +280,7 @@
         </template>
 
         <el-tabs v-model="activeTab">
-          <el-tab-pane label="基本认证" name="basic">
+          <el-tab-pane label="Basic Certification" name="basic">
             <el-row :gutter="20">
               <el-col :span="12">
                 <el-form-item label="认证类型" prop="certifications">
@@ -257,7 +404,7 @@
             </div>
           </el-tab-pane>
 
-          <el-tab-pane label="危险品" name="hazmat" v-if="requiresHazmatInfo">
+          <el-tab-pane label="Hazardous Materials" name="hazmat" v-if="requiresHazmatInfo">
             <el-form-item label="UN编号" prop="hazmat.unNumber">
               <el-input v-model="form.hazmat.unNumber" placeholder="请输入UN编号">
                 <template #append>
@@ -315,7 +462,7 @@
             </el-form-item>
           </el-tab-pane>
 
-          <el-tab-pane label="电池信息" name="battery" v-if="requiresBatteryInfo">
+          <el-tab-pane label="Battery Information" name="battery" v-if="requiresBatteryInfo">
             <el-row :gutter="20">
               <el-col :span="8">
                 <el-form-item label="电池类型" prop="battery.type">
@@ -375,7 +522,7 @@
             </el-row>
           </el-tab-pane>
 
-          <el-tab-pane label="FDA" name="fda" v-if="requiresFDAInfo">
+          <el-tab-pane label="FDA Compliance" name="fda" v-if="requiresFDAInfo">
             <el-row :gutter="20">
               <el-col :span="12">
                 <el-form-item label="FDA注册号" prop="fda.registrationNumber">
@@ -448,7 +595,7 @@
             </el-row>
           </el-tab-pane>
 
-          <el-tab-pane label="CPSIA" name="cpsia" v-if="requiresCPSIAInfo">
+          <el-tab-pane label="CPSIA Compliance" name="cpsia" v-if="requiresCPSIAInfo">
             <el-row :gutter="20">
               <el-col :span="8">
                 <el-form-item label="年龄等级" prop="cpsia.ageGrade">
@@ -506,7 +653,7 @@
             </el-row>
           </el-tab-pane>
 
-          <el-tab-pane label="Prop 65" name="prop65" v-if="requiresProp65Warning">
+          <el-tab-pane label="Prop 65 Warning" name="prop65" v-if="requiresProp65Warning">
             <el-row :gutter="20">
               <el-col :span="12">
                 <el-form-item label="警告类型" prop="prop65.warningType">
@@ -571,40 +718,125 @@
       <el-card class="form-card" shadow="never">
         <template #header>
           <div class="card-header">
-            <span>出口管制</span>
+            <span>Export Information</span>
           </div>
         </template>
 
         <el-row :gutter="20">
           <el-col :span="8">
-            <el-form-item label="ECCN编码" prop="eccnCode">
-              <el-input v-model="form.eccnCode" placeholder="请输入ECCN编码" />
+            <el-form-item label="ECCN Code" prop="eccnCode">
+              <el-input v-model="form.eccnCode" placeholder="Enter ECCN code" />
             </el-form-item>
           </el-col>
           <el-col :span="8">
-            <el-form-item label="管制等级" prop="exportControlClass">
-              <el-select v-model="form.exportControlClass" placeholder="请选择管制等级">
-                <el-option label="无管制" value="NONE" />
-                <el-option label="低度管制" value="LOW" />
-                <el-option label="中度管制" value="MEDIUM" />
-                <el-option label="高度管制" value="HIGH" />
+            <el-form-item label="Control Class" prop="exportControlClass">
+              <el-select v-model="form.exportControlClass" placeholder="Select control class">
+                <el-option label="No Control" value="NONE" />
+                <el-option label="Low Control" value="LOW" />
+                <el-option label="Medium Control" value="MEDIUM" />
+                <el-option label="High Control" value="HIGH" />
               </el-select>
             </el-form-item>
           </el-col>
           <el-col :span="8">
-            <el-form-item label="许可证要求" prop="licenseRequired">
+            <el-form-item label="License Required" prop="licenseRequired">
               <el-switch v-model="form.licenseRequired" />
             </el-form-item>
           </el-col>
         </el-row>
 
-        <el-form-item label="管制说明" prop="exportControlNotes">
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="Export Duty Rate" prop="export.dutyRate">
+              <el-input-number
+                v-model="form.export.dutyRate"
+                :precision="2"
+                :step="0.01"
+                :min="0"
+                :max="100"
+                placeholder="Enter export duty rate"
+              >
+                <template #append>%</template>
+              </el-input-number>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="Export VAT Rate" prop="export.vatRate">
+              <el-input-number
+                v-model="form.export.vatRate"
+                :precision="2"
+                :step="0.01"
+                :min="0"
+                :max="100"
+                placeholder="Enter export VAT rate"
+              >
+                <template #append>%</template>
+              </el-input-number>
+            </el-form-item>
+          </el-col>
+        </el-row>
+
+        <el-form-item label="Control Notes" prop="exportControlNotes">
           <el-input
             v-model="form.exportControlNotes"
             type="textarea"
             :rows="3"
-            placeholder="请输入管制说明"
+            placeholder="Enter control notes"
           />
+        </el-form-item>
+
+        <el-divider content-position="left">Export Certificates</el-divider>
+
+        <el-row :gutter="20">
+          <el-col :span="8">
+            <el-form-item label="Export License" prop="export.exportLicense">
+              <el-input v-model="form.export.exportLicense" placeholder="Enter export license number">
+                <template #append>
+                  <el-button @click="verifyExportLicense">Verify</el-button>
+                </template>
+              </el-input>
+            </el-form-item>
+          </el-col>
+          <el-col :span="8">
+            <el-form-item label="License Expiry" prop="export.exportLicenseExpiry">
+              <el-date-picker
+                v-model="form.export.exportLicenseExpiry"
+                type="date"
+                placeholder="Select expiry date"
+              />
+            </el-form-item>
+          </el-col>
+          <el-col :span="8">
+            <el-form-item label="License Status" prop="export.exportLicenseStatus">
+              <el-tag :type="getLicenseStatusType(form.export.exportLicenseStatus)">
+                {{ getLicenseStatusText(form.export.exportLicenseStatus) }}
+              </el-tag>
+            </el-form-item>
+          </el-col>
+        </el-row>
+
+        <!-- 出口证书上传区域 -->
+        <div v-if="requiredCertificates.export.length > 0" class="certificate-list">
+          <div v-for="cert in requiredCertificates.export" :key="cert.key" class="certificate-item">
+            <span class="certificate-name">{{ cert.name }}</span>
+            <el-upload
+              class="certificate-upload"
+              action="#"
+              :auto-upload="false"
+              :on-change="(file) => handleCertificateUpload('export', cert.key, file)"
+            >
+              <el-button type="primary">Upload</el-button>
+            </el-upload>
+          </div>
+        </div>
+
+        <el-divider content-position="left">Special Requirements</el-divider>
+        <el-form-item>
+          <el-checkbox-group v-model="form.export.specialRequirements">
+            <el-checkbox v-for="req in specialRequirementOptions" :key="req.value" :label="req.value">
+              {{ req.label }}
+            </el-checkbox>
+          </el-checkbox-group>
         </el-form-item>
       </el-card>
     </el-form>
@@ -613,6 +845,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed } from 'vue';
+import { ElMessage, ElMessageBox } from 'element-plus';
 import { Plus, Delete, Refresh, InfoFilled, Warning } from '@element-plus/icons-vue';
 import type { FormInstance } from 'element-plus';
 import type {
@@ -648,12 +881,12 @@ const requiresFDAInfo = computed(() => {
   const fdaCategories = ['food', 'drug', 'medical-device', 'cosmetic'];
   return form.marketAccess?.us?.fdaRegistration || 
     form.certifications?.includes('FDA') ||
-    fdaCategories.some(cat => form.customs.hsCode.startsWith(cat));
+    fdaCategories.some(cat => form.customs?.hsCode?.startsWith(cat));
 });
 
 const requiresCPSIAInfo = computed(() => {
   const childrenCategories = ['toys', 'childcare', 'children-apparel'];
-  return childrenCategories.some(cat => form.customs.hsCode.startsWith(cat));
+  return childrenCategories.some(cat => form.customs?.hsCode?.startsWith(cat));
 });
 
 const requiresProp65Warning = computed(() => {
@@ -675,6 +908,108 @@ const countries = [
   { code: 'IT', name: '意大利' },
   { code: 'JP', name: '日本' },
 ];
+
+// 特殊要求选项
+const specialRequirementOptions = [
+  { label: 'Quota Control', value: 'QUOTA' },
+  { label: 'Temporary Export', value: 'TEMP' },
+  { label: 'Re-Export', value: 'RE_EXPORT' },
+  { label: 'Processing Trade', value: 'PROCESSING' },
+  { label: 'Bonded Area', value: 'BONDED' }
+];
+
+// 证书映射表
+const certificateMap = {
+  import: {
+    QUARANTINE: { name: 'Quarantine Permit', key: 'quarantine' },
+    FOOD: { name: 'Food Import License', key: 'food' },
+    DRUG: { name: 'Drug Import License', key: 'drug' },
+    COSMETICS: { name: 'Cosmetics Import License', key: 'cosmetics' },
+    MEDICAL: { name: 'Medical Device License', key: 'medical' },
+    CHEMICAL: { name: 'Chemical Import License', key: 'chemical' }
+  },
+  ciq: {
+    QUALITY: { name: 'Quality Inspection Report', key: 'quality' },
+    SAFETY: { name: 'Safety Testing Report', key: 'safety' },
+    HEALTH: { name: 'Health Quarantine Report', key: 'health' },
+    ANIMAL: { name: 'Animal Quarantine Report', key: 'animal' },
+    PLANT: { name: 'Plant Quarantine Report', key: 'plant' }
+  },
+  export: {
+    COO: { name: 'Certificate of Origin', key: 'coo' },
+    EQL: { name: 'Export Quality License', key: 'eql' },
+    PHYTO: { name: 'Phytosanitary Certificate', key: 'phyto' },
+    HEALTH: { name: 'Health Certificate', key: 'health' },
+    FSC: { name: 'Free Sale Certificate', key: 'fsc' },
+    IC: { name: 'Inspection Certificate', key: 'ic' }
+  }
+};
+
+// 计算需要的证书
+const requiredCertificates = computed(() => {
+  const result = {
+    import: [] as { name: string; key: string }[],
+    ciq: [] as { name: string; key: string }[],
+    export: [] as { name: string; key: string }[]
+  };
+
+  // 根据选择的许可类型添加进口证书
+  form.customs.importPermits.forEach(permit => {
+    if (certificateMap.import[permit]) {
+      result.import.push(certificateMap.import[permit]);
+    }
+  });
+
+  // 根据选择的CIQ要求添加检验报告
+  form.customs.ciqRequirements.forEach(req => {
+    if (certificateMap.ciq[req]) {
+      result.ciq.push(certificateMap.ciq[req]);
+    }
+  });
+
+  // 根据选择的出口证书类型添加出口证书
+  if (form.export.selectedCertificates) {
+    form.export.selectedCertificates.forEach(cert => {
+      if (certificateMap.export[cert]) {
+        result.export.push(certificateMap.export[cert]);
+      }
+    });
+  }
+
+  return result;
+});
+
+// 处理证书上传
+const handleCertificateUpload = (type: 'import' | 'export' | 'ciq', key: string, file: any) => {
+  const target = type === 'ciq' ? form.customs.ciqCertificates : 
+                type === 'export' ? form.export.certificates :
+                form.customs.certificates;
+  
+  if (!target[key]) {
+    target[key] = {};
+  }
+  
+  if (!target[key].attachments) {
+    target[key].attachments = [];
+  }
+  
+  target[key].attachments.push({
+    name: file.name,
+    url: URL.createObjectURL(file.raw)
+  });
+  
+  ElMessage.success(`${file.name} uploaded successfully`);
+};
+
+// 验证证书
+const verifyCertificate = async (type: 'import' | 'export', key: string) => {
+  try {
+    // TODO: 调用API验证证书
+    ElMessage.success(`Certificate verification successful`);
+  } catch (error) {
+    ElMessage.error(`Certificate verification failed`);
+  }
+};
 
 const prop65Chemicals = [
   'Lead',
@@ -727,6 +1062,28 @@ const getCertificationStatusText = (status?: string) => {
   return texts[status || ''] || '未知';
 };
 
+// 获取许可证状态样式
+const getLicenseStatusType = (status?: string) => {
+  const types: Record<string, string> = {
+    valid: 'success',
+    expired: 'danger',
+    pending: 'warning',
+    suspended: 'info'
+  };
+  return types[status || ''] || 'info';
+};
+
+// 获取许可证状态文本
+const getLicenseStatusText = (status?: string) => {
+  const texts: Record<string, string> = {
+    valid: 'Valid',
+    expired: 'Expired',
+    pending: 'Pending',
+    suspended: 'Suspended'
+  };
+  return texts[status || ''] || 'Unknown';
+};
+
 // 检查是否即将过期
 const isExpiringSoon = (date: string) => {
   if (!date) return false;
@@ -738,11 +1095,19 @@ const isExpiringSoon = (date: string) => {
 
 // 表单验证规则
 const rules = {
-  'customs.hsCode': [{ required: true, message: '请输入HS编码', trigger: 'blur' }],
-  'customs.countryOfOrigin': [{ required: true, message: '请选择原产国', trigger: 'change' }],
-  'customs.declaredValue': [{ required: true, message: '请输入申报价值', trigger: 'blur' }],
-  'customs.declaredUnit': [{ required: true, message: '请选择申报单位', trigger: 'change' }],
-  'customs.declaredDescription': [{ required: true, message: '请输入申报描述', trigger: 'blur' }],
+  'basic.chineseName': [{ required: true, message: 'Please enter Chinese declaration name', trigger: 'blur' }],
+  'basic.englishName': [{ required: true, message: 'Please enter English declaration name', trigger: 'blur' }],
+  'basic.chineseMaterial': [{ required: true, message: 'Please enter Chinese material description', trigger: 'blur' }],
+  'basic.englishMaterial': [{ required: true, message: 'Please enter English material description', trigger: 'blur' }],
+  'basic.chineseUsage': [{ required: true, message: 'Please enter Chinese usage description', trigger: 'blur' }],
+  'basic.englishUsage': [{ required: true, message: 'Please enter English usage description', trigger: 'blur' }],
+  'basic.brandType': [{ required: true, message: 'Please select brand type', trigger: 'change' }],
+  'basic.exportBenefits': [{ required: true, message: 'Please select export benefits', trigger: 'change' }],
+     'customs.hsCode': [{ required: true, message: 'Please enter HS code', trigger: 'blur' }],
+   'customs.countryOfOrigin': [{ required: true, message: 'Please select country of origin', trigger: 'change' }],
+   'customs.declaredValue': [{ required: true, message: 'Please enter declared value', trigger: 'blur' }],
+   'customs.declaredUnit': [{ required: true, message: 'Please select declared unit', trigger: 'change' }],
+   'customs.declaredDescription': [{ required: true, message: 'Please enter declared description', trigger: 'blur' }],
   'hazmat.unNumber': [{
     required: true,
     message: '请输入UN编号',
@@ -785,13 +1150,96 @@ const rules = {
   }]
 };
 
-// 查询HS编码
+// 查询HS编码并检查所需证书
 const handleHsCodeLookup = async () => {
   try {
     // TODO: 调用 API 查询 HS 编码
     ElMessage.success('HS编码查询成功');
+    checkRequiredCertificates();
   } catch (error) {
     ElMessage.error('HS编码查询失败');
+  }
+};
+
+// 检查所需证书
+const checkRequiredCertificates = () => {
+  const hsCode = form.customs.hsCode;
+  const suggestions: {
+    import: string[];
+    export: string[];
+    ciq: string[];
+    message: string;
+  } = {
+    import: [],
+    export: [],
+    ciq: [],
+    message: ''
+  };
+
+  // 根据HS编码前缀判断商品类型和所需证书
+  if (hsCode.startsWith('01') || hsCode.startsWith('02') || hsCode.startsWith('03')) {
+    // 动物和动物产品
+    suggestions.import.push('QUARANTINE');
+    suggestions.ciq.push('ANIMAL');
+    suggestions.export.push('HEALTH');
+    suggestions.message = '该商品属于动物及其产品类，需要动物检疫证书和卫生证书。';
+  } else if (hsCode.startsWith('06') || hsCode.startsWith('07') || hsCode.startsWith('08')) {
+    // 植物和植物产品
+    suggestions.import.push('QUARANTINE');
+    suggestions.ciq.push('PLANT');
+    suggestions.export.push('PHYTO');
+    suggestions.message = '该商品属于植物及其产品类，需要植物检疫证书。';
+  } else if (hsCode.startsWith('30')) {
+    // 药品
+    suggestions.import.push('DRUG');
+    suggestions.ciq.push('HEALTH');
+    suggestions.export.push('FSC');
+    suggestions.message = '该商品属于药品类，需要药品进口许可证和自由销售证明。';
+  } else if (hsCode.startsWith('33')) {
+    // 化妆品
+    suggestions.import.push('COSMETICS');
+    suggestions.ciq.push('QUALITY');
+    suggestions.export.push('FSC');
+    suggestions.message = '该商品属于化妆品类，需要化妆品进口许可证和质量检验证书。';
+  } else if (hsCode.startsWith('90')) {
+    // 医疗器械
+    suggestions.import.push('MEDICAL');
+    suggestions.ciq.push('QUALITY');
+    suggestions.export.push('FSC');
+    suggestions.message = '该商品属于医疗器械类，需要医疗器械注册证和质量体系认证。';
+  } else if (hsCode.startsWith('28') || hsCode.startsWith('29')) {
+    // 化学品
+    suggestions.import.push('CHEMICAL');
+    suggestions.ciq.push('SAFETY');
+    suggestions.export.push('IC');
+    suggestions.message = '该商品属于化学品类，需要危险化学品进口许可证和安全数据表。';
+  }
+
+  // 如果有建议的证书
+  if (suggestions.message) {
+    // 更新表单数据
+    form.customs.importPermits = [...new Set([...form.customs.importPermits, ...suggestions.import])];
+    form.customs.ciqRequirements = [...new Set([...form.customs.ciqRequirements, ...suggestions.ciq])];
+    form.export.certificates = [...new Set([...form.export.certificates, ...suggestions.export])];
+
+    // 显示提示信息
+    ElMessageBox.alert(
+      suggestions.message + '<br><br>' +
+      '建议的进口许可类型：' + suggestions.import.join(', ') + '<br>' +
+      '建议的CIQ要求：' + suggestions.ciq.join(', ') + '<br>' +
+      '建议的出口证书：' + suggestions.export.join(', '),
+      '证书要求提示',
+      {
+        dangerouslyUseHTMLString: true,
+        type: 'info',
+        callback: () => {
+          ElMessage({
+            type: 'info',
+            message: '已自动选择建议的证书类型'
+          });
+        }
+      }
+    );
   }
 };
 
@@ -866,6 +1314,26 @@ const handleRemoveCertification = (index: number) => {
 const handleUploadAttachment = (index: number) => {
   // TODO: 实现附件上传功能
   ElMessage.info('附件上传功能开发中');
+};
+
+// 验证进口许可证
+const verifyImportLicense = async () => {
+  try {
+    // TODO: 调用 API 验证进口许可证
+    ElMessage.success('Import license verification successful');
+  } catch (error) {
+    ElMessage.error('Import license verification failed');
+  }
+};
+
+// 验证出口许可证
+const verifyExportLicense = async () => {
+  try {
+    // TODO: 调用 API 验证出口许可证
+    ElMessage.success('Export license verification successful');
+  } catch (error) {
+    ElMessage.error('Export license verification failed');
+  }
 };
 
 // 暴露验证方法给父组件
@@ -959,5 +1427,36 @@ defineExpose({
   display: inline-flex;
   align-items: center;
   gap: 4px;
+}
+
+.certificate-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px;
+  background-color: var(--el-fill-color-light);
+  border-radius: 4px;
+}
+
+.certificate-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background-color: var(--el-bg-color);
+  border-radius: 4px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+
+  .certificate-name {
+    font-size: 14px;
+    color: var(--el-text-color-primary);
+    font-weight: 500;
+  }
+
+  .certificate-upload {
+    :deep(.el-upload) {
+      margin-right: 0;
+    }
+  }
 }
 </style>

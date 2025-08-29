@@ -14,9 +14,9 @@
         </div>
       </div>
       <el-tabs v-model="activeTab" class="product-tabs">
-        <el-tab-pane name="basic" label="Basic Info" />
-        <el-tab-pane name="channel" label="Channel" />
-        <el-tab-pane name="warehouse" label="Warehouse" />
+        <el-tab-pane name="basic" label="Basic Information" />
+        <el-tab-pane name="media" label="Media Assets" />
+        <el-tab-pane name="warehouse" label="Warehouse Settings" />
         <el-tab-pane name="compliance" label="Compliance" />
         <el-tab-pane name="bundle" label="Bundle / Kit" />
         <el-tab-pane name="mapping" label="Mapping" />
@@ -42,7 +42,7 @@ import { ElMessage } from 'element-plus';
 import type { ProductDetail } from '@/types/product';
 import { getProduct, updateProduct } from '@/api/product';
 import BasicInfo from './components/basics/BasicInfo.vue';
-import ChannelInfo from './components/basics/ChannelInfo.vue';
+import MediaInfo from './components/basics/MediaInfo.vue';
 import WarehouseInfo from './components/basics/WarehouseInfo.vue';
 import ComplianceInfo from './components/basics/ComplianceInfo.vue';
 import BundleInfo from './components/basics/BundleInfo.vue';
@@ -59,7 +59,7 @@ const currentComponentRef = ref();
 // 动态组件映射
 const componentMap = {
   basic: BasicInfo,
-  channel: ChannelInfo,
+  media: MediaInfo,
   warehouse: WarehouseInfo,
   compliance: ComplianceInfo,
   bundle: BundleInfo,

@@ -12,30 +12,30 @@
             @click="handleBack"
           >
             <el-icon><ArrowLeft /></el-icon>
-            返回商品列表
+            Back to Products
           </el-button>
           <el-divider direction="vertical" />
-          <h2 class="page-title">创建商品</h2>
+          <h2 class="page-title">Create Product</h2>
         </div>
 
         <div class="header-right">
           <el-space>
             <el-dropdown trigger="click">
               <el-button>
-                导入
+                Import
                 <el-icon class="el-icon--right"><ArrowDown /></el-icon>
               </el-button>
               <template #dropdown>
                 <el-dropdown-menu>
-                  <el-dropdown-item>从Excel导入</el-dropdown-item>
-                  <el-dropdown-item>从Shopify导入</el-dropdown-item>
-                  <el-dropdown-item>从Amazon导入</el-dropdown-item>
+                  <el-dropdown-item>Import from Excel</el-dropdown-item>
+                  <el-dropdown-item>Import from Shopify</el-dropdown-item>
+                  <el-dropdown-item>Import from Amazon</el-dropdown-item>
                 </el-dropdown-menu>
               </template>
             </el-dropdown>
-            <el-button type="info" plain>预览</el-button>
-            <el-button @click="handleSaveAsDraft">保存草稿</el-button>
-            <el-button type="primary" @click="handleSave">发布商品</el-button>
+            <el-button type="info" plain>Preview</el-button>
+            <el-button @click="handleSaveAsDraft">Save Draft</el-button>
+            <el-button type="primary" @click="handleSave">Publish</el-button>
           </el-space>
         </div>
       </div>
@@ -51,15 +51,15 @@
             <template #label>
               <div class="tab-label">
                 <el-icon><Goods /></el-icon>
-                基本信息
+                Basic Information
               </div>
             </template>
           </el-tab-pane>
-          <el-tab-pane name="channel">
+          <el-tab-pane name="media">
             <template #label>
               <div class="tab-label">
-                <el-icon><Shop /></el-icon>
-                渠道设置
+                <el-icon><Picture /></el-icon>
+                Media Resources
               </div>
             </template>
           </el-tab-pane>
@@ -67,7 +67,7 @@
             <template #label>
               <div class="tab-label">
                 <el-icon><House /></el-icon>
-                仓储设置
+                Warehouse Settings
               </div>
             </template>
           </el-tab-pane>
@@ -75,18 +75,11 @@
             <template #label>
               <div class="tab-label">
                 <el-icon><DocumentChecked /></el-icon>
-                合规信息
+                Customs & Compliance
               </div>
             </template>
           </el-tab-pane>
-          <el-tab-pane name="mapping">
-            <template #label>
-              <div class="tab-label">
-                <el-icon><Connection /></el-icon>
-                系统映射
-              </div>
-            </template>
-          </el-tab-pane>
+
         </el-tabs>
       </div>
     </div>
@@ -105,42 +98,39 @@
         </div>
 
         <!-- 渠道设置 -->
-        <div v-show="activeTab === 'channel'" class="tab-content">
-          <!-- TODO: 渠道设置组件 -->
+        <div v-show="activeTab === 'media'" class="tab-content">
+          <MediaSection :form="form" />
         </div>
 
         <!-- 仓储设置 -->
         <div v-show="activeTab === 'warehouse'" class="tab-content">
-          <!-- TODO: 仓储设置组件 -->
+          <WarehouseInfo :form="form.warehouseSettings" />
         </div>
 
         <!-- 合规信息 -->
         <div v-show="activeTab === 'compliance'" class="tab-content">
-          <!-- TODO: 合规信息组件 -->
+          <ComplianceInfo :form="form.complianceInfo" />
         </div>
 
-        <!-- 系统映射 -->
-        <div v-show="activeTab === 'mapping'" class="tab-content">
-          <!-- TODO: 系统映射组件 -->
-        </div>
+
       </el-form>
 
       <!-- 底部状态栏 -->
       <div class="page-footer">
         <div class="footer-left">
-          <el-tag type="info">草稿</el-tag>
-          <span class="update-time">最后更新：{{ formatDate(form.systemInfo.updatedAt) }}</span>
+          <el-tag type="info">Draft</el-tag>
+          <span class="update-time">Last Updated: {{ formatDate(form.systemInfo.updatedAt) }}</span>
         </div>
         <div class="footer-right">
           <el-space>
             <span class="validation-status">
               <el-icon color="var(--el-color-success)"><CircleCheck /></el-icon>
-              表单验证通过
+              Form Validation Passed
             </span>
             <el-divider direction="vertical" />
             <el-button-group>
-              <el-button @click="handleSaveAsDraft">保存草稿</el-button>
-              <el-button type="primary" @click="handleSave">发布商品</el-button>
+              <el-button @click="handleSaveAsDraft">Save Draft</el-button>
+              <el-button type="primary" @click="handleSave">Publish</el-button>
             </el-button-group>
           </el-space>
         </div>
@@ -151,9 +141,14 @@
 
 <script setup lang="ts">
 import { ref } from 'vue';
+import { ElMessage, ElMessageBox } from 'element-plus';
 import { useRouter, useRoute } from 'vue-router';
 import type { Product } from '@/types/product';
+import type { WMSProductSettings } from '@/types/warehouse';
 import BasicInfo from './components/basics/BasicInfo.vue';
+import MediaSection from './components/basics/sections/MediaSection.vue';
+import WarehouseInfo from './components/basics/WarehouseInfo.vue';
+import ComplianceInfo from './components/basics/ComplianceInfo.vue';
 
 const router = useRouter();
 const route = useRoute();
@@ -278,17 +273,188 @@ const form = ref<Product>({
     updatedBy: 'system',
     version: 1,
     source: 'manual'
+  },
+  // 仓库设置初始化
+  complianceInfo: {
+    basic: {
+      chineseName: '',
+      englishName: '',
+      chineseMaterial: '',
+      englishMaterial: '',
+      chineseUsage: '',
+      englishUsage: '',
+      brandType: '',
+      exportBenefits: 'NONE',
+      specialProperties: []
+    },
+    customs: {
+      hsCode: '',
+      countryOfOrigin: '',
+      declaredValue: 0,
+      dutyRate: 0,
+      vatRate: 0,
+      declaredUnit: '',
+      declaredDescription: '',
+      importPermits: [],
+      ciqRequirements: [],
+      certificates: {} as Record<string, {
+        number: string;
+        expiryDate: string;
+        status: string;
+        attachments: { name: string; url: string }[];
+        notes: string;
+      }>,
+      ciqCertificates: {} as Record<string, {
+        number: string;
+        inspectionDate: string;
+        result: string;
+        report: { name: string; url: string } | null;
+        notes: string;
+      }>
+    },
+    export: {
+      dutyRate: 0,
+      vatRate: 0,
+      selectedCertificates: [] as string[],
+      certificates: {} as Record<string, {
+        number: string;
+        issueDate: string;
+        status: string;
+        attachments: { name: string; url: string }[];
+        notes: string;
+      }>,
+      specialRequirements: []
+    },
+    complianceStatus: 'pending',
+    certifications: [],
+    restrictions: [],
+    certificationDetails: [],
+    hazmat: {
+      unNumber: '',
+      class: '',
+      packingGroup: '',
+      reportableQuantity: 0,
+      properShippingName: '',
+      technicalName: '',
+      emergencyContact: ''
+    },
+    battery: {
+      type: '',
+      configuration: '',
+      cellCount: 0,
+      wattHourRating: 0,
+      lithiumContent: 0
+    },
+    fda: {
+      registrationNumber: '',
+      productCode: '',
+      medicalDevice: false,
+      deviceListing: '',
+      labelingReview: false,
+      drugListing: '',
+      foodFacility: ''
+    },
+    cpsia: {
+      ageGrade: '',
+      testingLab: '',
+      trackingLabel: '',
+      smallPartsWarning: false,
+      leadContent: false,
+      phthalatesTest: false
+    },
+    prop65: {
+      warningType: '',
+      exposureType: '',
+      chemicals: [],
+      warningLanguage: {
+        en: '',
+        es: ''
+      }
+    },
+    eccnCode: '',
+    exportControlClass: '',
+    licenseRequired: false,
+    exportControlNotes: ''
+  },
+  warehouseSettings: {
+    baseUOM: '',
+    uomLevels: [],
+    dimensions: {
+      length: 0,
+      width: 0,
+      height: 0,
+      unit: 'cm'
+    },
+    weight: {
+      net: 0,
+      gross: 0,
+      unit: 'kg'
+    },
+    barcodes: [],
+    lotTracking: {
+      enabled: false,
+      shelfLifeDays: 0,
+      fifoRule: 'FIFO',
+      minReceivingLife: 0,
+      minShippingLife: 0
+    },
+    serialTracking: {
+      enabled: false,
+      receivingRequired: false,
+      shippingRequired: false
+    },
+    barcodeStrategy: {
+      mode: 'EA_REQUIRED',
+      points: []
+    },
+    dangerousGoods: {
+      isDangerous: false,
+      unCode: '',
+      hazardClass: ''
+    },
+    storageConditions: {
+      temperature: 'ROOM_TEMP',
+      stackable: true,
+      tiltable: true,
+      moistureSensitive: false
+    },
+    warehouses: [],
+    fba: {
+      enabled: false
+    },
+    wfs: {
+      enabled: false
+    },
+    thirdPartyLogistics: [],
+    replenishmentRules: {
+      type: 'min-max',
+      minQuantity: 0,
+      maxQuantity: 0,
+      orderPoint: 0,
+      orderQuantity: 0,
+      safetyStock: 0
+    },
+    inventoryForecasts: {
+      period: 'monthly',
+      forecastedDemand: 0,
+      confidenceLevel: 95,
+      seasonalityFactor: 1,
+      trendFactor: 0
+    },
+    allocationStrategy: 'FIFO',
+    outOfStockAction: 'PREVENT_SALE',
+    stockAlertRules: []
   }
 });
 
 // 返回处理
 function handleBack() {
   ElMessageBox.confirm(
-    '确定要离开吗？未保存的内容将会丢失。',
-    '提示',
+    'Are you sure you want to leave? Unsaved changes will be lost.',
+    'Warning',
     {
-      confirmButtonText: '确定',
-      cancelButtonText: '取消',
+      confirmButtonText: 'Confirm',
+      cancelButtonText: 'Cancel',
       type: 'warning'
     }
   ).then(() => {
@@ -302,10 +468,10 @@ async function handleSave() {
     await formRef.value?.validate();
     // TODO: 调用保存API
     await new Promise(resolve => setTimeout(resolve, 1000));
-    ElMessage.success('发布成功');
+    ElMessage.success('Published successfully');
     router.push('/product');
   } catch (error) {
-    ElMessage.error('表单验证失败，请检查必填项');
+    ElMessage.error('Form validation failed. Please check required fields.');
   }
 }
 
@@ -314,9 +480,9 @@ async function handleSaveAsDraft() {
   try {
     // TODO: 调用保存草稿API
     await new Promise(resolve => setTimeout(resolve, 1000));
-    ElMessage.success('草稿保存成功');
+    ElMessage.success('Draft saved successfully');
   } catch (error) {
-    ElMessage.error('保存失败');
+    ElMessage.error('Failed to save');
   }
 }
 
