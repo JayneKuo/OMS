@@ -1,0 +1,463 @@
+<template>
+  <div class="category-container">
+    <div class="category-header">
+      <el-button type="primary" @click="handleAdd(null)">Add Root Category</el-button>
+      <el-button type="success" @click="handleSyncFromThirdParty">
+        <el-icon><Connection /></el-icon>
+        Sync from Platform
+      </el-button>
+    </div>
+    <div class="category-content">
+      <el-tree
+        ref="treeRef"
+        :data="categoryList"
+        :props="defaultProps"
+        node-key="id"
+        default-expand-all
+        class="custom-tree"
+      >
+        <template #default="{ node, data }">
+          <div class="custom-tree-node">
+            <div class="node-main">
+              <div class="node-info">
+                <span class="node-label">{{ node.label }}</span>
+                <div class="platform-names" v-if="data.platformMappings?.length">
+                  <el-tooltip
+                    v-for="mapping in data.platformMappings"
+                    :key="mapping.platformCategoryId"
+                    :content="'同步时间: ' + formatDate(mapping.lastSyncTime)"
+                    placement="top"
+                  >
+                    <div class="platform-name-tag">
+                      <el-tag 
+                        size="small" 
+                        :type="getPlatformTagType(mapping.platformName)"
+                      >
+                        {{ getPlatformLabel(mapping.platformName) }}
+                      </el-tag>
+                      <span class="platform-category-name">
+                        {{ mapping.platformCategoryName }}
+                      </span>
+                    </div>
+                  </el-tooltip>
+                </div>
+              </div>
+              <span class="actions">
+                <el-button link type="primary" @click="handleAdd(data)">添加子类</el-button>
+                <el-button link type="primary" @click="handleEdit(data)">编辑</el-button>
+                <el-button link type="primary" @click="handleMapping(data)">映射</el-button>
+                <el-button link type="danger" @click="handleDelete(node, data)">删除</el-button>
+              </span>
+            </div>
+            <div v-if="data.platformMappings?.length && showMappings[data.id]" class="node-mappings">
+              <div v-for="mapping in data.platformMappings" 
+                   :key="mapping.platformCategoryId" 
+                   class="mapping-row"
+              >
+                <el-tag size="small" :type="getPlatformTagType(mapping.platformName)">
+                  {{ getPlatformLabel(mapping.platformName) }}
+                </el-tag>
+                <span class="mapping-name">{{ mapping.platformCategoryName }}</span>
+              </div>
+            </div>
+          </div>
+        </template>
+      </el-tree>
+    </div>
+
+    <!-- Category Edit Dialog -->
+    <el-dialog
+      v-model="dialogVisible"
+      :title="dialogType === 'add' ? 'Add Category' : 'Edit Category'"
+      width="500px"
+    >
+      <el-form ref="formRef" :model="form" :rules="rules" label-width="100px">
+        <el-form-item label="Name" prop="name">
+          <el-input v-model="form.name" placeholder="Please input category name" />
+        </el-form-item>
+        <el-form-item label="Sort Order" prop="sort">
+          <el-input-number v-model="form.sort" :min="0" :max="999" />
+        </el-form-item>
+        <el-form-item label="Status" prop="status">
+          <el-switch v-model="form.status" :active-value="1" :inactive-value="0" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="dialogVisible = false">Cancel</el-button>
+          <el-button type="primary" @click="handleSubmit">Confirm</el-button>
+        </span>
+      </template>
+    </el-dialog>
+
+    <!-- Category Mapping Dialog -->
+    <category-mapping
+      v-model="mappingDialogVisible"
+      :category="currentNode"
+      @save="handleMappingSave"
+    />
+  </div>
+</template>
+
+<script lang="ts" setup>
+import { ref, onMounted } from 'vue'
+import type Node from 'element-plus/es/components/tree/src/model/node'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import type { FormInstance, FormRules } from 'element-plus'
+import { Connection } from '@element-plus/icons-vue'
+import CategoryMapping from '../components/CategoryMapping.vue'
+import type { PlatformMapping } from '../types'
+
+interface PlatformMapping {
+  platformId: string
+  platformName: string // 'shein' | 'amazon' | 'shopify' etc.
+  platformCategoryId: string
+  platformCategoryName: string
+  mappingStatus: 'mapped' | 'unmapped' | 'pending'
+  lastSyncTime?: string
+}
+
+interface CategoryData {
+  id: number
+  name: string
+  parentId: number | null
+  sort: number
+  status: number
+  children?: CategoryData[]
+  platformMappings?: PlatformMapping[]
+  source: 'local' | 'platform' // 标识分类来源
+  sourceDetails?: {
+    platform: string
+    originalId: string
+    syncTime: string
+  }
+}
+
+const categoryList = ref<CategoryData[]>([])
+const dialogVisible = ref(false)
+const dialogType = ref<'add' | 'edit'>('add')
+const currentNode = ref<CategoryData | null>(null)
+const mappingDialogVisible = ref(false)
+const showMappings = ref<Record<number, boolean>>({})
+
+// 平台标签颜色映射
+const platformColors: Record<string, string> = {
+  shein: 'success',
+  amazon: 'warning',
+  shopify: 'info'
+}
+
+// 平台名称映射
+const platformLabels: Record<string, string> = {
+  shein: 'Shein',
+  amazon: 'Amazon',
+  shopify: 'Shopify'
+}
+
+// 获取平台标签类型
+const getPlatformTagType = (platform: string) => {
+  return platformColors[platform.toLowerCase()] || 'info'
+}
+
+// 获取平台显示名称
+const getPlatformLabel = (platform: string) => {
+  return platformLabels[platform.toLowerCase()] || platform
+}
+
+// 格式化日期
+const formatDate = (date?: string) => {
+  if (!date) return '-'
+  return new Date(date).toLocaleString('zh-CN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
+}
+
+// 切换映射显示状态
+const toggleMappings = (nodeId: number) => {
+  showMappings.value[nodeId] = !showMappings.value[nodeId]
+}
+
+const defaultProps = {
+  children: 'children',
+  label: 'name'
+}
+
+const form = ref({
+  name: '',
+  parentId: null as number | null,
+  sort: 0,
+  status: 1
+})
+
+const rules: FormRules = {
+  name: [
+    { required: true, message: 'Please input category name', trigger: 'blur' },
+    { min: 2, max: 50, message: 'Length should be 2 to 50 characters', trigger: 'blur' }
+  ],
+  sort: [{ required: true, message: 'Please input sort order', trigger: 'blur' }]
+}
+
+const formRef = ref<FormInstance>()
+
+// Mock API call to fetch category list
+const fetchCategoryList = async () => {
+  // TODO: Replace with actual API call
+  categoryList.value = [
+    {
+      id: 1,
+      name: 'Electronics',
+      parentId: null,
+      sort: 1,
+      status: 1,
+      children: [
+        {
+          id: 2,
+          name: 'Mobile Phones',
+          parentId: 1,
+          sort: 1,
+          status: 1
+        },
+        {
+          id: 3,
+          name: 'Computers',
+          parentId: 1,
+          sort: 2,
+          status: 1
+        }
+      ]
+    }
+  ]
+}
+
+// Add category
+const handleAdd = (data: CategoryData | null) => {
+  dialogType.value = 'add'
+  form.value = {
+    name: '',
+    parentId: data?.id || null,
+    sort: 0,
+    status: 1
+  }
+  dialogVisible.value = true
+}
+
+// Edit category
+const handleEdit = (data: CategoryData) => {
+  dialogType.value = 'edit'
+  currentNode.value = data
+  form.value = {
+    name: data.name,
+    parentId: data.parentId,
+    sort: data.sort,
+    status: data.status
+  }
+  dialogVisible.value = true
+}
+
+// Delete category
+const handleDelete = (node: Node, data: CategoryData) => {
+  ElMessageBox.confirm(
+    'Are you sure to delete this category? All sub-categories will be deleted as well.',
+    'Warning',
+    {
+      confirmButtonText: 'Confirm',
+      cancelButtonText: 'Cancel',
+      type: 'warning'
+    }
+  )
+    .then(async () => {
+      // TODO: Call delete API
+      ElMessage.success('Deleted successfully')
+      await fetchCategoryList() // Reload data
+    })
+    .catch(() => {
+      // Cancel deletion
+    })
+}
+
+// Submit form
+const handleSubmit = async () => {
+  if (!formRef.value) return
+
+  await formRef.value.validate(async (valid) => {
+    if (valid) {
+      // TODO: Call add or edit API
+      if (dialogType.value === 'add') {
+        // Add logic
+        ElMessage.success('Added successfully')
+      } else {
+        // Edit logic
+        ElMessage.success('Updated successfully')
+      }
+      dialogVisible.value = false
+      await fetchCategoryList() // Reload data
+    }
+  })
+}
+
+// Sync categories from third-party platform
+const handleSyncFromThirdParty = async () => {
+  try {
+    ElMessageBox.confirm(
+      'This will sync categories from the connected platform. Continue?',
+      'Sync Categories',
+      {
+        confirmButtonText: 'Sync',
+        cancelButtonText: 'Cancel',
+        type: 'info'
+      }
+    ).then(async () => {
+      // TODO: Call sync API
+      // Mock API call
+      const loading = ElMessage({
+        message: 'Syncing categories...',
+        duration: 0,
+        type: 'info'
+      })
+      
+      await new Promise(resolve => setTimeout(resolve, 2000)) // Simulate API delay
+      loading.close()
+      
+      ElMessage.success('Categories synced successfully')
+      await fetchCategoryList() // Reload categories
+    })
+  } catch (error) {
+    ElMessage.error('Failed to sync categories')
+  }
+}
+
+// 处理分类映射
+const handleMapping = (data: CategoryData) => {
+  currentNode.value = data
+  mappingDialogVisible.value = true
+}
+
+// 保存分类映射
+const handleMappingSave = async (mappings: PlatformMapping[]) => {
+  if (!currentNode.value) return
+
+  try {
+    // TODO: 调用API保存映射关系
+    currentNode.value.platformMappings = mappings
+    ElMessage.success('分类映射保存成功')
+    await fetchCategoryList() // 重新加载数据
+  } catch (error) {
+    ElMessage.error('保存分类映射失败')
+  }
+}
+
+onMounted(() => {
+  fetchCategoryList()
+})
+</script>
+
+<style scoped>
+.category-container {
+  padding: 20px;
+  height: 100%;
+  background-color: var(--el-bg-color);
+}
+
+.category-header {
+  margin-bottom: 20px;
+  display: flex;
+  gap: 12px;
+}
+
+.category-content {
+  background: var(--el-bg-color-overlay);
+  padding: 20px;
+  border-radius: 4px;
+  box-shadow: var(--el-box-shadow-light);
+}
+
+.custom-tree {
+  background: transparent;
+}
+
+.custom-tree-node {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 14px;
+  padding-right: 8px;
+  color: var(--el-text-color-primary);
+}
+
+.actions {
+  margin-left: 20px;
+}
+
+:deep(.el-tree-node__content) {
+  height: 40px;
+}
+
+:deep(.el-tree-node.is-current > .el-tree-node__content) {
+  background-color: var(--el-color-primary-light-9);
+}
+
+.mapping-tag {
+  margin-left: 8px;
+  cursor: pointer;
+}
+
+.node-main {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  width: 100%;
+  min-height: 40px;
+}
+
+.node-info {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+  padding-right: 16px;
+}
+
+.node-label {
+  font-weight: 500;
+  font-size: 14px;
+}
+
+.platform-names {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.platform-name-tag {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background-color: var(--el-fill-color-lighter);
+  padding: 2px 8px;
+  border-radius: 4px;
+  
+  .platform-category-name {
+    color: var(--el-text-color-regular);
+    font-size: 13px;
+  }
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+:deep(.el-tree-node__content) {
+  min-height: 40px;
+  height: auto !important;
+  padding: 8px 0;
+}
+</style>

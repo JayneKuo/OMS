@@ -1,148 +1,121 @@
-# 商品分类选择器组件
 <template>
   <div class="category-selector">
-    <!-- 顶部导航栏 -->
-    <div class="page-header">
-      <div class="header-main">
-        <div class="header-left">
+    <!-- 平台分类列表 -->
+    <div class="platform-categories-section">
+      <div class="section-header">
+        <span class="section-title">Platform Categories (optional)</span>
           <el-button 
-            link 
             type="primary" 
-            class="back-button"
-            @click="handleBack"
+          text
+          size="small"
+          @click="addCategory"
           >
-            <el-icon><ArrowLeft /></el-icon>
-            Back to Product List
+          <el-icon><Plus /></el-icon>
+          Add Platform
           </el-button>
-          <el-divider direction="vertical" />
-          <h2 class="page-title">Create Product - Select Category</h2>
+    </div>
+
+      <div 
+        v-for="(category, index) in localCategories" 
+        :key="index"
+        class="platform-item"
+      >
+        <el-row :gutter="12" align="middle">
+          <!-- 平台选择 -->
+          <el-col :span="6">
+            <el-select 
+              :model-value="category.platform"
+              placeholder="Platform"
+              size="small"
+          clearable
+              @change="handlePlatformChange(index, $event)"
+            >
+              <el-option
+                v-for="platform in platforms"
+                :key="platform.value"
+                :label="platform.label"
+                :value="platform.value"
+              />
+            </el-select>
+          </el-col>
+
+          <!-- 分类选择或自定义输入 -->
+          <el-col :span="16">
+            <!-- 平台分类选择 -->
+            <el-cascader
+              v-if="category.platform && category.platform !== 'Custom'"
+              :model-value="category.path"
+              :options="getCategoryOptions(category.platform)"
+              :props="cascaderProps"
+              placeholder="Select category"
+              size="small"
+              clearable
+              filterable
+              show-all-levels
+              style="width: 100%"
+              @change="handleCategoryChange(index, $event)"
+            />
+            
+            <!-- 自定义平台分类输入 -->
+            <el-input
+              v-else-if="category.platform === 'Custom'"
+              :model-value="category.customPath"
+              placeholder="Enter custom category path"
+              size="small"
+              @input="handleCustomPathChange(index, $event)"
+            />
+            
+            <!-- 未选择平台时的提示 -->
+            <div v-else class="placeholder-text">
+              Select a platform first
+          </div>
+          </el-col>
+
+          <!-- 删除按钮 -->
+          <el-col :span="2">
+            <el-button 
+              type="danger" 
+              text
+              size="small"
+              @click="removeCategory(index)"
+            >
+              <el-icon><Delete /></el-icon>
+            </el-button>
+          </el-col>
+        </el-row>
+
+        <!-- 选中分类的显示 -->
+        <div v-if="getFullCategoryPath(category)" class="category-preview">
+          <div class="selected-category">
+            <el-icon class="check-icon"><Check /></el-icon>
+            <span class="category-text">{{ category.platform }}: {{ getFullCategoryPath(category) }}</span>
+          </div>
         </div>
+      </div>
+
+      <!-- 空状态提示 -->
+      <div v-if="localCategories.length === 0" class="empty-state">
+        <el-text type="info" size="small">
+          No platform categories added. Click "Add Platform" to add one.
+        </el-text>
       </div>
     </div>
 
-    <!-- 主要内容区 -->
-    <div class="page-content">
-      <!-- 搜索区域 -->
-      <div class="search-section">
-        <el-input
-          v-model="searchQuery"
-          placeholder="Enter keywords to search categories, or upload product image for quick identification"
-          :prefix-icon="Search"
-          clearable
-          class="search-input"
+    <!-- 当前选择的总览 -->
+    <div v-if="hasAnyCategory" class="category-summary">
+      <div class="summary-title">
+        <el-icon><Check /></el-icon>
+        Selected Categories:
+        </div>
+      <div class="summary-content">
+        <div 
+          v-for="(category, index) in localCategories" 
+          :key="index"
+          v-if="getFullCategoryPath(category)"
+          class="summary-item platform"
         >
-          <template #append>
-            <el-upload
-              class="image-uploader"
-              :action="uploadAction"
-              :show-file-list="false"
-              :before-upload="beforeUploadImage"
-              :on-success="handleUploadSuccess"
-            >
-              <el-button :icon="Picture">Image Recognition</el-button>
-            </el-upload>
-          </template>
-        </el-input>
-      </div>
-
-      <!-- 最近使用的类别 -->
-      <div class="recent-categories">
-        <div class="recent-tags">
-          <el-tag
-            v-for="category in recentCategories"
-            :key="category.path"
-            class="category-tag"
-            :class="{ active: selectedCategory === category.path }"
-            @click="handleSelectCategory(category.path)"
-          >
-            {{ category.name }}
-          </el-tag>
-        </div>
-      </div>
-
-      <!-- 分类网格 -->
-      <div class="category-grid">
-        <!-- 第一列 -->
-        <div class="grid-column">
-          <div
-            v-for="category in firstColumn"
-            :key="category.value"
-            class="category-item"
-            :class="{ active: isActive(category) }"
-            @click="handleCategoryClick(category)"
-          >
-            {{ category.label }}
-            <el-icon v-if="category.children"><ArrowRight /></el-icon>
-          </div>
-        </div>
-
-        <!-- 第二列 -->
-        <div class="grid-column" v-if="secondColumn.length">
-          <div
-            v-for="category in secondColumn"
-            :key="category.value"
-            class="category-item"
-            :class="{ active: isActive(category) }"
-            @click="handleCategoryClick(category)"
-          >
-            {{ category.label }}
-            <el-icon v-if="category.children"><ArrowRight /></el-icon>
-          </div>
-        </div>
-
-        <!-- 第三列 -->
-        <div class="grid-column" v-if="thirdColumn.length">
-          <div
-            v-for="category in thirdColumn"
-            :key="category.value"
-            class="category-item"
-            :class="{ active: isActive(category) }"
-            @click="handleCategoryClick(category)"
-          >
-            {{ category.label }}
-            <el-icon v-if="category.children"><ArrowRight /></el-icon>
-          </div>
-        </div>
-
-        <!-- 第四列 -->
-        <div class="grid-column" v-if="fourthColumn.length">
-          <div
-            v-for="category in fourthColumn"
-            :key="category.value"
-            class="category-item"
-            :class="{ active: isActive(category) }"
-            @click="handleCategoryClick(category)"
-          >
-            {{ category.label }}
-          </div>
-        </div>
-      </div>
-
-      <!-- 底部操作栏 -->
-      <div class="page-footer">
-        <div class="footer-left">
-          <template v-if="selectedCategory">
-            <el-tag type="success">Category Selected</el-tag>
-            <span class="selected-category">{{ getSelectedCategoryPath }}</span>
-          </template>
-          <template v-else>
-            <el-tag type="info">Not Selected</el-tag>
-            <span class="empty-tip">
-              <el-icon><InfoFilled /></el-icon>
-              Please select a category to continue
-            </span>
-          </template>
-        </div>
-        <div class="footer-right">
-          <el-button @click="handleBack">Cancel</el-button>
-          <el-button 
-            type="primary" 
-            :disabled="!selectedCategory" 
-            @click="handleNext"
-          >
-            Next Step
-            <el-icon class="el-icon--right"><ArrowRight /></el-icon>
-          </el-button>
+          <div class="item-label">{{ category.platform }}:</div>
+          <div class="item-value">{{ getFullCategoryPath(category) }}</div>
         </div>
       </div>
     </div>
@@ -151,428 +124,440 @@
 
 <script setup lang="ts">
 import { ref, watch, computed } from 'vue';
-import { useRouter } from 'vue-router';
-import { Search, Picture, InfoFilled, ArrowRight, ArrowLeft } from '@element-plus/icons-vue';
+import { Folder, Plus, Delete, Check } from '@element-plus/icons-vue';
+import type { CategoryInfo, PlatformType, PlatformCategory } from '@/types/product';
 
-const router = useRouter();
-const searchQuery = ref('');
-const selectedCategory = ref('');
-const treeRef = ref();
-const uploadAction = '/api/upload';
+const props = defineProps<{
+  modelValue: CategoryInfo;
+}>();
 
-// 获取选中分类的完整路径名称
-const getSelectedCategoryPath = computed(() => {
-  if (!selectedCategory.value) return '';
-  return selectedCategory.value.split('/').join(' > ');
-});
+const emit = defineEmits<{
+  (e: 'update:modelValue', value: CategoryInfo): void;
+}>();
 
-// 返回列表
-const handleBack = () => {
-  router.push('/product/list');
+// 状态管理
+const localCategories = ref<PlatformCategory[]>([]);
+
+// Cascader 配置
+const cascaderProps = {
+  checkStrictly: true, // 改为 true，可以选择任意级别的节点
+  emitPath: true,
+  expandTrigger: 'hover' as const,
+  value: 'value',
+  label: 'label',
+  children: 'children'
 };
 
-// Recently used categories
-const recentCategories = ref([
-  { name: 'Men Crossbody Bags', path: 'bags/men/crossbody' },
-  { name: 'Women Shoulder Bags', path: 'bags/women/shoulder' },
-  { name: 'Travel Bags', path: 'bags/travel' },
-  { name: 'Cosmetic Bags', path: 'bags/cosmetic' },
-  { name: 'Wallets', path: 'bags/wallet' }
-]);
+// 是否有任何分类
+const hasAnyCategory = computed(() => {
+  return localCategories.value.some(cat => getFullCategoryPath(cat));
+});
 
-// Category data
-const categories = ref([
-  {
-    value: 'bags',
-    label: 'Bags & Luggage',
+// Platform options
+const platforms = [
+  { label: 'Amazon', value: 'Amazon' as PlatformType },
+  { label: 'Shopify', value: 'Shopify' as PlatformType },
+  { label: 'Walmart', value: 'Walmart' as PlatformType },
+  { label: 'eBay', value: 'eBay' as PlatformType },
+  { label: 'Custom', value: 'Custom' as PlatformType }
+];
+
+// Category options
+const categoryOptions = {
+  Amazon: [
+    {
+      value: 'electronics',
+      label: 'Electronics',
     children: [
       {
-        value: 'women_bags',
-        label: 'Women Bags',
+          value: 'computers',
+          label: 'Computers & Accessories',
+          children: [
+            { value: 'laptops', label: 'Laptops' },
+            { value: 'desktops', label: 'Desktop Computers' },
+            { value: 'tablets', label: 'Tablets' },
+            { value: 'monitors', label: 'Monitors' },
+            { value: 'keyboards', label: 'Keyboards & Mice' }
+          ]
+        },
+        {
+          value: 'phones',
+          label: 'Cell Phones & Accessories',
         children: [
-          {
-            value: 'shoulder',
-            label: 'Shoulder Bags',
+            { value: 'smartphones', label: 'Unlocked Cell Phones' },
+            { value: 'cases', label: 'Cases, Holsters & Sleeves' },
+            { value: 'chargers', label: 'Chargers & Power Adapters' },
+            { value: 'screen-protectors', label: 'Screen Protectors' },
+            { value: 'bluetooth', label: 'Bluetooth Headsets' }
+          ]
+        },
+        {
+          value: 'audio',
+          label: 'Audio & Video',
             children: [
-              { value: 'leather_shoulder', label: 'Leather Shoulder Bags' },
-              { value: 'canvas_shoulder', label: 'Canvas Shoulder Bags' },
-              { value: 'chain_shoulder', label: 'Chain Shoulder Bags' }
-            ]
-          },
-          {
-            value: 'crossbody',
-            label: 'Crossbody Bags',
+            { value: 'headphones', label: 'Headphones' },
+            { value: 'speakers', label: 'Speakers' },
+            { value: 'cameras', label: 'Digital Cameras' }
+          ]
+        }
+      ]
+    },
+    {
+      value: 'clothing',
+      label: 'Clothing, Shoes & Jewelry',
+      children: [
+        {
+          value: 'mens',
+          label: 'Men',
             children: [
-              { value: 'small_crossbody', label: 'Small Crossbody Bags' },
-              { value: 'medium_crossbody', label: 'Medium Crossbody Bags' },
-              { value: 'large_crossbody', label: 'Large Crossbody Bags' }
-            ]
-          },
-          {
-            value: 'tote',
-            label: 'Tote Bags',
+            { value: 'shirts', label: 'Shirts' },
+            { value: 'pants', label: 'Pants' },
+            { value: 'shoes', label: 'Shoes' },
+            { value: 'jackets', label: 'Jackets & Coats' },
+            { value: 'underwear', label: 'Underwear' }
+          ]
+        },
+        {
+          value: 'womens',
+          label: 'Women',
             children: [
-              { value: 'work_tote', label: 'Work Tote Bags' },
-              { value: 'beach_tote', label: 'Beach Tote Bags' },
-              { value: 'shopping_tote', label: 'Shopping Tote Bags' }
+            { value: 'dresses', label: 'Dresses' },
+            { value: 'tops', label: 'Tops & Tees' },
+            { value: 'shoes', label: 'Shoes' },
+            { value: 'handbags', label: 'Handbags & Wallets' },
+            { value: 'jewelry', label: 'Jewelry' }
             ]
           }
         ]
       },
       {
-        value: 'men_bags',
-        label: 'Men Bags',
+      value: 'home',
+      label: 'Home & Kitchen',
         children: [
           {
-            value: 'briefcase',
-            label: 'Briefcases',
+          value: 'furniture',
+          label: 'Furniture',
             children: [
-              { value: 'leather_briefcase', label: 'Leather Briefcases' },
-              { value: 'nylon_briefcase', label: 'Nylon Briefcases' },
-              { value: 'canvas_briefcase', label: 'Canvas Briefcases' }
-            ]
-          },
-          {
-            value: 'backpack',
-            label: 'Backpacks',
+            { value: 'bedroom', label: 'Bedroom Furniture' },
+            { value: 'living-room', label: 'Living Room Furniture' },
+            { value: 'office', label: 'Office Furniture' }
+          ]
+        },
+        {
+          value: 'kitchen',
+          label: 'Kitchen & Dining',
             children: [
-              { value: 'business_backpack', label: 'Business Backpacks' },
-              { value: 'casual_backpack', label: 'Casual Backpacks' },
-              { value: 'travel_backpack', label: 'Travel Backpacks' }
-            ]
-          }
-        ]
-      }
-    ]
-  },
-  {
-    value: 'sports',
-    label: 'Sports & Outdoor',
+            { value: 'cookware', label: 'Cookware' },
+            { value: 'appliances', label: 'Small Appliances' },
+            { value: 'dinnerware', label: 'Dinnerware & Serveware' }
+          ]
+        }
+      ]
+    }
+  ],
+  Shopify: [
+    {
+      value: 'home',
+      label: 'Home & Garden',
+      children: [
+        {
+          value: 'furniture',
+          label: 'Furniture',
+          children: [
+            { value: 'chairs', label: 'Chairs' },
+            { value: 'tables', label: 'Tables' },
+            { value: 'sofas', label: 'Sofas & Couches' },
+            { value: 'storage', label: 'Storage & Organization' }
+          ]
+        },
+        {
+          value: 'decor',
+          label: 'Home Decor',
     children: [
-      {
-        value: 'equipment',
-        label: 'Sports Equipment',
+            { value: 'wall-art', label: 'Wall Art' },
+            { value: 'candles', label: 'Candles & Holders' },
+            { value: 'rugs', label: 'Rugs & Carpets' }
+          ]
+        }
+      ]
+    },
+    {
+      value: 'fashion',
+      label: 'Fashion',
         children: [
           {
-            value: 'fitness',
-            label: 'Fitness Equipment',
+          value: 'clothing',
+          label: 'Clothing',
             children: [
-              { value: 'cardio', label: 'Cardio Equipment' },
-              { value: 'strength', label: 'Strength Training' },
-              { value: 'yoga', label: 'Yoga & Pilates' }
+            { value: 'casual', label: 'Casual Wear' },
+            { value: 'formal', label: 'Formal Wear' },
+            { value: 'sportswear', label: 'Sportswear' }
             ]
           }
         ]
       }
     ]
-  }
-]);
-
-// 当前选中的分类路径
-const currentPath = ref<string[]>([]);
-
-// 计算各列的数据
-const firstColumn = computed(() => categories.value);
-
-const secondColumn = computed(() => {
-  if (!currentPath.value[0]) return [];
-  const firstCategory = categories.value.find(c => c.value === currentPath.value[0]);
-  return firstCategory?.children || [];
-});
-
-const thirdColumn = computed(() => {
-  if (!currentPath.value[1]) return [];
-  const secondCategory = secondColumn.value.find(c => c.value === currentPath.value[1]);
-  return secondCategory?.children || [];
-});
-
-const fourthColumn = computed(() => {
-  if (!currentPath.value[2]) return [];
-  const thirdCategory = thirdColumn.value.find(c => c.value === currentPath.value[2]);
-  return thirdCategory?.children || [];
-});
-
-// 检查分类是否激活
-const isActive = (category: any) => {
-  return currentPath.value.includes(category.value);
 };
 
-// 处理分类点击
-const handleCategoryClick = (category: any) => {
-  const index = currentPath.value.indexOf(category.value);
-  if (index > -1) {
-    // 如果已经在路径中，清除此级别之后的所有选择
-    currentPath.value = currentPath.value.slice(0, index + 1);
+// Get category options based on platform
+const getCategoryOptions = (platform: PlatformType) => {
+  return categoryOptions[platform as keyof typeof categoryOptions] || categoryOptions.Amazon;
+};
+
+// 移除了 getCategoryDisplay 函数，使用 getFullCategoryPath 替代
+
+// 获取完整的分类路径（不包含平台名称）
+const getFullCategoryPath = (category: PlatformCategory): string => {
+  if (!category.platform) return '';
+  
+  if (category.platform === 'Custom' && category.customPath) {
+    return category.customPath;
+  }
+  
+  if (category.platform && category.path && category.path.length > 0) {
+    const options = getCategoryOptions(category.platform);
+    const labels = getPathLabels(category.path, options);
+    return labels.join(' > ');
+  }
+  
+  return '';
+};
+
+// 获取路径标签
+const getPathLabels = (path: string[], options: any[]): string[] => {
+  if (!path || path.length === 0) return [];
+  
+  const [current, ...rest] = path;
+  const option = options.find(opt => opt.value === current);
+  
+  if (!option) return [current];
+  
+  if (rest.length === 0) return [option.label];
+  
+  const childLabels = getPathLabels(rest, option.children || []);
+  return [option.label, ...childLabels];
+};
+
+// Initialize
+const initialize = () => {
+  localCategories.value = props.modelValue.categories ? [...props.modelValue.categories] : [];
+};
+
+// Add category
+const addCategory = () => {
+  localCategories.value.push({
+    platform: '',
+    path: [],
+    customPath: ''
+  });
+  updateParent();
+};
+
+// Remove category
+const removeCategory = (index: number) => {
+  localCategories.value.splice(index, 1);
+  updateParent();
+};
+
+// Handle platform change
+const handlePlatformChange = (index: number, platform: PlatformType | null) => {
+  if (platform) {
+    localCategories.value[index] = {
+      platform,
+      path: [],
+      customPath: ''
+    };
   } else {
-    // 找到当前应该在的层级
-    const level = [firstColumn, secondColumn, thirdColumn, fourthColumn]
-      .findIndex(col => col.value.includes(category));
-    
-    // 更新路径
-    currentPath.value = [...currentPath.value.slice(0, level), category.value];
+    localCategories.value[index] = {
+      platform: '',
+      path: [],
+      customPath: ''
+    };
   }
-
-  // 如果是最终分类（没有子分类），则设置为选中的分类
-  if (!category.children) {
-    selectedCategory.value = currentPath.value.join('/');
-  }
+  updateParent();
 };
 
-// 监听搜索输入
-watch(searchQuery, (val) => {
-  treeRef.value?.filter(val);
-});
-
-// 过滤节点方法
-const filterNode = (value: string, data: any) => {
-  if (!value) return true;
-  return data.label.toLowerCase().includes(value.toLowerCase());
-};
-
-// 处理节点点击
-const handleNodeClick = (data: any) => {
-  // 只有叶子节点才可选
-  if (!data.children) {
-    selectedCategory.value = data.value;
+// Handle category change
+const handleCategoryChange = (index: number, path: string[]) => {
+  if (localCategories.value[index]) {
+    localCategories.value[index].path = path || [];
+    updateParent();
   }
 };
 
-// 处理类别选择
-const handleSelectCategory = (categoryPath: string) => {
-  selectedCategory.value = categoryPath;
-};
-
-// 图片上传前检查
-const beforeUploadImage = (file: File) => {
-  const isImage = file.type.startsWith('image/');
-  const isLt5M = file.size / 1024 / 1024 < 5;
-
-  if (!isImage) {
-    ElMessage.error('只能上传图片文件！');
-    return false;
-  }
-  if (!isLt5M) {
-    ElMessage.error('图片大小不能超过5MB！');
-    return false;
-  }
-  return true;
-};
-
-// 图片上传成功处理
-const handleUploadSuccess = (response: any) => {
-  // TODO: 处理AI识别结果
-  ElMessage.success('图片识别成功');
-};
-
-// 处理下一步
-const handleNext = () => {
-  if (selectedCategory.value) {
-    router.push({
-      name: 'ProductCreate',
-      query: { category: selectedCategory.value }
-    });
+// Handle custom path change
+const handleCustomPathChange = (index: number, customPath: string) => {
+  if (localCategories.value[index]) {
+    localCategories.value[index].customPath = customPath;
+    updateParent();
   }
 };
+
+// Handle custom category change
+
+// Update parent
+const updateParent = () => {
+  const newValue = {
+    categories: [...localCategories.value]
+  };
+  emit('update:modelValue', newValue);
+};
+
+// Initialize
+initialize();
+
+// Watch for external changes
+watch(() => props.modelValue, () => {
+  initialize();
+}, { deep: true });
 </script>
 
 <style scoped lang="scss">
 .category-selector {
-  height: 100vh;
-  display: flex;
-  flex-direction: column;
-  background-color: var(--el-bg-color);
-}
+  .custom-category-section {
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid #f0f0f0;
+  }
 
-.page-header {
-  background-color: var(--el-bg-color-overlay);
-  border-bottom: 1px solid var(--el-border-color-light);
-  padding: 0;
-  position: sticky;
-  top: 0;
-  z-index: 10;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-
-  .header-main {
+  .platform-categories-section {
+    .section-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    height: 56px;
-    padding: 0 24px;
-  }
+      margin-bottom: 12px;
+    }
 
-  .header-left {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-
-    .back-button {
+    .section-title {
+      font-weight: 500;
+      color: #606266;
       font-size: 14px;
-      .el-icon {
-        margin-right: 4px;
+    }
+
+    .platform-item {
+      margin-bottom: 12px;
+      padding: 12px;
+      border-radius: 6px;
+      border: 1px solid #e4e7ed;
+      transition: all 0.2s ease;
+
+      &:hover {
+        border-color: #409eff;
+        box-shadow: 0 2px 4px rgba(64, 158, 255, 0.1);
       }
     }
 
-    .page-title {
-      font-size: 18px;
-      font-weight: 500;
-      color: var(--el-text-color-primary);
-      margin: 0;
+    .placeholder-text {
+      color: #c0c4cc;
+      font-size: 12px;
+      line-height: 32px;
+      text-align: center;
+    }
+
+    .category-preview {
+      margin-top: 8px;
+      
+      .selected-category {
+        display: flex;
+        align-items: center;
+        padding: 6px 12px;
+        background: linear-gradient(135deg, #67c23a, #85ce61);
+        color: white;
+        border-radius: 4px;
+        font-size: 12px;
+        font-weight: 500;
+        
+        .check-icon {
+          margin-right: 6px;
+          font-size: 14px;
+        }
+        
+        .category-text {
+          flex: 1;
+          word-break: break-all;
+        }
+      }
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 20px;
+      color: #909399;
     }
   }
-}
 
-.page-content {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  padding: 24px;
-}
+  .category-summary {
+    margin-top: 16px;
+    padding: 16px;
+    border-radius: 8px;
+    border: 1px solid #e4e7ed;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 
-.search-section {
-  margin-bottom: 20px;
-  padding: 0 20px;
-
-  .search-input {
-    width: 100%;
-  }
-
-  :deep(.el-input-group__append) {
-    padding: 0;
-    
-    .el-upload {
-      display: block;
-    }
-
-    .el-button {
-      border: none;
-      margin: 0;
-      border-radius: 0;
-    }
-  }
-}
-
-.recent-categories {
-  padding: 0 20px;
-  margin-bottom: 20px;
-
-  .recent-tags {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-  }
-
-  .category-tag {
-    cursor: pointer;
-    transition: all 0.3s;
-
-    &:hover {
-      transform: translateY(-1px);
-    }
-
-    &.active {
-      background-color: var(--el-color-primary);
-      color: white;
-    }
-  }
-}
-
-.category-grid {
-  height: 400px;
-  display: flex;
-  gap: 0;
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: 4px;
-  margin: 0 20px;
-  background-color: var(--el-bg-color-overlay);
-  overflow: hidden;
-}
-
-.grid-column {
-  width: 25%;
-  border-right: 1px solid var(--el-border-color-lighter);
-  overflow-y: auto;
-  background-color: var(--el-fill-color-blank);
-
-  &:last-child {
-    border-right: none;
-  }
-
-  .category-item {
-    padding: 10px 16px;
-    cursor: pointer;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    transition: all 0.3s;
-    color: var(--el-text-color-regular);
-    font-size: 14px;
-    border-bottom: 1px solid var(--el-border-color-lighter);
-
-    &:last-child {
-      border-bottom: none;
-    }
-
-    &:hover {
-      background-color: var(--el-fill-color-light);
-    }
-
-    &.active {
-      background-color: var(--el-color-primary-light-9);
-      color: var(--el-color-primary);
-    }
-
-    .el-icon {
+    .summary-title {
+      display: flex;
+      align-items: center;
+      font-weight: 600;
+      color: #303133;
+      margin-bottom: 12px;
       font-size: 14px;
-      color: var(--el-text-color-secondary);
+      
+      .el-icon {
+        margin-right: 6px;
+        color: #67c23a;
+      }
+    }
+
+    .summary-content {
+  display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .summary-item {
+    display: flex;
+      align-items: flex-start;
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 13px;
+      
+      &.custom {
+        background: linear-gradient(135deg, #409eff, #66b1ff);
+        color: white;
+      }
+      
+      &.platform {
+        background: linear-gradient(135deg, #67c23a, #85ce61);
+        color: white;
+      }
+      
+      .item-label {
+        font-weight: 600;
+        min-width: 100px;
+        margin-right: 8px;
+      }
+      
+      .item-value {
+        flex: 1;
+        word-break: break-all;
+        font-weight: 500;
+      }
     }
   }
-}
 
-.empty-tip {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: var(--el-text-color-secondary);
-
-  .el-icon {
-    font-size: 16px;
+  :deep(.el-form-item) {
+    margin-bottom: 0;
   }
-}
 
-.page-footer {
-  height: 64px;
-  margin: 0 -24px;
-  padding: 0 24px;
-  background-color: var(--el-bg-color-overlay);
-  border-top: 1px solid var(--el-border-color-light);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-
-  .footer-left {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-
-    .selected-category {
-      color: var(--el-text-color-regular);
-      font-weight: 500;
+  :deep(.el-input--small) {
+    .el-input__wrapper {
+      border-radius: 4px;
     }
   }
 
-  .footer-right {
-    display: flex;
-    gap: 12px;
+  :deep(.el-cascader) {
+    .el-input__wrapper {
+      border-radius: 4px;
+    }
   }
-}
-
-:deep(.el-tree-node__content) {
-  height: 40px;
-}
-
-:deep(.el-tree-node.is-current > .el-tree-node__content) {
-  background-color: var(--el-color-primary-light-9);
-  color: var(--el-color-primary);
 }
 </style>

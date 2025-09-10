@@ -668,7 +668,7 @@ export const mockDeleteProduct = async (id: string) => {
 };
 
 // Mock API for creating product
-export const mockCreateProduct = async (data: Partial<Product>) => {
+export const mockCreateProduct = (data: Partial<Product>) => {
   const newProduct: Product = {
     id: String(mockProducts.length + 1),
     sku: data.sku || `SKU${String(mockProducts.length + 1).padStart(3, '0')}`,

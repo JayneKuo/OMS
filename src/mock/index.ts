@@ -357,6 +357,21 @@ mock.onGet('/api/products', (config: MockConfig) => {
   }
 });
 
+// 添加创建商品的mock接口
+mock.onPost('/api/products', (config: MockConfig) => {
+  try {
+    const data = JSON.parse(config.data || '{}');
+    return [200, {
+      code: 0,
+      data: mockCreateProduct(data),
+      message: 'success'
+    }];
+  } catch (error) {
+    console.error('Mock API Error:', error);
+    return [500, { code: 1, message: '服务器内部错误', data: null }];
+  }
+});
+
 mock.onDelete(/\/api\/products\/\w+/, (config: MockConfig) => {
   try {
     const url = config.url || '';

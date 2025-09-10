@@ -1,4 +1,3 @@
-# 创建商品页面
 <template>
   <div class="create-product">
     <!-- 顶部导航栏 -->
@@ -143,10 +142,19 @@
 import { ref } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { useRouter, useRoute } from 'vue-router';
+import { 
+  ArrowLeft, 
+  ArrowDown, 
+  Goods, 
+  Picture, 
+  House, 
+  DocumentChecked,
+  CircleCheck
+} from '@element-plus/icons-vue';
 import type { Product } from '@/types/product';
 import type { WMSProductSettings } from '@/types/warehouse';
-import BasicInfo from './components/basics/BasicInfo.vue';
-import MediaSection from './components/basics/sections/MediaSection.vue';
+import BasicInfo from './components/basics/BasicInfoRevised.vue';
+import MediaSection from './components/basics/MediaSection.vue';
 import WarehouseInfo from './components/basics/WarehouseInfo.vue';
 import ComplianceInfo from './components/basics/ComplianceInfo.vue';
 
@@ -155,12 +163,7 @@ const route = useRoute();
 const activeTab = ref('basic');
 const formRef = ref();
 
-// 获取URL中的分类参数
-const categoryFromRoute = route.query.category as string;
-if (!categoryFromRoute) {
-  // 如果没有分类参数，重定向到分类选择页面
-  router.replace({ name: 'SelectCategory' });
-}
+// 不再需要从路由获取分类参数
 
 // 创建默认的尺寸对象
 const defaultDimensions = {
@@ -183,7 +186,10 @@ const form = ref<Product>({
     sku: '',
     parentSku: '',
     type: 'Physical',
-    category: categoryFromRoute ? categoryFromRoute.split('/') : [],
+    category: {
+      categories: [],
+      customCategory: ''
+    },
     status: 'Draft',
     isSample: false,
     description: '',
@@ -202,12 +208,24 @@ const form = ref<Product>({
       closureType: '',
       coating: [],
       composition: [],
-      quantity: 1
+      quantity: 1,
+      customAttributes: []
     }
   },
   mediaInfo: {
     mainImages: [],
-    additionalImages: []
+    additionalImages: [],
+    videoUrl: ''
+  },
+  supplierInfo: {
+    name: '',
+    code: '',
+    contactPerson: '',
+    email: '',
+    phone: '',
+    address: '',
+    leadTime: 1,
+    moq: 1
   },
   descriptionInfo: {
     description: '',

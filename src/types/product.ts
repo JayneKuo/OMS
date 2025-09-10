@@ -21,6 +21,9 @@ export type BarcodeType = 'UPC' | 'EAN' | 'GTIN' | 'ISBN';
 // 变体维度
 export type VariantDimension = 'Color' | 'Size' | 'Material' | 'Style';
 
+// 平台类型
+export type PlatformType = 'Amazon' | 'Shopify' | 'Shein' | 'Walmart' | 'eBay' | 'Custom';
+
 // 类目属性类型
 export type CategoryAttributeType = 'text' | 'number' | 'select' | 'multiSelect';
 
@@ -59,6 +62,7 @@ export interface ProductAttributes {
   strapType?: string;
   magnetic?: boolean;
   closureType?: string;
+  careInstructions?: string;
   coating?: Array<{
     type: string;
     percentage: number;
@@ -68,6 +72,26 @@ export interface ProductAttributes {
     percentage: number;
   }>;
   quantity?: number;
+  customAttributes?: Array<{
+    key: string;
+    type: 'text' | 'number' | 'select' | 'boolean' | 'date';
+    value: any;
+    options?: string;
+  }>;
+  platformAttributes?: Record<string, any>;
+}
+
+// 单个平台分类
+export interface PlatformCategory {
+  platform: PlatformType;
+  path: string[];
+  customPath: string;
+}
+
+// 分类信息 - 支持多个平台或自定义分类
+export interface CategoryInfo {
+  categories: PlatformCategory[];
+  customCategory?: string; // 简单的自定义分类名称
 }
 
 // 基本资料
@@ -76,12 +100,13 @@ export interface GeneralInfo {
   sku: string;
   parentSku?: string;
   type: ProductType;
-  category: string[];
+  category: CategoryInfo;
   brand?: string;
   status: ProductStatus;
   isSample: boolean;
   description?: string;
   attributes?: ProductAttributes;
+  unitOfMeasure?: UnitOfMeasure;
 }
 
 // 图片与媒体
@@ -271,6 +296,18 @@ export interface SystemInfo {
 }
 
 // 完整商品信息
+// 供应商信息
+export interface SupplierInfo {
+  name?: string;
+  code?: string;
+  contactPerson?: string;
+  email?: string;
+  phone?: string;
+  address?: string;
+  leadTime?: number;
+  moq?: number; // Minimum Order Quantity
+}
+
 export interface Product {
   id?: string;
   generalInfo: GeneralInfo;
@@ -284,4 +321,5 @@ export interface Product {
     [lang in Language]?: ProductTranslation;
   };
   systemInfo?: SystemInfo;
+  supplierInfo?: SupplierInfo;
 }

@@ -23,7 +23,7 @@ const productRoutes: RouteRecordRaw = {
     {
       path: 'category/create',
       name: 'CreateCategory',
-      component: () => import('../../views/product/category/index.vue'),
+      component: () => import('../../views/product/category/edit.vue'),
       meta: {
         title: '新增分类',
         activeMenu: '/product/category',
@@ -33,9 +33,19 @@ const productRoutes: RouteRecordRaw = {
     {
       path: 'category/edit/:id',
       name: 'EditCategory',
-      component: () => import('../../views/product/category/index.vue'),
+      component: () => import('../../views/product/category/edit.vue'),
       meta: {
         title: '编辑分类',
+        activeMenu: '/product/category',
+        hidden: true
+      },
+    },
+    {
+      path: 'category/mapping/:id',
+      name: 'CategoryMapping',
+      component: () => import('../../views/product/category/mapping.vue'),
+      meta: {
+        title: '分类映射',
         activeMenu: '/product/category',
         hidden: true
       },
@@ -76,14 +86,6 @@ const productRoutes: RouteRecordRaw = {
       component: () => import('../../views/product/index.vue'),
       meta: {
         title: 'Product List',
-      },
-    },
-    {
-      path: 'select-category',
-      name: 'SelectCategory',
-      component: () => import('../../views/product/components/CategorySelector.vue'),
-      meta: {
-        title: '选择商品分类',
       },
     },
     {
