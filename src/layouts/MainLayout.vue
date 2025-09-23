@@ -31,7 +31,9 @@
           :class="{ active: isActiveMainMenu(menu.path) }"
           @click="handleMainMenuClick(menu)"
         >
-          <el-icon><component :is="menu.icon" /></el-icon>
+          <el-icon>
+            <component :is="menu.icon" />
+          </el-icon>
           <span>{{ menu.title }}</span>
         </div>
       </template>

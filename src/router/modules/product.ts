@@ -112,7 +112,7 @@ const productRoutes: RouteRecordRaw = {
         },
         {
           path: 'channel',
-          name: 'ProductChannel',
+          name: 'ProductChannelInfo',
           component: () => import('../../views/product/components/basics/ChannelInfo.vue'),
           meta: {
             title: 'Channel',
@@ -148,6 +148,29 @@ const productRoutes: RouteRecordRaw = {
           component: () => import('../../views/product/components/basics/MappingInfo.vue'),
           meta: {
             title: 'Mapping',
+          },
+        }
+      ]
+    },
+    {
+      path: 'channel',
+      name: 'ProductChannelList',
+      component: () => import('../../layouts/RouterView.vue'),
+      redirect: '/product/channel/shein',
+      meta: {
+        title: 'Channel Product',
+        icon: 'Connection',
+        keepAlive: true
+      },
+      children: [
+        {
+          path: 'shein',
+          name: 'SheinProductList',
+          component: () => import('../../views/product/channel/shein/index.vue'),
+          meta: {
+            title: 'Shein Product List',
+            icon: 'List',
+            keepAlive: true
           },
         }
       ]

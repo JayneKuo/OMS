@@ -2,7 +2,6 @@ import { createRouter, createWebHistory, RouteRecordRaw } from 'vue-router'
 import MainLayout from '@/layouts/MainLayout.vue'
 import integrationRoutes from './modules/integration'
 import eventsRoutes from './modules/events'
-import productRoutes from './modules/product'
 
 
 const routes: RouteRecordRaw[] = [
@@ -501,6 +500,70 @@ const routes: RouteRecordRaw[] = [
             }
           }
         ]
+      },
+      // Product routes
+      {
+        path: '/product',
+        name: 'Product',
+        component: () => import('@/layouts/RouterView.vue'),
+        redirect: '/product/list',
+        meta: {
+          title: 'Product',
+          icon: 'Goods'
+        },
+        children: [
+          {
+            path: 'list',
+            name: 'ProductList',
+            component: () => import('@/views/product/index.vue'),
+            meta: {
+              title: 'Product List'
+            }
+          },
+          {
+            path: 'category',
+            name: 'ProductCategory',
+            component: () => import('@/views/product/category/index.vue'),
+            meta: {
+              title: '分类管理',
+              icon: 'Menu',
+              keepAlive: true
+            }
+          },
+          {
+            path: 'brand',
+            name: 'ProductBrand',
+            component: () => import('@/views/product/brand/index.vue'),
+            meta: {
+              title: '品牌管理',
+              icon: 'Shop',
+              keepAlive: true
+            }
+          },
+          {
+            path: 'channel',
+            name: 'ProductChannelList',
+            component: () => import('@/layouts/RouterView.vue'),
+            redirect: '/product/channel/shein',
+            meta: {
+              title: 'Channel Product',
+              icon: 'Connection',
+              keepAlive: true
+            },
+            children: [
+              {
+                path: 'shein',
+                name: 'SheinProductList',
+                component: () => import('@/views/product/channel/shein/index.vue'),
+                meta: {
+                  title: 'Shein Product List',
+                  icon: 'List',
+                  keepAlive: true
+                }
+              }
+            ]
+          }
+        ]
       }
 
     ]
@@ -512,8 +575,7 @@ const router = createRouter({
   routes: [
     ...routes,
     ...integrationRoutes,
-    ...eventsRoutes,
-    productRoutes
+    ...eventsRoutes
   ]
 })
 

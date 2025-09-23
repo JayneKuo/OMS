@@ -692,51 +692,52 @@
     </div>
 
     <!-- Bundle Settings -->
-    <div v-if="selectedForm === 'bundle'" class="bundle-table-section">
+    <div v-if="selectedForm === 'bundle'" class="bundle-section">
       <!-- Bundle Product Selection -->
       <div class="bundle-product-selector">
         <div class="selector-header">
           <span class="selector-title">Select Bundle Products</span>
-      </div>
-            <el-select
-              v-model="selectedBundleProducts"
-              placeholder="Search and select products by SKU or name"
-              multiple
-              filterable
-              remote
-              :remote-method="searchProducts"
-              :loading="productSearchLoading"
+        </div>
+        
+        <el-select
+          v-model="selectedBundleProducts"
+          placeholder="Search and select products by SKU or name"
+          multiple
+          filterable
+          remote
+          :remote-method="searchProducts"
+          :loading="productSearchLoading"
           size="default"
-          style="width: 100%; margin-bottom: 16px"
-            >
-              <el-option
-                v-for="product in availableProducts"
-                :key="product.sku"
-                :label="`${product.sku} - ${product.name}`"
-                :value="product.sku"
+          style="width: 100%; margin-bottom: 20px"
+        >
+          <el-option
+            v-for="product in availableProducts"
+            :key="product.sku"
+            :label="`${product.sku} - ${product.name}`"
+            :value="product.sku"
           />
-            </el-select>
+        </el-select>
         
         <!-- Quick Bundle Presets -->
         <div class="preset-bundles">
           <div class="preset-title">Quick Presets:</div>
           <div class="preset-buttons">
-                <el-button 
+            <el-button 
               v-for="preset in presetBundles"
               :key="preset.name"
-                  size="small" 
-                  type="primary" 
-                  plain
+              size="small" 
+              type="primary" 
+              plain
               @click="loadPresetBundle(preset.products)"
             >
               {{ preset.name }}
               <el-tooltip :content="preset.description" placement="top">
                 <el-icon style="margin-left: 4px"><InfoFilled /></el-icon>
               </el-tooltip>
-                </el-button>
-              </div>
-            </div>
+            </el-button>
           </div>
+        </div>
+      </div>
 
        <!-- Bundle Configuration Table -->
        <div v-if="bundleTableData.length > 0" class="bundle-table-container">
@@ -790,14 +791,48 @@
              </template>
            </el-table-column>
            
-           <el-table-column label="Quantity" min-width="100">
+           <el-table-column label="Quantity" min-width="180">
              <template #default="scope">
-                   <el-input-number
-                 v-model="scope.row.quantity"
-                     :min="1"
-                     :max="99"
-                     size="small"
-               />
+               <div class="input-group quantity-group compact">
+                 <el-input-number
+                   v-model="scope.row.quantity"
+                   :min="1"
+                   :max="99"
+                   size="small"
+                   style="width: 60%; min-width: 80px; flex-shrink: 1"
+                 />
+                 <el-select v-model="scope.row.quantityUnit" size="small" style="width: 38%; min-width: 70px; flex-shrink: 0">
+                   <el-option label="PCS" value="PCS" />
+                   <el-option label="EA" value="EA" />
+                   <el-option label="EACH" value="EACH" />
+                   <el-option label="SET" value="SET" />
+                   <el-option label="BOX" value="BOX" />
+                   <el-option label="CS" value="CS" />
+                   <el-option label="CASE" value="CASE" />
+                   <el-option label="CTN" value="CTN" />
+                   <el-option label="PL" value="PL" />
+                   <el-option label="PLT" value="PLT" />
+                   <el-option label="PKG" value="PKG" />
+                   <el-option label="BAG" value="BAG" />
+                   <el-option label="BTL" value="BTL" />
+                   <el-option label="CAN" value="CAN" />
+                   <el-option label="JAR" value="JAR" />
+                   <el-option label="TUB" value="TUB" />
+                   <el-option label="ROL" value="ROL" />
+                   <el-option label="SHT" value="SHT" />
+                   <el-option label="PAD" value="PAD" />
+                   <el-option label="BDL" value="BDL" />
+                   <el-option label="LOT" value="LOT" />
+                   <el-option label="DOZ" value="DOZ" />
+                   <el-option label="GRS" value="GRS" />
+                   <el-option label="PR" value="PR" />
+                   <el-option label="KG" value="KG" />
+                   <el-option label="LB" value="LB" />
+                   <el-option label="OZ" value="OZ" />
+                   <el-option label="G" value="G" />
+                   <el-option label="IN" value="IN" />
+                 </el-select>
+               </div>
              </template>
            </el-table-column>
           
@@ -840,15 +875,6 @@
                   <el-option label="CNY" value="CNY" />
                 </el-select>
               </div>
-            </template>
-          </el-table-column>
-          
-          <el-table-column label="Inventory Type" min-width="200">
-            <template #default="scope">
-              <el-radio-group v-model="bundleAggregateSettings.inventoryType" size="small" class="compact-radio-group">
-                <el-radio-button label="sub_product">Sub Product</el-radio-button>
-                <el-radio-button label="bundle">Bundle</el-radio-button>
-              </el-radio-group>
             </template>
           </el-table-column>
           
@@ -912,14 +938,115 @@
             </template>
           </el-table-column>
           
-          <el-table-column label="Split Shipping" min-width="140">
+          <el-table-column label="Inventory Type" min-width="200">
+            <template #header="{ column }">
+              <div class="column-header-with-tooltip">
+                <span>{{ column.label }}</span>
+                <el-tooltip 
+                  placement="top" 
+                  effect="dark"
+                  popper-class="inventory-type-tooltip"
+                >
+                  <template #content>
+                    <div class="tooltip-content">
+                      <div class="tooltip-title">Inventory Management Method</div>
+                      <div class="tooltip-item">
+                        <strong>Sub Product Inventory:</strong><br>
+                        Bundle stock is automatically calculated based on sub-products<br>
+                        <em>Example: If you have 100 T-shirts and 50 jeans, and bundle needs 1 of each, then bundle stock = 50</em>
+                      </div>
+                      <div class="tooltip-item">
+                        <strong>Bundle Inventory:</strong><br>
+                        Bundle is treated as a separate product in WMS<br>
+                        <em>Ensure warehouse receives and stocks as bundle SKU, not individual items</em>
+                      </div>
+                    </div>
+                  </template>
+                  <el-icon class="tooltip-icon"><InfoFilled /></el-icon>
+                </el-tooltip>
+              </div>
+            </template>
             <template #default="scope">
-              <el-switch
-                v-model="bundleAggregateSettings.splitShipping"
-                active-text="Yes"
-                inactive-text="No"
-                size="small"
-              />
+              <div class="inventory-type-wrapper">
+                <el-radio-group v-model="bundleAggregateSettings.inventoryType" size="small" class="compact-radio-group">
+                  <el-radio-button label="sub_product">
+                    <div class="radio-content-vertical">
+                      <span class="radio-title">Sub Product</span>
+                      <span class="radio-desc">Auto Calculate</span>
+                    </div>
+                  </el-radio-button>
+                  <el-radio-button label="bundle">
+                    <div class="radio-content-vertical">
+                      <span class="radio-title">Bundle</span>
+                      <span class="radio-desc">Manual Manage</span>
+                    </div>
+                  </el-radio-button>
+                </el-radio-group>
+                <div class="inventory-formula" v-if="bundleAggregateSettings.inventoryType === 'sub_product'">
+                  <div class="formula-text">
+                    <el-icon class="formula-icon"><DataAnalysis /></el-icon>
+                    <span>Stock = min({{ bundleTableData.map(item => `${item.name} stock/${item.quantity}`).join(', ') }})</span>
+                  </div>
+                </div>
+                <div class="inventory-notice" v-else>
+                  <div class="notice-text">
+                    <el-icon class="notice-icon"><WarningFilled /></el-icon>
+                    <span>Ensure warehouse receives as bundle SKU</span>
+                  </div>
+                </div>
+              </div>
+            </template>
+          </el-table-column>
+          
+          <el-table-column label="Split Shipping" min-width="140">
+            <template #header="{ column }">
+              <div class="column-header-with-tooltip">
+                <span>{{ column.label }}</span>
+                <el-tooltip 
+                  placement="top" 
+                  effect="dark"
+                  popper-class="split-shipping-tooltip"
+                >
+                  <template #content>
+                    <div class="tooltip-content">
+                      <div class="tooltip-title">Order Fulfillment & Shipping Method</div>
+                      <div class="tooltip-item">
+                        <strong>Split Shipping (Yes):</strong><br>
+                        Each sub-product ships separately<br>
+                        <em>T-shirt ships from Warehouse A, Jeans ship from Warehouse B</em>
+                      </div>
+                      <div class="tooltip-item">
+                        <strong>Bundle Shipping (No):</strong><br>
+                        All items ship together as one package<br>
+                        <em>Complete bundle ships from single warehouse</em>
+                      </div>
+                    </div>
+                  </template>
+                  <el-icon class="tooltip-icon"><InfoFilled /></el-icon>
+                </el-tooltip>
+              </div>
+            </template>
+            <template #default="scope">
+              <div class="split-shipping-wrapper">
+                <el-switch
+                  v-model="bundleAggregateSettings.splitShipping"
+                  size="small"
+                  :active-text="bundleAggregateSettings.splitShipping ? 'Split' : ''"
+                  :inactive-text="!bundleAggregateSettings.splitShipping ? 'Bundle' : ''"
+                  active-color="#48bb78"
+                  inactive-color="#ed8936"
+                />
+                <div class="shipping-explanation">
+                  <div class="explanation-text" v-if="bundleAggregateSettings.splitShipping">
+                    <el-icon class="explanation-icon"><Operation /></el-icon>
+                    <span>Allocate by sub-product SKUs</span>
+                  </div>
+                  <div class="explanation-text" v-else>
+                    <el-icon class="explanation-icon"><Box /></el-icon>
+                    <span>Allocate by bundle SKU</span>
+                  </div>
+                </div>
+              </div>
             </template>
           </el-table-column>
           
@@ -960,7 +1087,10 @@ import {
   Money,
   CircleCheck,
   DocumentAdd,
-  Check
+  Check,
+  DataAnalysis,
+  WarningFilled,
+  Operation
 } from '@element-plus/icons-vue';
 
 interface SellingForm {
@@ -1016,6 +1146,7 @@ interface BundleItem {
   sku: string;
   name: string;
   quantity: number;
+  quantityUnit: string;
   salesPrice: number;
   priceUnit: string;
   discountPrice: number;
@@ -2053,7 +2184,9 @@ const updateParent = () => {
         sku,
         quantity: bundleQuantities.value[sku] || 1
       })),
-      singleVariant: singleVariant.value
+      singleVariant: singleVariant.value,
+      selectedAttributes: selectedAttributes.value,
+      skuList: skuList.value
     };
     emit('update:modelValue', value);
   });
@@ -2092,6 +2225,7 @@ watch(() => selectedBundleProducts.value, (newSkus) => {
   updateBundleTableData();
 }, { deep: true });
 
+
 // 更新组合品表格数据
 const updateBundleTableData = () => {
   bundleTableData.value = selectedBundleProducts.value.map(sku => {
@@ -2100,6 +2234,7 @@ const updateBundleTableData = () => {
       sku,
       name: product?.name || `Product ${sku}`,
       quantity: bundleQuantities.value[sku] || 1,
+      quantityUnit: 'PCS', // 默认单位
       // 销售价格和折扣价格都使用聚合设置
       salesPrice: bundleAggregateSettings.value.salesPrice,
       priceUnit: bundleAggregateSettings.value.priceUnit,
@@ -3518,6 +3653,20 @@ onMounted(() => {
           color: #63b3ed;
         }
       }
+    }
+    
+    // 数量组样式
+    &.quantity-group {
+      gap: 8px;
+      align-items: center;
+      flex-wrap: nowrap;
+      
+      .el-input-number {
+        :deep(.el-input__inner) {
+          font-weight: 600;
+          color: #9f7aea;
+        }
+      }
       
       &.compact {
         gap: 4px;
@@ -3529,22 +3678,68 @@ onMounted(() => {
           flex: 1 1 60%;
           min-width: 80px !important;
           max-width: 60% !important;
+          
+          :deep(.el-input__inner) {
+            background: #4a5568;
+            border-color: #4a5568;
+            color: #9f7aea;
+            text-align: center;
+            font-weight: 600;
+            padding: 0 6px;
+            
+            &:focus {
+              border-color: #48bb78;
+            }
+          }
+          
+          :deep(.el-input-number__increase),
+          :deep(.el-input-number__decrease) {
+            display: none !important;
+          }
+        }
+        
+        .el-select {
+          flex: 0 0 38%;
+          min-width: 70px !important;
+          max-width: 38% !important;
+          
+          :deep(.el-input__inner) {
+            font-weight: 600;
+            color: #f6ad55;
+            padding: 0 6px;
+          }
+        }
+      }
+    }
+    
+    // 库存组样式继续
+    &.inventory-group {      
+      &.compact {
+        gap: 4px;
+        justify-content: space-between;
+        flex-wrap: nowrap !important;
+        min-width: 180px;
+        
+        .el-input-number {
+          flex: 1 1 60%;
+          min-width: 80px !important;
+          max-width: 60% !important;
       
-      :deep(.el-input__inner) {
-        background: #4a5568;
-        border-color: #4a5568;
+          :deep(.el-input__inner) {
+            background: #4a5568;
+            border-color: #4a5568;
             color: #63b3ed;
-        text-align: center;
+            text-align: center;
             font-weight: 600;
             padding: 0 6px;
         
-        &:focus {
-          border-color: #48bb78;
-        }
-      }
+            &:focus {
+              border-color: #48bb78;
+            }
+          }
       
-      :deep(.el-input-number__increase),
-      :deep(.el-input-number__decrease) {
+          :deep(.el-input-number__increase),
+          :deep(.el-input-number__decrease) {
             display: none !important;
           }
         }
@@ -4189,12 +4384,18 @@ onMounted(() => {
     }
   }
   
-  .bundle-table-section {
+  .bundle-section {
+    padding: 24px;
+    background: #1a202c;
+    border-radius: 12px;
+    border: 1px solid #2d3748;
+    margin-top: 24px;
+    
     .bundle-product-selector {
-      margin-bottom: 20px;
+      margin-bottom: 32px;
       
       .selector-header {
-        margin-bottom: 12px;
+        margin-bottom: 16px;
         
         .selector-title {
           font-size: 16px;
@@ -4204,13 +4405,17 @@ onMounted(() => {
       }
       
       .preset-bundles {
-        margin-top: 16px;
+        margin-top: 24px;
+        padding: 20px;
+        background: #2d3748;
+        border-radius: 8px;
+        border: 1px solid #4a5568;
         
         .preset-title {
           font-size: 14px;
           font-weight: 500;
           color: #a0aec0;
-          margin-bottom: 8px;
+          margin-bottom: 16px;
         }
         
         .preset-buttons {
@@ -4241,11 +4446,17 @@ onMounted(() => {
     }
     
     .bundle-table-container {
+      margin-top: 32px;
+      
       .table-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-bottom: 16px;
+        margin-bottom: 24px;
+        padding: 20px 24px;
+        background: #2d3748;
+        border-radius: 8px;
+        border: 1px solid #4a5568;
         
         span {
           font-size: 16px;
@@ -4257,16 +4468,30 @@ onMounted(() => {
           .batch-quantity-setting {
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 16px;
+            padding: 8px 12px;
+            background: #1a202c;
+            border-radius: 6px;
+            border: 1px solid #4a5568;
             
             label {
               font-size: 14px;
               color: #cbd5e0;
               white-space: nowrap;
+              font-weight: 500;
+            }
+            
+            .el-input-number {
+              :deep(.el-input__inner) {
+                background: #4a5568;
+                border-color: #4a5568;
+                color: #e2e8f0;
+              }
             }
             
             .el-button {
-              margin-left: 4px;
+              margin-left: 12px;
+              padding: 8px 16px;
             }
           }
         }
@@ -4477,6 +4702,225 @@ onMounted(() => {
           border-color: #a0aec0;
           color: #a0aec0;
           cursor: not-allowed;
+        }
+      }
+    }
+  }
+}
+
+// Bundle 表格优化样式
+.column-header-with-tooltip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  
+  .tooltip-icon {
+    color: #63b3ed;
+    cursor: help;
+    font-size: 14px;
+    opacity: 0.8;
+    
+    &:hover {
+      opacity: 1;
+      color: #4299e1;
+    }
+  }
+}
+
+// Tooltip 内容样式
+:deep(.el-tooltip__popper) {
+  .tooltip-content {
+    max-width: 320px;
+    padding: 4px 0;
+    
+    .tooltip-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #ffffff;
+      margin-bottom: 12px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    
+    .tooltip-item {
+      margin-bottom: 12px;
+      line-height: 1.6;
+      
+      &:last-child {
+        margin-bottom: 0;
+      }
+      
+      strong {
+        color: #48bb78;
+        font-weight: 600;
+      }
+      
+      em {
+        color: #cbd5e0;
+        font-style: italic;
+        font-size: 12px;
+        display: block;
+        margin-top: 4px;
+      }
+      
+      br {
+        margin: 4px 0;
+      }
+    }
+  }
+}
+
+// Inventory Type 样式
+.inventory-type-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  
+  .compact-radio-group {
+    :deep(.el-radio-button) {
+      .el-radio-button__inner {
+        padding: 8px 12px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        min-height: 60px;
+        
+        .radio-content-vertical {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 4px;
+          
+          .radio-title {
+            font-size: 12px;
+            font-weight: 600;
+            line-height: 1.2;
+          }
+          
+          .radio-desc {
+            font-size: 10px;
+            opacity: 0.8;
+            line-height: 1;
+          }
+        }
+      }
+      
+      &.is-active {
+        .el-radio-button__inner {
+          background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+          border-color: #48bb78;
+          color: white;
+          
+          .radio-content-vertical {
+            .radio-title,
+            .radio-desc {
+              color: white;
+            }
+          }
+        }
+      }
+    }
+  }
+  
+  .inventory-formula {
+    padding: 8px 12px;
+    background: rgba(72, 187, 120, 0.1);
+    border: 1px solid rgba(72, 187, 120, 0.3);
+    border-radius: 6px;
+    
+    .formula-text {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      color: #48bb78;
+      font-weight: 500;
+      
+      .formula-icon {
+        font-size: 12px;
+        color: #48bb78;
+      }
+    }
+  }
+  
+  .inventory-notice {
+    padding: 8px 12px;
+    background: rgba(237, 137, 54, 0.1);
+    border: 1px solid rgba(237, 137, 54, 0.3);
+    border-radius: 6px;
+    
+    .notice-text {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      color: #ed8936;
+      font-weight: 500;
+      
+      .notice-icon {
+        font-size: 12px;
+        color: #ed8936;
+      }
+    }
+  }
+}
+
+// Split Shipping 样式
+.split-shipping-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  
+  .el-switch {
+    :deep(.el-switch__label) {
+      font-size: 11px;
+      font-weight: 500;
+    }
+    
+    :deep(.el-switch__label--left) {
+      color: #ed8936;
+    }
+    
+    :deep(.el-switch__label--right) {
+      color: #48bb78;
+    }
+  }
+  
+  .shipping-explanation {
+    .explanation-text {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 10px;
+      font-weight: 500;
+      padding: 4px 8px;
+      border-radius: 4px;
+      transition: all 0.2s ease;
+      
+      .explanation-icon {
+        font-size: 11px;
+      }
+      
+      &:has(.explanation-icon) {
+        &:nth-child(1) {
+          background: rgba(72, 187, 120, 0.1);
+          color: #48bb78;
+          border: 1px solid rgba(72, 187, 120, 0.2);
+          
+          .explanation-icon {
+            color: #48bb78;
+          }
+        }
+        
+        &:nth-child(2) {
+          background: rgba(237, 137, 54, 0.1);
+          color: #ed8936;
+          border: 1px solid rgba(237, 137, 54, 0.2);
+          
+          .explanation-icon {
+            color: #ed8936;
+          }
         }
       }
     }

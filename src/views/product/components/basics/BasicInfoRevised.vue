@@ -256,43 +256,101 @@
           class="basic-form"
         >
         <el-form-item label="Main Images" required class="form-item">
-          <div class="image-upload-area">
-            <el-upload
-              v-model:file-list="mainImageFiles"
-              action="#"
-              list-type="picture-card"
-              :limit="5"
-              :auto-upload="false"
-              accept="image/*"
-              class="main-upload"
-            >
-              <el-icon class="upload-icon"><Plus /></el-icon>
-            </el-upload>
-            <div class="upload-info">
-              <div class="info-title">Image Requirements</div>
-              <ul class="info-list">
-                <li>Upload up to 5 main product images</li>
-                <li>Recommended size: 1000x1000px or higher</li>
-                <li>Supported formats: JPG, PNG, WebP</li>
-                <li>File size: Max 5MB per image</li>
-              </ul>
+          <div class="main-image-section">
+            <div class="main-image-tips">
+              <span class="tip-text">Upload up to 5 main product images • Recommended size: 1000x1000px • Supported formats: JPG, PNG, WebP • Max 5MB per image</span>
+            </div>
+            <div class="image-upload-area">
+              <el-upload
+                v-model:file-list="mainImageFiles"
+                action="#"
+                list-type="picture-card"
+                :limit="5"
+                :auto-upload="false"
+                accept="image/*"
+                class="main-upload"
+              >
+                <el-icon class="upload-icon"><Plus /></el-icon>
+              </el-upload>
             </div>
           </div>
         </el-form-item>
 
-        <el-form-item label="Additional Images" class="form-item">
-          <el-upload
-            v-model:file-list="additionalImageFiles"
-            action="#"
-            list-type="picture-card"
-            :limit="10"
-            :auto-upload="false"
-            accept="image/*"
-            class="additional-upload"
-          >
-            <el-icon class="upload-icon"><Plus /></el-icon>
-          </el-upload>
+        <!-- SKU Images List -->
+        <el-form-item label="SKU Images" class="form-item">
+          <div class="sku-section">
+            <div class="sku-upload-tips">
+              <div class="tip-title">SKU Image Upload Requirements</div>
+              <div class="tips-grid">
+                <div class="tip-item">
+                  <span class="tip-label">Image formats:</span>
+                  <span class="tip-value">JPG, JPEG, PNG</span>
+                </div>
+                <div class="tip-item">
+                  <span class="tip-label">Image size:</span>
+                  <span class="tip-value">Max 3MB per image</span>
+                </div>
+                <div class="tip-item">
+                  <span class="tip-label">Recommended dimensions:</span>
+                  <span class="tip-value">800x800 pixels</span>
+                </div>
+                <div class="tip-item">
+                  <span class="tip-label">Drag to reorder images</span>
+                </div>
+                <div class="tip-item">
+                  <span class="tip-label">Maximum 10 images per SKU</span>
+                </div>
+              </div>
+            </div>
+            
+            <div class="sku-table-container">
+              <table class="sku-images-table">
+                <thead>
+                  <tr>
+                    <th class="sku-column">SKU Specification</th>
+                    <th class="images-column">Images (Max 10)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="sku-cell">SKU001-RED-L</td>
+                    <td class="images-cell">
+                      <div class="upload-section">
+                        <button class="upload-btn">
+                          + Upload Images
+                        </button>
+                        <span class="upload-count">0/10</span>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td class="sku-cell">SKU001-BLUE-M</td>
+                    <td class="images-cell">
+                      <div class="upload-section">
+                        <button class="upload-btn">
+                          + Upload Images
+                        </button>
+                        <span class="upload-count">0/10</span>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td class="sku-cell">SKU001-GREEN-S</td>
+                    <td class="images-cell">
+                      <div class="upload-section">
+                        <button class="upload-btn">
+                          + Upload Images
+                        </button>
+                        <span class="upload-count">0/10</span>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
         </el-form-item>
+
         </el-form>
       </div>
     </div>
@@ -455,113 +513,11 @@
       </div>
     </div>
 
-    <!-- 7. Supplier Information -->
-    <div class="info-section">
-      <div class="section-title">
-        <el-icon class="title-icon"><User /></el-icon>
-        <span>Supplier Information</span>
-      </div>
-      
-      <div class="section-content">
-        <el-form 
-          :model="form" 
-          label-position="right"
-          label-width="200px"
-          class="basic-form"
-        >
-        <el-row :gutter="24">
-          <el-col :span="12">
-            <el-form-item label="Supplier Name" class="form-item">
-              <el-input
-                v-model="form.supplierInfo.name"
-                placeholder="Enter supplier name"
-                size="large"
-              />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="Supplier Code" class="form-item">
-              <el-input
-                v-model="form.supplierInfo.code"
-                placeholder="Enter supplier code"
-                size="large"
-              />
-            </el-form-item>
-          </el-col>
-        </el-row>
-
-        <el-row :gutter="24">
-          <el-col :span="8">
-            <el-form-item label="Contact Person" class="form-item">
-              <el-input
-                v-model="form.supplierInfo.contactPerson"
-                placeholder="Contact name"
-                size="large"
-              />
-            </el-form-item>
-          </el-col>
-          <el-col :span="8">
-            <el-form-item label="Email" class="form-item">
-              <el-input
-                v-model="form.supplierInfo.email"
-                placeholder="email@example.com"
-                type="email"
-                size="large"
-              />
-            </el-form-item>
-          </el-col>
-          <el-col :span="8">
-            <el-form-item label="Phone" class="form-item">
-              <el-input
-                v-model="form.supplierInfo.phone"
-                placeholder="Phone number"
-                size="large"
-              />
-            </el-form-item>
-          </el-col>
-        </el-row>
-
-        <el-form-item label="Address" class="form-item">
-          <el-input
-            v-model="form.supplierInfo.address"
-            type="textarea"
-            :rows="3"
-            placeholder="Supplier address"
-          />
-        </el-form-item>
-
-        <el-row :gutter="24">
-          <el-col :span="12">
-            <el-form-item label="Lead Time (days)" class="form-item">
-              <el-input-number
-                v-model="form.supplierInfo.leadTime"
-                :min="1"
-                placeholder="Days"
-                size="large"
-                style="width: 100%"
-              />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="Minimum Order Quantity" class="form-item">
-              <el-input-number
-                v-model="form.supplierInfo.moq"
-                :min="1"
-                placeholder="MOQ"
-                size="large"
-                style="width: 100%"
-              />
-            </el-form-item>
-          </el-col>
-        </el-row>
-        </el-form>
-      </div>
-    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import CategorySelector from '../CategorySelectorSimple.vue';
 import DynamicAttributes from '../DynamicAttributes.vue';
 import SalesAttributes from '../SalesAttributes.vue';
@@ -573,7 +529,8 @@ import {
   Plus, 
   Delete, 
   Upload,
-  User
+  User,
+  ArrowDown
 } from '@element-plus/icons-vue';
 import type { Product } from '@/types/product';
 
@@ -600,8 +557,10 @@ const salesAttributesValue = ref({
 
 // Refs for file uploads
 const mainImageFiles = ref([]);
-const additionalImageFiles = ref([]);
 const videoFiles = ref([]);
+
+
+
 
 // 品牌数据
 const brands = ['Nike', 'Adidas', 'Apple', 'Samsung', 'Sony', 'Canon'];
@@ -612,6 +571,7 @@ const brands = ['Nike', 'Adidas', 'Apple', 'Samsung', 'Sony', 'Canon'];
 const keywords = ref([]);
 
 // 动态属性管理由 DynamicAttributes 组件处理
+
 
 // 销售属性相关函数已移至 SalesAttributes 组件中
 </script>
@@ -896,44 +856,30 @@ const keywords = ref([]);
   }
 }
 
-// Image Upload
-.image-upload-area {
-  display: flex;
-  gap: 32px;
-  align-items: flex-start;
-}
-
-.main-upload {
-  flex-shrink: 0;
-}
-
-.upload-info {
-  flex: 1;
-  padding: 20px;
-  background: #2d3748;
-  border-radius: 8px;
-  border: 1px solid #4a5568;
+// Main Image Upload
+.main-image-section {
+  width: 100%;
   
-  .info-title {
-    font-size: 14px;
-    font-weight: 600;
-    color: #e2e8f0;
-    margin-bottom: 12px;
+  .main-image-tips {
+    background: #374151;
+    border-radius: 6px;
+    padding: 12px 16px;
+    margin-bottom: 16px;
+    border: 1px solid #4a5568;
+    
+    .tip-text {
+      color: #cbd5e0;
+      font-size: 13px;
+      line-height: 1.4;
+    }
   }
   
-  .info-list {
-    margin: 0;
-    padding-left: 16px;
-    color: #a0aec0;
-    font-size: 13px;
+  .image-upload-area {
+    display: flex;
+    justify-content: flex-start;
     
-    li {
-      margin-bottom: 6px;
-      line-height: 1.4;
-      
-      &:last-child {
-        margin-bottom: 0;
-      }
+    .main-upload {
+      flex-shrink: 0;
     }
   }
 }
@@ -1171,6 +1117,143 @@ const keywords = ref([]);
   }
 }
 
+// SKU Images Section
+.sku-section {
+  width: 100%;
+  
+  .sku-upload-tips {
+    background: #374151;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+    border: 1px solid #4a5568;
+    
+    .tip-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: #63b3ed;
+      margin-bottom: 16px;
+    }
+    
+    .tips-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 12px;
+      
+      .tip-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: #cbd5e0;
+        font-size: 14px;
+        
+        .tip-label {
+          font-weight: 500;
+          color: #e2e8f0;
+        }
+        
+        .tip-value {
+          color: #63b3ed;
+          font-weight: 500;
+        }
+      }
+    }
+  }
+  
+  .sku-table-container {
+    background: #2d3748;
+    border-radius: 8px;
+    padding: 0;
+    border: 1px solid #4a5568;
+    overflow: hidden;
+    
+    .sku-images-table {
+      width: 100%;
+      min-width: 800px;
+      border-collapse: collapse;
+      
+      th, td {
+        border: 1px solid #4a5568;
+        padding: 16px;
+        text-align: left;
+        vertical-align: middle;
+      }
+      
+      .sku-column {
+        width: 300px;
+        background-color: #374151;
+        font-weight: 600;
+        color: #e2e8f0;
+        font-size: 14px;
+      }
+      
+      .images-column {
+        width: 500px;
+        background-color: #374151;
+        font-weight: 600;
+        color: #e2e8f0;
+        font-size: 14px;
+      }
+      
+      .sku-cell {
+        color: #cbd5e0;
+        background-color: #2d3748;
+        font-weight: 500;
+        font-size: 14px;
+      }
+      
+      .images-cell {
+        background-color: #2d3748;
+        padding: 20px 16px;
+      }
+      
+      tr:nth-child(even) {
+        .sku-cell, .images-cell {
+          background-color: #374151;
+        }
+      }
+      
+      tr:hover {
+        .sku-cell, .images-cell {
+          background-color: #4a5568;
+        }
+      }
+      
+      .upload-section {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        
+        .upload-btn {
+          background: #63b3ed;
+          color: white;
+          border: none;
+          padding: 10px 20px;
+          border-radius: 6px;
+          cursor: pointer;
+          font-size: 14px;
+          font-weight: 500;
+          transition: all 0.3s;
+          
+          &:hover {
+            background: #4299e1;
+            transform: translateY(-1px);
+          }
+        }
+        
+        .upload-count {
+          color: #a0aec0;
+          font-size: 13px;
+          font-weight: 500;
+          background: #4a5568;
+          padding: 4px 12px;
+          border-radius: 12px;
+        }
+      }
+    }
+  }
+}
+
 // Responsive Design
 @media (max-width: 768px) {
   .basic-info-container {
@@ -1192,6 +1275,21 @@ const keywords = ref([]);
     
     .dimension-separator {
       display: none;
+    }
+  }
+  
+  .sku-images-container {
+    .sku-images-table {
+      :deep(.el-table) {
+        font-size: 12px;
+      }
+    }
+    
+    .image-cell {
+      .sku-image-preview {
+        width: 40px;
+        height: 40px;
+      }
     }
   }
 }
@@ -1233,4 +1331,5 @@ const keywords = ref([]);
     line-height: 1.2;
   }
 }
+
 </style>

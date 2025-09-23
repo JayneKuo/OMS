@@ -1,202 +1,184 @@
-import {
-  Location,
-  Document,
-  Ship,
-  Files,
-  ShoppingCart,
-  Setting,
-  Operation,
-  Box,
-  Grid,
-  Share,
-  Goods,
-  TrendCharts,
-  Message,
-  List,
-  Search,
-  DataLine,
-  Timer,
-  Warning,
-  Connection,
-  Edit,
-  Refresh,
-  HomeFilled,
-  Van,
-  ShoppingBag,
-  Calendar,
-  Link,
-  Monitor,
-  Menu
-} from '@element-plus/icons-vue'
 import type { MenuItem } from '@/types/menu'
 
 export const menuConfig: MenuItem[] = [
   {
     title: 'Dashboard',
     path: '/dashboard',
-    icon: Monitor
+    icon: 'Monitor'
   },
   {
     title: 'Orders',
     path: '/order',
-    icon: ShoppingCart,
+    icon: 'ShoppingCart',
     children: [
       {
         title: 'Sales Orders New',
         path: '/order/sales-orders-new',
-        icon: Document
+        icon: 'Document'
       },
       {
         title: 'Sales Order',
         path: '/order/sales',
-        icon: Document
+        icon: 'Document'
       },
       {
         title: 'Shipment',
         path: '/order/shipment',
-        icon: Ship
+        icon: 'Ship'
       },
       {
         title: 'AI Order Tracking Assistant',
         path: '/order/ai-tracelink',
-        icon: Connection
+        icon: 'Connection'
       }
     ]
   },
   {
     title: 'Returns',
     path: '/return',
-    icon: Box,
+    icon: 'Box',
     children: [
       {
         title: 'Return Orders',
         path: '/return/order',
-        icon: Document
+        icon: 'Document'
       }
     ]
   },
   {
     title: 'Purchase',
     path: '/purchase',
-    icon: ShoppingBag,
+    icon: 'ShoppingBag',
     children: [
       {
         title: 'Purchase Orders',
         path: '/purchase/orders',
-        icon: Document
+        icon: 'Document'
       },
       {
         title: 'Order Tracking',
         path: '/purchase/tracking',
-        icon: Location
+        icon: 'Location'
       },
       {
         title: 'Transfer Orders',
         path: '/purchase/transfer',
-        icon: Share
+        icon: 'Share'
       },
       {
         title: 'Arrivals',
         path: '/purchase/arrivals',
-        icon: Van
+        icon: 'Van'
       },
       {
         title: 'Receipts',
         path: '/purchase/receipts',
-        icon: Files
+        icon: 'Folder'
       }
     ]
   },
   {
     title: 'Logistics',
     path: '/logistics',
-    icon: Van,
+    icon: 'Van',
     children: [
       {
         title: 'Shipments',
         path: '/logistics/shipments',
-        icon: Ship
+        icon: 'Ship'
       },
       {
         title: 'Carriers',
         path: '/logistics/carriers',
-        icon: Files
+        icon: 'Folder'
       },
       {
         title: 'Tracking',
         path: '/logistics/tracking',
-        icon: Location
+        icon: 'Location'
       }
     ]
   },
   {
     title: 'Inventory',
     path: '/warehouse',
-    icon: Box,
+    icon: 'Box',
     children: [
       {
         title: 'Warehouse List',
         path: '/warehouse/list',
-        icon: Files
+        icon: 'Folder'
       },
       {
         title: 'Inventory',
         path: '/warehouse/inventory',
-        icon: Goods
+        icon: 'Goods'
       },
       {
         title: 'Store Inventory',
         path: '/foundation-data/store-inventory',
-        icon: ShoppingCart
+        icon: 'ShoppingCart'
       },
       {
         title: 'Zipcode Range',
         path: '/warehouse/zipcode-range',
-        icon: Location
+        icon: 'Location'
       },
       {
         title: 'Inventory',
         path: '/foundation-data/inventory',
-        icon: Goods
+        icon: 'Goods'
       }
     ]
   },
   {
     title: 'Product',
     path: '/product',
-    icon: Goods,
+    icon: 'Goods',
     children: [
       {
         title: 'Product List',
         path: '/product/list',
-        icon: Files
+        icon: 'Folder'
       },
       {
         title: 'Categories',
         path: '/product/category',
-        icon: Menu
+        icon: 'Menu'
       },
       {
         title: 'Brands',
         path: '/product/brand',
-        icon: ShoppingBag
+        icon: 'ShoppingBag'
+      },
+      {
+        title: 'Channel Product',
+        path: '/product/channel',
+        icon: 'Connection',
+        children: [
+          {
+            title: 'Shein Product List',
+            path: '/product/channel/shein',
+            icon: 'List'
+          }
+        ]
       }
     ]
   },
   {
     title: 'Events',
     path: '/events',
-    icon: Calendar,
+    icon: 'Calendar',
     children: [
       {
         title: 'Order Updates',
         path: '/events/order-updates',
-        icon: Refresh
+        icon: 'Refresh'
       },
       {
         title: 'Order Logs',
         path: '/events/order-logs',
-        icon: List
+        icon: 'List'
       },
       {
         title: 'Exception Logs',
@@ -204,7 +186,7 @@ export const menuConfig: MenuItem[] = [
         meta: {
           activeMenu: '/events'
         },
-        icon: List
+        icon: 'List'
       },
       {
         title: 'Query Tool',
@@ -212,66 +194,66 @@ export const menuConfig: MenuItem[] = [
         meta: {
           activeMenu: '/events'
         },
-        icon: Search
+        icon: 'Search'
       }
     ]
   },
   {
     title: 'Integrations',
-    icon: Connection,
+    icon: 'Connection',
     path: '/integration/connections'
   },
   {
     title: 'POM',
     path: '/customs',
-    icon: Location,
+    icon: 'Location',
     children: [
       {
         title: 'ISF',
         path: '/customs/isf',
-        icon: Ship
+        icon: 'Ship'
       },
       {
         title: 'T86',
         path: '/customs/t86',
-        icon: Files
+        icon: 'Folder'
       },
       {
         title: 'Form 3461',
         path: '/customs/form3461',
-        icon: Document
+        icon: 'Document'
       },
       {
         title: 'FTZ e-214',
         path: '/customs/ftze214',
-        icon: Document
+        icon: 'Document'
       }
     ]
   },
   {
     title: 'Automation',
     path: '/settings',
-    icon: Setting,
+    icon: 'Setting',
     children: [
       {
         title: 'Order Automations',
         path: '/settings/order-automations',
-        icon: Operation
+        icon: 'Operation'
       },
       {
         title: 'Rules',
         path: '/settings/automation',
-        icon: Operation
+        icon: 'Operation'
       },
       {
         title: 'Email Configuration',
         path: '/settings/email-config',
-        icon: Message
+        icon: 'Message'
       },
       {
         title: 'Event Callback Routing',
         path: '/settings/event-callback',
-        icon: Connection
+        icon: 'Connection'
       },
       {
         title: 'Mapping',
@@ -279,7 +261,7 @@ export const menuConfig: MenuItem[] = [
         meta: {
           activeMenu: '/settings'
         },
-        icon: Share
+        icon: 'Share'
       },
       {
         title: 'Inventory Sync Rules',
@@ -287,7 +269,7 @@ export const menuConfig: MenuItem[] = [
         meta: {
           activeMenu: '/settings'
         },
-        icon: TrendCharts
+        icon: 'TrendCharts'
       },
       {
         title: 'Order Update Settings',
@@ -295,61 +277,61 @@ export const menuConfig: MenuItem[] = [
         meta: {
           activeMenu: '/settings'
         },
-        icon: Edit
+        icon: 'Edit'
       },
       {
         title: 'Safety Stock Settings',
         path: '/settings/safety-stock',
-        icon: Warning
+        icon: 'Warning'
       }
     ]
   },
   {
     title: 'Customer Management',
     path: '/customer',
-    icon: List,
+    icon: 'List',
     children: [
       {
         title: 'Customer List',
         path: '/customer/list',
-        icon: Files
+        icon: 'Folder'
       },
       {
         title: 'Customer Groups',
         path: '/customer/groups',
-        icon: Grid
+        icon: 'Grid'
       },
       {
         title: 'Customer Levels',
         path: '/customer/level',
-        icon: TrendCharts
+        icon: 'TrendCharts'
       },
       {
         title: 'Customer Tags',
         path: '/customer/tags',
-        icon: Operation
+        icon: 'Operation'
       },
       {
         title: 'Customer Analytics',
         path: '/customer/analysis',
-        icon: DataLine
+        icon: 'DataLine'
       },
       {
         title: 'Import/Export',
         path: '/customer/import-export',
-        icon: Share
+        icon: 'Share'
       }
     ]
   },
   {
     title: 'Merchant Management',
     path: '/merchant',
-    icon: ShoppingBag,
+    icon: 'ShoppingBag',
     children: [
       {
         title: 'Merchant List',
         path: '/merchant/list',
-        icon: Files
+        icon: 'Folder'
       }
     ]
   }
