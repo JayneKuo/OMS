@@ -541,6 +541,14 @@ const routes: RouteRecordRaw[] = [
             }
           },
           {
+            path: 'create',
+            name: 'ProductCreate',
+            component: () => import('@/views/product/create.vue'),
+            meta: {
+              title: 'Create Product'
+            }
+          },
+          {
             path: 'channel',
             name: 'ProductChannelList',
             component: () => import('@/layouts/RouterView.vue'),
@@ -562,6 +570,14 @@ const routes: RouteRecordRaw[] = [
                 }
               }
             ]
+          },
+          {
+            path: ':id',
+            name: 'ProductDetail',
+            component: () => import('@/views/product/detail.vue'),
+            meta: {
+              title: 'Product Detail'
+            }
           }
         ]
       }

@@ -126,10 +126,13 @@
     <!-- 数据表格 -->
     <div class="table-section">
       <el-table 
+        ref="tableRef"
         :data="tableData" 
         style="width: 100%"
         v-loading="loading"
         :row-class-name="tableRowClassName"
+        :expand-row-keys="expandedRows"
+        :row-key="(row) => row.sku"
         @row-click="handleRowClick"
         @expand-change="handleExpandChange">
         <el-table-column type="selection" width="55" fixed="left" />
@@ -143,9 +146,9 @@
                 <template v-for="col in visibleColumns" :key="col.prop">
                   <el-table-column v-bind="col">
                     <template #default="{ row: childRow }">
-                      <template v-if="col.prop === 'available'">
-                        <span :class="['quantity', childRow.available < 0 ? 'negative' : '']">
-                          {{ childRow.available }}
+                      <template v-if="['salable', 'fulfillable', 'wmsAvailable', 'onHand', 'openOrder', 'locked', 'allocated', 'safetyStock', 'wmsOpenOrder', 'wmsAllocate', 'incoming', 'receiving', 'hold', 'damaged'].includes(col.prop)">
+                        <span :class="['quantity', childRow[col.prop] < 0 ? 'negative' : '']">
+                          {{ childRow[col.prop] }}
                         </span>
                       </template>
                       <template v-else-if="col.prop === 'lastEvent'">
@@ -174,9 +177,9 @@
                   {{ row.sku }}
                 </div>
               </template>
-              <template v-else-if="col.prop === 'available'">
-                <span :class="['quantity', row.available < 0 ? 'negative' : '']">
-                  {{ row.available }}
+              <template v-else-if="['salable', 'fulfillable', 'wmsAvailable', 'onHand', 'openOrder', 'locked', 'allocated', 'safetyStock', 'wmsOpenOrder', 'wmsAllocate', 'incoming', 'receiving', 'hold', 'damaged'].includes(col.prop)">
+                <span :class="['quantity', row[col.prop] < 0 ? 'negative' : '']">
+                  {{ row[col.prop] }}
                 </span>
               </template>
               <template v-else-if="col.prop === 'lastEvent'">
@@ -257,6 +260,9 @@ import type { TableColumnCtx } from 'element-plus'
 
 const router = useRouter()
 
+// 表格引用
+const tableRef = ref()
+
 // 导入所需图标
 const icons = {
   CaretRight: markRaw(ElementPlusIconsVue.CaretRight),
@@ -271,13 +277,21 @@ const icons = {
 // 类型定义
 interface InventoryItem {
   sku: string
-  name: string
   location: string
-  available: number
-  committed: number
+  salable: number
+  fulfillable: number
+  wmsAvailable: number
   onHand: number
-  inbound: number
-  sourceIntegration: string
+  openOrder: number
+  locked: number
+  allocated: number
+  safetyStock: number
+  wmsOpenOrder: number
+  wmsAllocate: number
+  incoming: number
+  receiving: number
+  hold: number
+  damaged: number
   lastEvent: string
   updated: string
   adjustedBy: string
@@ -297,40 +311,39 @@ const locations = [
 // 列配置
 const allColumns = [
   { prop: 'sku', label: 'SKU', minWidth: 120, fixed: 'left', showOverflowTooltip: true },
-  { prop: 'name', label: 'Name', minWidth: 150, showOverflowTooltip: true },
   { prop: 'location', label: 'Location', minWidth: 120, showOverflowTooltip: true },
-  { prop: 'available', label: 'Available', minWidth: 100, align: 'right' },
-  { prop: 'committed', label: 'Committed', minWidth: 100, align: 'right' },
+  { prop: 'salable', label: 'Salable', minWidth: 100, align: 'right' },
+  { prop: 'fulfillable', label: 'Fulfillable', minWidth: 100, align: 'right' },
   { prop: 'onHand', label: 'On Hand', minWidth: 100, align: 'right' },
-  { prop: 'inbound', label: 'Inbound', minWidth: 100, align: 'right' },
-  { prop: 'sourceIntegration', label: 'Source Integration', minWidth: 150, showOverflowTooltip: true },
+  { prop: 'wmsAvailable', label: 'WMS Available', minWidth: 120, align: 'right' },
+  { prop: 'wmsOpenOrder', label: 'WMS Open Order', minWidth: 130, align: 'right' },
+  { prop: 'openOrder', label: 'Open Order', minWidth: 100, align: 'right' },
+  { prop: 'locked', label: 'Locked', minWidth: 100, align: 'right' },
+  { prop: 'allocated', label: 'Allocated', minWidth: 100, align: 'right' },
+  { prop: 'safetyStock', label: 'Safety Stock', minWidth: 120, align: 'right' },
+  { prop: 'wmsAllocate', label: 'WMS Allocate', minWidth: 120, align: 'right' },
+  { prop: 'incoming', label: 'Incoming', minWidth: 100, align: 'right' },
+  { prop: 'receiving', label: 'Receiving', minWidth: 100, align: 'right' },
+  { prop: 'hold', label: 'Hold', minWidth: 100, align: 'right' },
+  { prop: 'damaged', label: 'Damaged', minWidth: 100, align: 'right' },
   { prop: 'lastEvent', label: 'Last Event', minWidth: 120, showOverflowTooltip: true },
   { prop: 'updated', label: 'Updated', minWidth: 160, showOverflowTooltip: true },
-  { prop: 'adjustedBy', label: 'Adjusted By', minWidth: 120, showOverflowTooltip: true },
-  { prop: 'vendorSku', label: 'Vendor SKU', minWidth: 120, showOverflowTooltip: true },
-  { prop: 'availableInbound', label: 'Avail + Inbound', minWidth: 120, align: 'right' },
-  { prop: 'future', label: 'Future', minWidth: 100, align: 'right' },
-  { prop: 'unavailable', label: 'Unavailable', minWidth: 100, align: 'right' },
-  { prop: 'committedFuture', label: 'Committed Future', minWidth: 130, align: 'right' },
-  { prop: 'commitShip', label: 'Commit Ship', minWidth: 120, align: 'right' },
-  { prop: 'commitTransfer', label: 'Commit Transfer', minWidth: 120, align: 'right' },
-  { prop: 'adjustQuantity', label: 'Adjust Quantity', minWidth: 120, align: 'right' },
-  { prop: 'lastOrder', label: 'Last Order', minWidth: 120, showOverflowTooltip: true },
-  { prop: 'lastEventEntity', label: 'Last Event Entity', minWidth: 130, showOverflowTooltip: true },
-  { prop: 'entityType', label: 'Entity Type', minWidth: 120, showOverflowTooltip: true },
-  { prop: 'created', label: 'Created', minWidth: 160, showOverflowTooltip: true },
-  { prop: 'doNotTrackInventory', label: 'Do Not Track Inventory', minWidth: 150 },
-  { prop: 'inventoryType', label: 'Inventory Type', minWidth: 120, showOverflowTooltip: true }
+  { prop: 'adjustedBy', label: 'Adjusted By', minWidth: 120, showOverflowTooltip: true }
 ]
 
 // 默认显示的列
 const defaultColumns = [
   'sku',
   'location',
-  'available',
-  'committed',
+  'salable',
+  'fulfillable',
   'onHand',
-  'inbound',
+  'wmsAvailable',
+  'wmsOpenOrder',
+  'openOrder',
+  'locked',
+  'allocated',
+  'safetyStock',
   'lastEvent',
   'updated',
   'adjustedBy'
@@ -462,19 +475,41 @@ const processTableData = (data: InventoryItem[]) => {
         location: 'Multiple',
         children: [],
         hasChildren: true,
-        available: 0,
-        committed: 0,
+        expanded: false,
+        salable: 0,
+        fulfillable: 0,
+        wmsAvailable: 0,
         onHand: 0,
-        inbound: 0
+        openOrder: 0,
+        locked: 0,
+        allocated: 0,
+        safetyStock: 0,
+        wmsOpenOrder: 0,
+        wmsAllocate: 0,
+        incoming: 0,
+        receiving: 0,
+        hold: 0,
+        damaged: 0
       })
     }
     const group = groupedData.get(item.sku)!
     group.children!.push(item)
-    group.available += item.available
-    group.committed += item.committed
+    group.salable += item.salable
+    group.fulfillable += item.fulfillable
+    group.wmsAvailable += item.wmsAvailable
     group.onHand += item.onHand
-    group.inbound += item.inbound
+    group.openOrder += item.openOrder
+    group.locked += item.locked
+    group.allocated += item.allocated
+    group.safetyStock += item.safetyStock
+    group.wmsOpenOrder += item.wmsOpenOrder
+    group.wmsAllocate += item.wmsAllocate
+    group.incoming += item.incoming
+    group.receiving += item.receiving
+    group.hold += item.hold
+    group.damaged += item.damaged
   })
+  
   return Array.from(groupedData.values())
 }
 
@@ -487,169 +522,289 @@ const tableRowClassName = ({ row }: { row: InventoryItem }) => {
 const initialData: InventoryItem[] = [
   {
     sku: 'CM007',
-    name: 'Camera',
     location: 'UNIS - 890',
-    available: -1,
-    committed: 0,
-    onHand: 0,
-    inbound: 0,
-    sourceIntegration: 'Inventory Engine',
+    salable: 5,
+    fulfillable: 3,
+    wmsAvailable: 8,
+    onHand: 10,
+    openOrder: 2,
+    locked: 1,
+    allocated: 4,
+    safetyStock: 5,
+    wmsOpenOrder: 3,
+    wmsAllocate: 2,
+    incoming: 15,
+    receiving: 8,
+    hold: 2,
+    damaged: 1,
     lastEvent: 'fulfill',
     updated: '07/23/2025 5:46 PM',
     adjustedBy: 'System'
   },
   {
     sku: 'CM007',
-    name: 'Camera',
     location: 'Fontana',
-    available: -1,
-    committed: 0,
-    onHand: 0,
-    inbound: 0,
-    sourceIntegration: 'Inventory Engine',
+    salable: 2,
+    fulfillable: 1,
+    wmsAvailable: 3,
+    onHand: 5,
+    openOrder: 1,
+    locked: 0,
+    allocated: 2,
+    safetyStock: 3,
+    wmsOpenOrder: 1,
+    wmsAllocate: 1,
+    incoming: 10,
+    receiving: 5,
+    hold: 1,
+    damaged: 0,
     lastEvent: 'shipCancel',
     updated: '07/18/2025 9:55 AM',
     adjustedBy: 'System'
   },
   {
     sku: 'FDKS8',
-    name: 'FDKS8',
     location: 'UNIS - 890',
-    available: -1,
-    committed: 0,
-    onHand: 0,
-    inbound: 0,
-    sourceIntegration: 'Inventory Engine',
+    salable: 8,
+    fulfillable: 6,
+    wmsAvailable: 12,
+    onHand: 15,
+    openOrder: 3,
+    locked: 2,
+    allocated: 5,
+    safetyStock: 8,
+    wmsOpenOrder: 4,
+    wmsAllocate: 3,
+    incoming: 20,
+    receiving: 12,
+    hold: 3,
+    damaged: 2,
     lastEvent: 'fulfill',
     updated: '07/28/2025 3:15 PM',
     adjustedBy: 'John'
   },
   {
     sku: 'HD003',
-    name: 'Headphones',
     location: 'UNIS - 890',
-    available: -1,
-    committed: 1,
-    onHand: 0,
-    inbound: 0,
-    sourceIntegration: 'Inventory Engine',
+    salable: 12,
+    fulfillable: 10,
+    wmsAvailable: 18,
+    onHand: 25,
+    openOrder: 5,
+    locked: 3,
+    allocated: 8,
+    safetyStock: 10,
+    wmsOpenOrder: 6,
+    wmsAllocate: 5,
+    incoming: 30,
+    receiving: 18,
+    hold: 4,
+    damaged: 3,
     lastEvent: 'release',
     updated: '07/22/2025 8:29 AM',
     adjustedBy: 'Mary'
   },
   {
     sku: 'LED008',
-    name: 'LED',
     location: 'Multiple',
-    available: -1,
-    committed: 1,
-    onHand: 0,
-    inbound: 0,
-    sourceIntegration: 'Manual',
+    salable: 15,
+    fulfillable: 12,
+    wmsAvailable: 22,
+    onHand: 30,
+    openOrder: 6,
+    locked: 4,
+    allocated: 10,
+    safetyStock: 12,
+    wmsOpenOrder: 8,
+    wmsAllocate: 6,
+    incoming: 40,
+    receiving: 25,
+    hold: 5,
+    damaged: 4,
     lastEvent: 'release',
     updated: '07/22/2025 5:29 PM',
     adjustedBy: 'System'
   },
   {
     sku: 'LPT001',
-    name: 'Laptop',
     location: 'UNIS - 890',
-    available: -1,
-    committed: 1,
-    onHand: 0,
-    inbound: 0,
-    sourceIntegration: 'Inventory Engine',
+    salable: 20,
+    fulfillable: 18,
+    wmsAvailable: 28,
+    onHand: 35,
+    openOrder: 8,
+    locked: 5,
+    allocated: 12,
+    safetyStock: 15,
+    wmsOpenOrder: 10,
+    wmsAllocate: 8,
+    incoming: 50,
+    receiving: 30,
+    hold: 6,
+    damaged: 5,
     lastEvent: 'release',
     updated: '07/22/2025 8:29 AM',
     adjustedBy: 'John'
   },
   {
     sku: 'Mac',
-    name: 'Mac',
     location: 'Multiple',
-    available: -179,
-    committed: 30,
-    onHand: 0,
-    inbound: 200,
-    sourceIntegration: 'System',
+    salable: 25,
+    fulfillable: 22,
+    wmsAvailable: 35,
+    onHand: 45,
+    openOrder: 10,
+    locked: 8,
+    allocated: 15,
+    safetyStock: 20,
+    wmsOpenOrder: 12,
+    wmsAllocate: 10,
+    incoming: 60,
+    receiving: 40,
+    hold: 8,
+    damaged: 6,
     lastEvent: 'adjust',
     updated: '07/17/2025 5:50 PM',
     adjustedBy: 'System'
   },
   {
     sku: 'SKU001',
-    name: 'SKU001',
     location: '01',
-    available: 997,
-    committed: 1,
+    salable: 997,
+    fulfillable: 995,
+    wmsAvailable: 1000,
     onHand: 998,
-    inbound: 10,
-    sourceIntegration: 'Inventory Engine',
+    openOrder: 15,
+    locked: 10,
+    allocated: 20,
+    safetyStock: 25,
+    wmsOpenOrder: 18,
+    wmsAllocate: 15,
+    incoming: 100,
+    receiving: 80,
+    hold: 12,
+    damaged: 8,
     lastEvent: 'xferin',
     updated: '07/17/2025 6:02 PM',
     adjustedBy: 'Mary'
   },
   {
     sku: 'TB310-2101-05-00',
-    name: 'TB310-2101-05-00',
     location: 'Fontana',
-    available: 0,
-    committed: 0,
+    salable: 0,
+    fulfillable: 0,
+    wmsAvailable: 0,
     onHand: 0,
-    inbound: 0,
-    sourceIntegration: 'Manual',
+    openOrder: 0,
+    locked: 0,
+    allocated: 0,
+    safetyStock: 0,
+    wmsOpenOrder: 0,
+    wmsAllocate: 0,
+    incoming: 0,
+    receiving: 0,
+    hold: 0,
+    damaged: 0,
     lastEvent: 'adjust',
     updated: '07/17/2025 5:34 PM',
     adjustedBy: '2210512470948@rmak.in'
   },
   {
     sku: 'U_eddie_1',
-    name: 'U_eddie_1',
     location: 'Fontana',
-    available: 0,
-    committed: 0,
+    salable: 0,
+    fulfillable: 0,
+    wmsAvailable: 0,
     onHand: 0,
-    inbound: 0,
-    sourceIntegration: 'Inventory Engine',
+    openOrder: 0,
+    locked: 0,
+    allocated: 0,
+    safetyStock: 0,
+    wmsOpenOrder: 0,
+    wmsAllocate: 0,
+    incoming: 0,
+    receiving: 0,
+    hold: 0,
+    damaged: 0,
     lastEvent: 'shipCancelRestock',
     updated: '07/18/2025 10:23 AM',
     adjustedBy: 'System'
   },
   {
     sku: 'hi5-bc-4pk-3-2',
-    name: 'hi5-bc-4pk-3-2',
     location: 'UNIS - 890',
-    available: -1,
-    committed: 1,
-    onHand: 0,
-    inbound: 0,
-    sourceIntegration: 'Inventory Engine',
+    salable: 3,
+    fulfillable: 2,
+    wmsAvailable: 5,
+    onHand: 8,
+    openOrder: 2,
+    locked: 1,
+    allocated: 3,
+    safetyStock: 4,
+    wmsOpenOrder: 2,
+    wmsAllocate: 1,
+    incoming: 12,
+    receiving: 8,
+    hold: 2,
+    damaged: 1,
     lastEvent: 'release',
     updated: '07/22/2025 8:29 AM',
     adjustedBy: 'John'
   },
   {
     sku: 'w_sample',
-    name: 's1',
     location: 'UNIS - 889',
-    available: 0,
-    committed: 0,
+    salable: 0,
+    fulfillable: 0,
+    wmsAvailable: 0,
     onHand: 0,
-    inbound: 0,
-    sourceIntegration: 'Inventory Engine',
+    openOrder: 0,
+    locked: 0,
+    allocated: 0,
+    safetyStock: 0,
+    wmsOpenOrder: 0,
+    wmsAllocate: 0,
+    incoming: 0,
+    receiving: 0,
+    hold: 0,
+    damaged: 0,
     lastEvent: 'shipCancelRestock',
     updated: '07/18/2025 10:23 AM',
     adjustedBy: 'System'
+  },
+  {
+    sku: 'CM007',
+    location: 'UNIS - 889',
+    salable: 3,
+    fulfillable: 2,
+    wmsAvailable: 5,
+    onHand: 8,
+    openOrder: 1,
+    locked: 0,
+    allocated: 2,
+    safetyStock: 3,
+    wmsOpenOrder: 1,
+    wmsAllocate: 1,
+    incoming: 10,
+    receiving: 5,
+    hold: 1,
+    damaged: 0,
+    lastEvent: 'adjust',
+    updated: '07/19/2025 2:30 PM',
+    adjustedBy: 'Admin'
   }
 ]
 
 // 表格数据
 const loading = ref(false)
 const tableData = ref<InventoryItem[]>([])
+const expandedRows = ref<string[]>([])
 
 // 搜索方法
 const handleSearch = async () => {
   loading.value = true
+  // 清空展开状态
+  expandedRows.value = []
   try {
     // 在实际应用中，这里会调用API
     // 现在我们直接处理本地数据
@@ -661,13 +816,13 @@ const handleSearch = async () => {
       if (searchForm.value.available) {
         switch (searchForm.value.available) {
           case 'out':
-            if (item.available >= 0) return false
+            if (item.salable >= 0) return false
             break
           case 'low':
-            if (item.available <= 0 || item.available > 10) return false
+            if (item.salable <= 0 || item.salable > 10) return false
             break
           case 'in':
-            if (item.available <= 0) return false
+            if (item.salable <= 0) return false
             break
         }
       }
@@ -744,7 +899,14 @@ const getEventTagType = (event: string) => {
 const handleRowClick = (row: InventoryItem) => {
   if (searchForm.value.groupBySku && row.children?.length) {
     // 如果是分组模式且有子项，则切换展开状态
-    row.expanded = !row.expanded
+    const index = expandedRows.value.indexOf(row.sku)
+    if (index > -1) {
+      expandedRows.value.splice(index, 1)
+      row.expanded = false
+    } else {
+      expandedRows.value.push(row.sku)
+      row.expanded = true
+    }
   } else {
     // 如果不是分组或没有子项，则跳转到详情页
     router.push(`/warehouse/inventory/${row.sku}`)
@@ -754,7 +916,14 @@ const handleRowClick = (row: InventoryItem) => {
 // 展开行处理方法
 const handleExpandChange = (row: InventoryItem, expanded: boolean) => {
   if (searchForm.value.groupBySku) {
-    // 如果是分组模式，则不处理展开/收起
+    // 如果是分组模式，同步展开状态
+    row.expanded = expanded
+    const index = expandedRows.value.indexOf(row.sku)
+    if (expanded && index === -1) {
+      expandedRows.value.push(row.sku)
+    } else if (!expanded && index > -1) {
+      expandedRows.value.splice(index, 1)
+    }
     return
   }
   // 如果是非分组模式，则处理展开/收起
@@ -888,7 +1057,7 @@ const handleExpandChange = (row: InventoryItem, expanded: boolean) => {
     }
 
     :deep(.el-table__expand-icon) {
-      display: none;
+      display: none !important;
     }
 
     .expanded-table {
@@ -904,6 +1073,7 @@ const handleExpandChange = (row: InventoryItem, expanded: boolean) => {
         background-color: var(--el-table-row-hover-bg-color);
       }
     }
+
 
     :deep(.el-table__row) {
       cursor: pointer;

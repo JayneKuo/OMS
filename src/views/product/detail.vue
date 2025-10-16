@@ -36,11 +36,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue';
+import { ref, reactive, computed, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import type { ProductDetail } from '@/types/product';
 import { getProduct, updateProduct } from '@/api/product';
+import { getMockProductDetail } from '@/mock/productData';
 import BasicInfo from './components/basics/BasicInfo.vue';
 import MediaInfo from './components/basics/MediaInfo.vue';
 import WarehouseInfo from './components/basics/WarehouseInfo.vue';
@@ -68,13 +69,13 @@ const componentMap = {
 
 // 获取当前组件
 const getCurrentComponent = computed(() => {
-  return componentMap[activeTab.value];
+  return componentMap[activeTab.value] || componentMap.basic;
 });
 
 // 表单数据
 const form = reactive({
   basic: {},
-  channel: {},
+  media: {},
   warehouse: {},
   compliance: {},
   bundle: {},
@@ -84,17 +85,19 @@ const form = reactive({
 // 获取商品详情
 const loadProduct = async () => {
   try {
-    const response = await getProduct(route.params.id as string);
+    // 使用模拟数据而不是真实API
+    const response = getMockProductDetail(route.params.id as string);
     product.value = response;
     // 填充表单数据
-    form.basic = response;
-    form.channel = response.channel;
-    form.warehouse = response.warehouse;
-    form.compliance = response.compliance;
-    form.bundle = response.bundle;
-    form.mapping = response.mapping;
+    form.basic = response.basic || response;
+    form.media = response.media || {};
+    form.warehouse = response.warehouse || {};
+    form.compliance = response.compliance || {};
+    form.bundle = response.bundle || {};
+    form.mapping = response.mapping || {};
   } catch (error) {
     ElMessage.error('获取商品详情失败');
+    console.error('Load product error:', error);
   }
 };
 

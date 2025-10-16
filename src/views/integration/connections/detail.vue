@@ -14,10 +14,20 @@
               {{ getNameInitials(connectionData.name) }}
             </span>
           </div>
-          <div class="connection-meta">
-            <h2>{{ connectionData.name }}</h2>
-            <div class="type-tag">{{ connectionData.type }}</div>
+        <div class="connection-meta">
+          <h2>{{ connectionData.name }}</h2>
+          <div class="type-tag">{{ connectionData.type }}</div>
+          <div class="time-info">
+            <div class="time-item">
+              <span class="time-label">Last Run:</span>
+              <span class="time-value">{{ connectionData.lastRunTime || '2025-09-17 13:20:02' }}</span>
+            </div>
+            <div class="time-item">
+              <span class="time-label">Updated:</span>
+              <span class="time-value">{{ connectionData.updatedTime || '2025-10-10 17:58:18' }}</span>
+            </div>
           </div>
+        </div>
         </div>
       </div>
       <div class="connection-status">
@@ -38,30 +48,6 @@
       <el-tabs v-model="activeTab">
         <el-tab-pane label="Connection Details" name="details">
           <div class="details-container">
-            <!-- Connection Status -->
-            <div class="detail-card status-card">
-              <div class="card-header">
-                <h3>Connection Status</h3>
-              </div>
-              <div class="card-content">
-                <el-descriptions :column="2" border>
-                  <el-descriptions-item label="Status">
-                    <el-tag :type="connectionData.enabled ? 'success' : 'danger'" class="status-tag">
-                      {{ connectionData.enabled ? 'Connected' : 'Disconnected' }}
-                    </el-tag>
-                  </el-descriptions-item>
-                  <el-descriptions-item label="Last Sync">
-                    {{ connectionData.lastSyncTime || 'Never' }}
-                  </el-descriptions-item>
-                  <el-descriptions-item label="Integration Type">
-                    {{ connectionData.type }}
-                  </el-descriptions-item>
-                  <el-descriptions-item label="Version">
-                    {{ connectionData.version || 'Latest' }}
-                  </el-descriptions-item>
-                </el-descriptions>
-              </div>
-            </div>
 
             <!-- Connection Information -->
             <div class="detail-card info-card">
@@ -84,99 +70,130 @@
                   class="connection-form"
                   :rules="formRules"
                 >
-                  <template v-if="connectionData.subType && AUTH_CONFIGS[connectionData.subType]">
-                    <el-form-item
-                      v-for="field in AUTH_CONFIGS[connectionData.subType].fields"
-                      :key="field.key"
-                      :label="field.label"
-                      :prop="field.key"
-                      :required="field.required"
+                  <!-- Connector Name Field -->
+                  <el-form-item label="Connector Name" prop="connectorName" class="connector-name-field">
+                    <el-input 
+                      v-model="connectorName" 
+                      placeholder="Enter a custom name for this connection..."
+                      class="field-input"
                     >
-                      <!-- Select Field -->
-                      <el-select
-                        v-if="field.type === 'select'"
-                        v-model="connectionSettings[field.key]"
-                        :placeholder="field.placeholder"
-                        class="field-input"
-                        @change="handleEnvironmentChange"
+                      <template #prefix><el-icon><Edit /></el-icon></template>
+                    </el-input>
+                    <div class="field-hint">This name will help you identify this connection in your dashboard</div>
+                  </el-form-item>
+
+                  <el-divider content-position="left">Connection Settings</el-divider>
+
+                  <!-- Auth Type Selection -->
+                  <div v-if="connectionData.subType && AUTH_CONFIGS[connectionData.subType]?.authTypes?.length > 1" class="auth-type-selection">
+                    <div class="auth-type-label">Authentication Method</div>
+                    <el-radio-group v-model="selectedAuthType" @change="handleAuthTypeChange" class="auth-type-group">
+                      <el-radio-button 
+                        v-for="authType in AUTH_CONFIGS[connectionData.subType].authTypes" 
+                        :key="authType.type" 
+                        :value="authType.type"
                       >
-                        <el-option
-                          v-for="option in field.options"
-                          :key="option.value"
-                          :label="option.label"
-                          :value="option.value"
+                        {{ authType.label }}
+                      </el-radio-button>
+                    </el-radio-group>
+                  </div>
+
+                  <!-- Dynamic Form Fields based on Auth Type -->
+                  <template v-if="connectionData.subType && AUTH_CONFIGS[connectionData.subType] && selectedAuthType">
+                    <template v-for="authTypeConfig in AUTH_CONFIGS[connectionData.subType].authTypes" :key="authTypeConfig.type">
+                      <template v-if="authTypeConfig.type === selectedAuthType">
+                        <el-form-item
+                          v-for="field in authTypeConfig.fields"
+                          :key="field.key"
+                          :label="field.label"
+                          :prop="field.key"
+                          :required="field.required"
+                        >
+                          <!-- Select Field -->
+                          <el-select
+                            v-if="field.type === 'select'"
+                            v-model="connectionSettings[field.key]"
+                            :placeholder="field.placeholder"
+                            class="field-input"
+                            @change="handleEnvironmentChange"
+                          >
+                            <el-option
+                              v-for="option in field.options"
+                              :key="option.value"
+                              :label="option.label"
+                              :value="option.value"
+                            />
+                          </el-select>
+                          <!-- Text/Password Field -->
+                          <el-input 
+                            v-else
+                            v-model="connectionSettings[field.key]"
+                            :type="field.type"
+                            :placeholder="field.placeholder"
+                            :show-password="field.type === 'password'"
+                            class="field-input"
+                          />
+                          <!-- Field Description -->
+                          <div v-if="field.description" class="field-description">{{ field.description }}</div>
+                        </el-form-item>
+                      </template>
+                    </template>
+                  </template>
+
+                  <!-- Fallback for old format (single auth type) -->
+                  <template v-else-if="connectionData.subType && AUTH_CONFIGS[connectionData.subType] && !selectedAuthType">
+                    <template v-if="AUTH_CONFIGS[connectionData.subType].authTypes?.length === 1">
+                      <el-form-item
+                        v-for="field in AUTH_CONFIGS[connectionData.subType].authTypes[0].fields"
+                        :key="field.key"
+                        :label="field.label"
+                        :prop="field.key"
+                        :required="field.required"
+                      >
+                        <!-- Select Field -->
+                        <el-select
+                          v-if="field.type === 'select'"
+                          v-model="connectionSettings[field.key]"
+                          :placeholder="field.placeholder"
+                          class="field-input"
+                          @change="handleEnvironmentChange"
+                        >
+                          <el-option
+                            v-for="option in field.options"
+                            :key="option.value"
+                            :label="option.label"
+                            :value="option.value"
+                          />
+                        </el-select>
+                        <!-- Text/Password Field -->
+                        <el-input 
+                          v-else
+                          v-model="connectionSettings[field.key]"
+                          :type="field.type"
+                          :placeholder="field.placeholder"
+                          :show-password="field.type === 'password'"
+                          class="field-input"
                         />
-                      </el-select>
-                      <!-- Text/Password Field -->
-              <el-input 
-                        v-else
-                        v-model="connectionSettings[field.key]"
-                        :type="field.type"
-                        :placeholder="field.placeholder"
-                        :show-password="field.type === 'password'"
-                        class="field-input"
-                      />
-                    </el-form-item>
+                        <!-- Field Description -->
+                        <div v-if="field.description" class="field-description">{{ field.description }}</div>
+                      </el-form-item>
+                    </template>
                   </template>
                 </el-form>
               </div>
             </div>
 
-            <!-- Connection Statistics -->
-            <div class="detail-card stats-card" v-if="connectionData.connectionInfo">
-              <div class="card-header">
-                <h3>Statistics</h3>
-              </div>
-              <div class="card-content">
-                <el-row :gutter="20">
-                  <el-col :span="12">
-                    <div class="stat-item">
-                      <div class="stat-label">Total Orders</div>
-                      <div class="stat-value">{{ connectionData.connectionInfo.totalOrders || 0 }}</div>
-                    </div>
-                  </el-col>
-                  <el-col :span="12">
-                    <div class="stat-item">
-                      <div class="stat-label">Pending Orders</div>
-                      <div class="stat-value">{{ connectionData.connectionInfo.pendingOrders || 0 }}</div>
-                    </div>
-                  </el-col>
-                  <el-col :span="12">
-                    <div class="stat-item">
-                      <div class="stat-label">Total Products</div>
-                      <div class="stat-value">{{ connectionData.connectionInfo.totalProducts || 0 }}</div>
-                    </div>
-                  </el-col>
-                  <el-col :span="12">
-                    <div class="stat-item">
-                      <div class="stat-label">Active Products</div>
-                      <div class="stat-value">{{ connectionData.connectionInfo.activeProducts || 0 }}</div>
-                    </div>
-                  </el-col>
-                  <el-col :span="12">
-                    <div class="stat-item">
-                      <div class="stat-label">Last Order Sync</div>
-                      <div class="stat-value">{{ connectionData.connectionInfo.lastOrderSync || 'Never' }}</div>
-                    </div>
-                  </el-col>
-                  <el-col :span="12">
-                    <div class="stat-item">
-                      <div class="stat-label">Last Product Sync</div>
-                      <div class="stat-value">{{ connectionData.connectionInfo.lastProductSync || 'Never' }}</div>
-                    </div>
-                  </el-col>
-                </el-row>
-              </div>
-            </div>
 
             <!-- Action Buttons -->
             <div class="detail-card action-card">
               <div class="card-content">
                 <div class="action-buttons">
                   <el-button type="primary" @click="handleTest" :icon="Check">Test Connection</el-button>
-                  <el-button type="success" @click="handleSave" :icon="Upload">Save Changes</el-button>
-            </div>
-            </div>
+                  <el-button type="success" @click="handleSave" :icon="Upload" :loading="isSaving">
+                    {{ isSaving ? 'Saving...' : 'Save Changes' }}
+                  </el-button>
+                </div>
+              </div>
             </div>
           </div>
         </el-tab-pane>
@@ -197,11 +214,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, onMounted } from 'vue'
+import { ref, watch, onMounted, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { MoreFilled, ArrowLeft, Check, Upload } from '@element-plus/icons-vue'
-import { IntegrationSubType, AUTH_CONFIGS, MOCK_INTEGRATIONS, AVAILABLE_INTEGRATIONS } from '@/constants/integration'
+import { MoreFilled, ArrowLeft, Check, Upload, Edit } from '@element-plus/icons-vue'
+import { IntegrationSubType, AUTH_CONFIGS, MOCK_INTEGRATIONS, AVAILABLE_INTEGRATIONS, AuthType } from '@/constants/integration'
 import type { Integration } from '@/types/integration'
 import ConnectionSettings from './components/ConnectionSettings.vue'
 import MappingSettings from './components/MappingSettings.vue'
@@ -235,69 +252,24 @@ const connectionData = ref({
 // 连接设置
 const connectionSettings = ref<Record<string, any>>({})
 
+// 连接器名称
+const connectorName = ref('')
+
+// 选择的鉴权方式
+const selectedAuthType = ref<AuthType | null>(null)
+
+// 表单引用
+const formRef = ref()
+
+// 保存状态
+const isSaving = ref(false)
+
 // 仓库设置
 const warehouseSettings = ref({
   warehouseId: '',
   location: ''
 })
 
-// Shopify 统计数据
-const shopifyStats = ref({
-  totalOrders: 0,
-  totalProducts: 0,
-  totalCustomers: 0,
-  planName: 'Basic'
-})
-
-// Amazon 统计数据
-const amazonStats = ref({
-  totalOrders: 0,
-  activeListings: 0,
-  fbaInventory: 0,
-  accountHealth: 'Good'
-})
-
-// Walmart 统计数据
-const marketplaceStats = ref({
-  totalOrders: 0,
-  totalProducts: 0,
-  totalInventory: 0,
-  revenue: 0,
-  accountStatus: 'Active'
-})
-
-// 添加新的状态数据
-const tiktokStats = ref({
-  totalOrders: 0,
-  totalProducts: 0,
-  revenue: 0,
-  shopRegion: '',
-  accountStatus: 'Active'
-})
-
-const wooStats = ref({
-  totalOrders: 0,
-  totalProducts: 0,
-  revenue: 0,
-  storeUrl: '',
-  lastSync: null
-})
-
-const ebayStats = ref({
-  totalOrders: 0,
-  totalProducts: 0,
-  revenue: 0,
-  accountId: '',
-  marketplace: ''
-})
-
-const upsStats = ref({
-  shipmentCount: 0,
-  trackingCount: 0,
-  revenue: 0,
-  accountNumber: '',
-  serviceLevel: 'Standard'
-})
 
 // 测试连接
 const testing = ref(false)
@@ -343,6 +315,67 @@ const handleEnvironmentChange = () => {
   }
 }
 
+// 表单验证规则
+const formRules = computed(() => {
+  const rules: Record<string, any> = {
+    connectorName: [
+      { required: true, message: 'Please enter connector name', trigger: 'blur' },
+      { min: 2, max: 50, message: 'Length should be 2 to 50', trigger: 'blur' }
+    ]
+  }
+
+  if (connectionData.value?.subType && selectedAuthType.value) {
+    const config = AUTH_CONFIGS[connectionData.value.subType]
+    const authTypeConfig = config?.authTypes?.find(auth => auth.type === selectedAuthType.value)
+    
+    if (authTypeConfig) {
+      authTypeConfig.fields.forEach(field => {
+        if (field.required) {
+          rules[field.key] = [
+            { required: true, message: `Please enter ${field.label}`, trigger: 'blur' }
+          ]
+        }
+      })
+    }
+  } else if (connectionData.value?.subType && AUTH_CONFIGS[connectionData.value.subType]?.authTypes?.length === 1) {
+    // 单一鉴权方式的情况
+    const authTypeConfig = AUTH_CONFIGS[connectionData.value.subType].authTypes[0]
+    authTypeConfig.fields.forEach(field => {
+      if (field.required) {
+        rules[field.key] = [
+          { required: true, message: `Please enter ${field.label}`, trigger: 'blur' }
+        ]
+      }
+    })
+  }
+
+  return rules
+})
+
+// 处理鉴权方式变更
+const handleAuthTypeChange = (authType: AuthType) => {
+  // 保留连接器名称，清空其他字段
+  const currentConnectorName = connectorName.value
+  connectionSettings.value = {}
+  connectorName.value = currentConnectorName
+  
+  // 根据新的鉴权方式设置默认值
+  if (connectionData.value?.subType) {
+    const config = AUTH_CONFIGS[connectionData.value.subType]
+    const authTypeConfig = config?.authTypes?.find(auth => auth.type === authType)
+    
+    if (authTypeConfig) {
+      authTypeConfig.fields.forEach(field => {
+        if (field.type === 'select' && field.options && field.options.length > 0) {
+          connectionSettings.value[field.key] = field.options[0].value
+        } else {
+          connectionSettings.value[field.key] = ''
+        }
+      })
+    }
+  }
+}
+
 // 初始化数据
 const initConnectionData = async () => {
   try {
@@ -366,16 +399,29 @@ const initConnectionData = async () => {
       logo: integration.logo,
       showNameFallback: integration.showNameFallback,
       lastSyncTime: integration.connectionInfo?.lastSyncTime || null,
+      lastRunTime: integration.connectionInfo?.lastRunTime || '2025-09-17 13:20:02',
+      updatedTime: integration.connectionInfo?.updatedTime || '2025-10-10 17:58:18',
       connectionInfo: integration.connectionInfo || {}
     }
 
-    // 初始化连接设置
+    // 初始化连接器名称
+    connectorName.value = integration.connectionInfo?.connectorName || `${integration.name} Connection`
+
+    // 初始化鉴权方式和连接设置
     if (integration.subType && AUTH_CONFIGS[integration.subType]) {
-      const formData: Record<string, any> = {}
-      AUTH_CONFIGS[integration.subType].fields.forEach(field => {
-        formData[field.key] = integration.connectionInfo?.[field.key] || ''
-      })
-      connectionSettings.value = formData
+      const config = AUTH_CONFIGS[integration.subType]
+      
+      if (config.authTypes && config.authTypes.length > 0) {
+        // 设置默认鉴权方式（第一个）
+        selectedAuthType.value = config.authTypes[0].type
+        
+        // 初始化表单数据
+        const formData: Record<string, any> = {}
+        config.authTypes[0].fields.forEach(field => {
+          formData[field.key] = integration.connectionInfo?.[field.key] || ''
+        })
+        connectionSettings.value = formData
+      }
     }
 
     // 初始化渠道设置
@@ -463,15 +509,6 @@ const getInstructions = (type: string) => {
   return AUTH_CONFIGS[type]?.instructions || ''
 }
 
-// 获取统计数据
-const getStats = (info: any) => {
-  return {
-    orderCount: info?.orderCount || 0,
-    productCount: info?.productCount || 0,
-    revenue: info?.revenue || '$0',
-    lastSyncTime: info?.lastSyncTime || null
-  }
-}
 
 // 页面加载时初始化数据
 onMounted(() => {
@@ -521,8 +558,42 @@ const handleStatusChange = (value: boolean) => {
   ElMessage.success(`Integration ${value ? 'enabled' : 'disabled'} successfully`)
 }
 
-const handleSave = () => {
-  ElMessage.success('Settings saved successfully')
+const handleSave = async () => {
+  if (!formRef.value) return
+  
+  try {
+    // 验证表单
+    await formRef.value.validate()
+    
+    isSaving.value = true
+    
+    // 模拟保存API调用
+    await new Promise(resolve => setTimeout(resolve, 1500))
+    
+    // 更新连接数据
+    const updatedConnectionInfo = {
+      ...connectionData.value.connectionInfo,
+      connectorName: connectorName.value,
+      authType: selectedAuthType.value,
+      ...connectionSettings.value
+    }
+    
+    // 更新本地数据
+    connectionData.value.connectionInfo = updatedConnectionInfo
+    
+    // 更新MOCK数据中的对应项
+    const integrationIndex = MOCK_INTEGRATIONS.findIndex(item => item.id === connectionData.value.id)
+    if (integrationIndex !== -1) {
+      MOCK_INTEGRATIONS[integrationIndex].connectionInfo = updatedConnectionInfo
+    }
+    
+    ElMessage.success('Connection settings saved successfully')
+  } catch (error) {
+    console.error('Save failed:', error)
+    ElMessage.error('Failed to save settings. Please check your input.')
+  } finally {
+    isSaving.value = false
+  }
 }
 
 const handleDelete = () => {
@@ -605,28 +676,64 @@ const getNameInitials = (name: string) => {
     }
   }
 
-  .status-card {
-    .status-tag {
-      font-size: 14px;
-      padding: 0 12px;
-    }
-
-    :deep(.el-descriptions) {
-      .el-descriptions__cell {
-        background-color: #2d2d2d !important;
-        color: #e0e0e0;
-
-        &.el-descriptions__label {
-          background: #252525;
-          color: #e0e0e0;
-        }
-      }
-    }
-  }
 
   .info-card {
     .connection-form {
       max-width: 800px;
+
+      .connector-name-field {
+        margin-bottom: 24px;
+
+        .field-hint {
+          margin-top: 6px;
+          font-size: 12px;
+          color: #999999;
+          line-height: 1.4;
+        }
+      }
+
+      .auth-type-selection {
+        margin-bottom: 24px;
+
+        .auth-type-label {
+          margin-bottom: 12px;
+          font-size: 14px;
+          font-weight: 500;
+          color: #e0e0e0;
+        }
+
+        .auth-type-group {
+          :deep(.el-radio-button__inner) {
+            background-color: #252525;
+            border-color: #3a3a3a;
+            color: #e0e0e0;
+            transition: all 0.3s ease;
+
+            &:hover {
+              background-color: #2a2a2a;
+              border-color: #4c4c4c;
+            }
+          }
+
+          :deep(.el-radio-button__original-radio:checked + .el-radio-button__inner) {
+            background-color: #6b46c1;
+            border-color: #6b46c1;
+            color: #ffffff;
+            box-shadow: -1px 0 0 0 #6b46c1;
+          }
+
+          :deep(.el-radio-button:first-child .el-radio-button__inner) {
+            border-left-color: #3a3a3a;
+          }
+        }
+      }
+
+      .field-description {
+        margin-top: 6px;
+        font-size: 12px;
+        color: #999999;
+        line-height: 1.4;
+      }
 
       .field-input {
         width: 100%;
@@ -655,11 +762,26 @@ const getNameInitials = (name: string) => {
             color: #666666;
           }
         }
+
+        &:deep(.el-input__prefix) {
+          color: #999999;
+        }
       }
 
       :deep(.el-form-item__label) {
         font-weight: 500;
         color: #e0e0e0;
+      }
+
+      :deep(.el-divider) {
+        border-color: #3a3a3a;
+        margin: 24px 0;
+
+        .el-divider__text {
+          background-color: #2d2d2d;
+          color: #e0e0e0;
+          font-weight: 500;
+        }
       }
 
       :deep(.el-select) {
@@ -693,35 +815,6 @@ const getNameInitials = (name: string) => {
     }
   }
 
-  .stats-card {
-    .stat-item {
-      padding: 20px;
-      background: #252525;
-      border-radius: 8px;
-      margin-bottom: 16px;
-      border: 1px solid #3a3a3a;
-      transition: all 0.3s ease;
-
-      &:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-        background: #2a2a2a;
-      }
-
-      .stat-label {
-        color: #999999;
-        font-size: 14px;
-        margin-bottom: 8px;
-        font-weight: 500;
-      }
-
-      .stat-value {
-        color: #ffffff;
-        font-size: 24px;
-        font-weight: 600;
-      }
-    }
-  }
 
   .action-card {
     background: #252525;
@@ -883,6 +976,35 @@ const getNameInitials = (name: string) => {
           .version {
             font-size: 12px;
             color: var(--el-text-color-secondary);
+          }
+
+          .time-info {
+            margin-top: 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+
+            .time-item {
+              display: flex;
+              align-items: center;
+              gap: 8px;
+              font-size: 12px;
+
+              .time-label {
+                color: var(--el-text-color-secondary);
+                font-weight: 500;
+                min-width: 60px;
+              }
+
+              .time-value {
+                color: var(--el-text-color-primary);
+                font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+                background-color: var(--el-fill-color-light);
+                padding: 2px 6px;
+                border-radius: 4px;
+                font-size: 11px;
+              }
+            }
           }
         }
       }

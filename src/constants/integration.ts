@@ -29,18 +29,37 @@ export enum IntegrationSubType {
   // 3PL & Logistics
   UNIS_WMS = 'UNIS WMS',
   UPS = 'UPS Capital',
-  ITEM_WMS = 'Item WMS'
+  ITEM_WMS = 'Item WMS',
+  
+  // FBM Authentication
+  FBM = 'FBM'
+}
+
+// 授权方式枚举
+export enum AuthType {
+  BASIC = 'Basic',
+  API_KEY = 'ApiKey',
+  OAUTH_V2_CODE = 'Oauth_V2_Code',
+  OAUTH_V2_REFRESH = 'Oauth_V2_Refresh',
+  FTP = 'FTP',
+  SFTP = 'SFTP',
+  FTPS = 'FTPS'
 }
 
 // 授权配置类型
 export interface AuthConfig {
-  fields: Array<{
-    key: string
+  authTypes: Array<{
+    type: AuthType
     label: string
-    type: 'text' | 'password' | 'select' | 'textarea'
-    required: boolean
-    options?: Array<{ label: string; value: string }>
-    placeholder?: string
+    fields: Array<{
+      key: string
+      label: string
+      type: 'text' | 'password' | 'select' | 'textarea'
+      required: boolean
+      options?: Array<{ label: string; value: string }>
+      placeholder?: string
+      description?: string
+    }>
   }>
   instructions?: string
 }
@@ -48,269 +67,486 @@ export interface AuthConfig {
 // 各平台授权配置
 export const AUTH_CONFIGS: Record<string, AuthConfig> = {
   [IntegrationSubType.AMAZON]: {
-    fields: [
+    authTypes: [
       {
-        key: 'seller_id',
-        label: 'Seller ID',
-        type: 'text',
-        required: true,
-        placeholder: 'Your Amazon Seller ID'
-      },
-      {
-        key: 'marketplace_id',
-        label: 'Marketplace',
-        type: 'select',
-        required: true,
-        options: [
-          { label: 'United States', value: 'ATVPDKIKX0DER' },
-          { label: 'Canada', value: 'A2EUQ1WTGCTBG2' },
-          { label: 'Mexico', value: 'A1AM78C64UM0Y8' }
+        type: AuthType.BASIC,
+        label: 'Basic Authentication',
+        fields: [
+          {
+            key: 'seller_id',
+            label: 'Seller ID',
+            type: 'text',
+            required: true,
+            placeholder: 'Your Amazon Seller ID'
+          },
+          {
+            key: 'marketplace_id',
+            label: 'Marketplace',
+            type: 'select',
+            required: true,
+            options: [
+              { label: 'United States', value: 'ATVPDKIKX0DER' },
+              { label: 'Canada', value: 'A2EUQ1WTGCTBG2' },
+              { label: 'Mexico', value: 'A1AM78C64UM0Y8' }
+            ]
+          },
+          {
+            key: 'aws_access_key',
+            label: 'AWS Access Key',
+            type: 'text',
+            required: true
+          },
+          {
+            key: 'aws_secret_key',
+            label: 'AWS Secret Key',
+            type: 'password',
+            required: true
+          }
         ]
-      },
-      {
-        key: 'aws_access_key',
-        label: 'AWS Access Key',
-        type: 'text',
-        required: true
-      },
-      {
-        key: 'aws_secret_key',
-        label: 'AWS Secret Key',
-        type: 'password',
-        required: true
       }
-    ],
-    instructions: 'Go to Seller Central > Settings > Developer Settings to get your credentials'
+    ]
   },
   [IntegrationSubType.WALMART]: {
-    fields: [
+    authTypes: [
       {
-        key: 'client_id',
-        label: 'Client ID',
-        type: 'text',
-        required: true
-      },
-      {
-        key: 'client_secret',
-        label: 'Client Secret',
-        type: 'password',
-        required: true
-      },
-      {
-        key: 'channel_type',
-        label: 'Channel Type',
-        type: 'select',
-        required: true,
-        options: [
-          { label: 'Marketplace', value: 'marketplace' },
-          { label: 'Drop Ship Vendor', value: 'dsv' }
+        type: AuthType.BASIC,
+        label: 'Basic Authentication',
+        fields: [
+          {
+            key: 'client_id',
+            label: 'Client ID',
+            type: 'text',
+            required: true
+          },
+          {
+            key: 'client_secret',
+            label: 'Client Secret',
+            type: 'password',
+            required: true
+          },
+          {
+            key: 'channel_type',
+            label: 'Channel Type',
+            type: 'select',
+            required: true,
+            options: [
+              { label: 'Marketplace', value: 'marketplace' },
+              { label: 'Drop Ship Vendor', value: 'dsv' }
+            ]
+          }
         ]
       }
     ],
     instructions: 'Get your API credentials from Walmart Seller Center > Settings > API'
   },
   [IntegrationSubType.SHOPIFY]: {
-    fields: [
+    authTypes: [
       {
-        key: 'shop_domain',
-        label: 'Shop Domain',
-        type: 'text',
-        required: true,
-        placeholder: 'your-store.myshopify.com'
+        type: AuthType.BASIC,
+        label: 'Basic Authentication',
+        fields: [
+          {
+            key: 'shop_domain',
+            label: 'Shop Domain',
+            type: 'text',
+            required: true,
+            placeholder: 'Enter your subdomain (e.g., \'myshop\' for \'myshop.myshopify.com\')',
+            description: 'Enter your subdomain (e.g., \'myshop\' for \'myshop.myshopify.com\')'
+          },
+          {
+            key: 'api_key',
+            label: 'Api Key',
+            type: 'text',
+            required: true,
+            placeholder: 'Enter your API key'
+          },
+          {
+            key: 'api_secret',
+            label: 'Api Secret',
+            type: 'password',
+            required: true,
+            placeholder: 'Enter your API secret',
+            description: 'API Key field (required)'
+          }
+        ]
       },
       {
-        key: 'access_token',
-        label: 'Access Token',
-        type: 'password',
-        required: true,
-        placeholder: 'shpat_xxxxxx'
+        type: AuthType.API_KEY,
+        label: 'API Key Authentication',
+        fields: [
+          {
+            key: 'shop_domain',
+            label: 'Shop Domain',
+            type: 'text',
+            required: true,
+            placeholder: 'Enter your subdomain (e.g., \'myshop\' for \'myshop.myshopify.com\')',
+            description: 'Enter your subdomain (e.g., \'myshop\' for \'myshop.myshopify.com\')'
+          },
+          {
+            key: 'api_secret',
+            label: 'Api Secret',
+            type: 'password',
+            required: true,
+            placeholder: 'Enter your API secret',
+            description: 'API Key field (required)'
+          }
+        ]
+      },
+      {
+        type: AuthType.OAUTH_V2_CODE,
+        label: 'OAuth 2.0 Authorization Code',
+        fields: [
+          {
+            key: 'shop_domain',
+            label: 'Shop Domain',
+            type: 'text',
+            required: true,
+            placeholder: 'Enter your subdomain (e.g., \'myshop\' for \'myshop.myshopify.com\')',
+            description: 'Enter your subdomain (e.g., \'myshop\' for \'myshop.myshopify.com\')'
+          }
+        ]
       }
-    ],
-    instructions: 'Generate an access token from Shopify Admin > Apps > Develop Apps'
+    ]
   },
   [IntegrationSubType.TIKTOK]: {
-    fields: [
+    authTypes: [
       {
-        key: 'app_key',
-        label: 'App Key',
-        type: 'text',
-        required: true
-      },
-      {
-        key: 'app_secret',
-        label: 'App Secret',
-        type: 'password',
-        required: true
-      },
-      {
-        key: 'shop_region',
-        label: 'Shop Region',
-        type: 'select',
-        required: true,
-        options: [
-          { label: 'United States', value: 'US' },
-          { label: 'United Kingdom', value: 'UK' },
-          { label: 'Southeast Asia', value: 'SEA' }
+        type: AuthType.BASIC,
+        label: 'Basic Authentication',
+        fields: [
+          {
+            key: 'app_key',
+            label: 'App Key',
+            type: 'text',
+            required: true
+          },
+          {
+            key: 'app_secret',
+            label: 'App Secret',
+            type: 'password',
+            required: true
+          },
+          {
+            key: 'shop_region',
+            label: 'Shop Region',
+            type: 'select',
+            required: true,
+            options: [
+              { label: 'United States', value: 'US' },
+              { label: 'United Kingdom', value: 'UK' },
+              { label: 'Southeast Asia', value: 'SEA' }
+            ]
+          }
         ]
       }
     ],
     instructions: 'Get your API credentials from TikTok Shop Seller Center > Settings > API Management'
   },
   [IntegrationSubType.WOOCOMMERCE]: {
-    fields: [
+    authTypes: [
       {
-        key: 'store_url',
-        label: 'Store URL',
-        type: 'text',
-        required: true,
-        placeholder: 'https://your-store.com'
-      },
-      {
-        key: 'consumer_key',
-        label: 'Consumer Key',
-        type: 'text',
-        required: true
-      },
-      {
-        key: 'consumer_secret',
-        label: 'Consumer Secret',
-        type: 'password',
-        required: true
+        type: AuthType.BASIC,
+        label: 'Basic Authentication',
+        fields: [
+          {
+            key: 'store_url',
+            label: 'Store URL',
+            type: 'text',
+            required: true,
+            placeholder: 'https://your-store.com'
+          },
+          {
+            key: 'consumer_key',
+            label: 'Consumer Key',
+            type: 'text',
+            required: true
+          },
+          {
+            key: 'consumer_secret',
+            label: 'Consumer Secret',
+            type: 'password',
+            required: true
+          }
+        ]
       }
     ],
     instructions: 'Generate REST API keys from WooCommerce > Settings > Advanced > REST API'
   },
   [IntegrationSubType.QUICKBOOKS]: {
-    fields: [
+    authTypes: [
       {
-        key: 'client_id',
-        label: 'Client ID',
-        type: 'text',
-        required: true
-      },
-      {
-        key: 'client_secret',
-        label: 'Client Secret',
-        type: 'password',
-        required: true
-      },
-      {
-        key: 'environment',
-        label: 'Environment',
-        type: 'select',
-        required: true,
-        options: [
-          { label: 'Production', value: 'production' },
-          { label: 'Sandbox', value: 'sandbox' }
+        type: AuthType.BASIC,
+        label: 'Basic Authentication',
+        fields: [
+          {
+            key: 'client_id',
+            label: 'Client ID',
+            type: 'text',
+            required: true
+          },
+          {
+            key: 'client_secret',
+            label: 'Client Secret',
+            type: 'password',
+            required: true
+          },
+          {
+            key: 'environment',
+            label: 'Environment',
+            type: 'select',
+            required: true,
+            options: [
+              { label: 'Production', value: 'production' },
+              { label: 'Sandbox', value: 'sandbox' }
+            ]
+          }
         ]
       }
     ],
     instructions: 'Get your API credentials from QuickBooks Developer Portal'
   },
   [IntegrationSubType.UNIS_WMS]: {
-    fields: [
+    authTypes: [
       {
-        key: 'environment',
-        label: 'Environment',
-        type: 'select',
-        required: true,
-        options: [
-          { label: 'Test Environment', value: 'test' },
-          { label: 'Production Environment', value: 'production' }
+        type: AuthType.BASIC,
+        label: 'Basic Authentication',
+        fields: [
+          {
+            key: 'environment',
+            label: 'Environment',
+            type: 'select',
+            required: true,
+            options: [
+              { label: 'Test Environment', value: 'test' },
+              { label: 'Production Environment', value: 'production' }
+            ]
+          },
+          {
+            key: 'api_url',
+            label: 'API URL',
+            type: 'text',
+            required: true,
+            placeholder: 'Enter API URL'
+          },
+          {
+            key: 'client_id',
+            label: 'Client ID',
+            type: 'text',
+            required: true,
+            placeholder: 'Enter Client ID'
+          },
+          {
+            key: 'client_secret',
+            label: 'Client Secret',
+            type: 'password',
+            required: true,
+            placeholder: 'Enter Client Secret'
+          }
         ]
-      },
-      {
-        key: 'api_url',
-        label: 'API URL',
-        type: 'text',
-        required: true,
-        placeholder: 'Enter API URL'
-      },
-      {
-        key: 'client_id',
-        label: 'Client ID',
-        type: 'text',
-        required: true,
-        placeholder: 'Enter Client ID'
-      },
-      {
-        key: 'client_secret',
-        label: 'Client Secret',
-        type: 'password',
-        required: true,
-        placeholder: 'Enter Client Secret'
       }
     ],
     instructions: 'Please select an environment and fill in the corresponding authentication information. The API URL will be automatically populated based on your environment selection.'
   },
   [IntegrationSubType.UPS]: {
-    fields: [
+    authTypes: [
       {
-        key: 'client_id',
-        label: 'Client ID',
-        type: 'text',
-        required: true
-      },
-      {
-        key: 'client_secret',
-        label: 'Client Secret',
-        type: 'password',
-        required: true
-      },
-      {
-        key: 'account_number',
-        label: 'UPS Account Number',
-        type: 'text',
-        required: true
-      },
-      {
-        key: 'environment',
-        label: 'Environment',
-        type: 'select',
-        required: true,
-        options: [
-          { label: 'Production', value: 'production' },
-          { label: 'Test', value: 'test' }
+        type: AuthType.BASIC,
+        label: 'Basic Authentication',
+        fields: [
+          {
+            key: 'client_id',
+            label: 'Client ID',
+            type: 'text',
+            required: true
+          },
+          {
+            key: 'client_secret',
+            label: 'Client Secret',
+            type: 'password',
+            required: true
+          },
+          {
+            key: 'account_number',
+            label: 'UPS Account Number',
+            type: 'text',
+            required: true
+          },
+          {
+            key: 'environment',
+            label: 'Environment',
+            type: 'select',
+            required: true,
+            options: [
+              { label: 'Production', value: 'production' },
+              { label: 'Test', value: 'test' }
+            ]
+          }
         ]
       }
     ],
     instructions: 'Get your API credentials from UPS Developer Portal'
   },
   [IntegrationSubType.ITEM_WMS]: {
-    fields: [
+    authTypes: [
       {
-        key: 'environment',
-        label: 'Environment',
-        type: 'select',
-        required: true,
-        options: [
-          { label: 'Test Environment', value: 'test' },
-          { label: 'Production Environment', value: 'production' }
+        type: AuthType.BASIC,
+        label: 'Basic Authentication',
+        fields: [
+          {
+            key: 'environment',
+            label: 'Environment',
+            type: 'select',
+            required: true,
+            options: [
+              { label: 'Test Environment', value: 'test' },
+              { label: 'Production Environment', value: 'production' }
+            ]
+          },
+          {
+            key: 'api_url',
+            label: 'API URL',
+            type: 'text',
+            required: true,
+            placeholder: 'Enter API URL'
+          },
+          {
+            key: 'access_key',
+            label: 'Access Key',
+            type: 'text',
+            required: true,
+            placeholder: 'Enter Access Key'
+          },
+          {
+            key: 'secret_key',
+            label: 'Secret Key',
+            type: 'password',
+            required: true,
+            placeholder: 'Enter Secret Key'
+          }
         ]
-      },
-      {
-        key: 'api_url',
-        label: 'API URL',
-        type: 'text',
-        required: true,
-        placeholder: 'Enter API URL'
-      },
-      {
-        key: 'access_key',
-        label: 'Access Key',
-        type: 'text',
-        required: true,
-        placeholder: 'Enter Access Key'
-      },
-      {
-        key: 'secret_key',
-        label: 'Secret Key',
-        type: 'password',
-        required: true,
-        placeholder: 'Enter Secret Key'
       }
     ],
     instructions: 'Please select an environment and fill in the corresponding authentication information. The API URL will be automatically populated based on your environment selection.'
+  },
+  [IntegrationSubType.FBM]: {
+    authTypes: [
+      {
+        type: AuthType.OAUTH_V2_CODE,
+        label: 'OAuth 2.0 Authorization Code',
+        fields: [
+          {
+            key: 'shop_domain',
+            label: 'Shop Domain',
+            type: 'text',
+            required: true,
+            placeholder: 'Enter your subdomain (e.g., \'myshop\' for \'myshop.myshopify.com\')',
+            description: 'Enter your subdomain (e.g., \'myshop\' for \'myshop.myshopify.com\')'
+          },
+          {
+            key: 'selling_region',
+            label: 'Selling Region',
+            type: 'select',
+            required: true,
+            placeholder: 'Please select Selling Region',
+            options: [
+              { label: 'North America', value: 'NA' },
+              { label: 'Europe', value: 'EU' },
+              { label: 'Far East', value: 'FE' }
+            ],
+            description: 'select sellingRegion'
+          }
+        ]
+      },
+      {
+        type: AuthType.OAUTH_V2_REFRESH,
+        label: 'OAuth 2.0 Refresh Token',
+        fields: [
+          {
+            key: 'selling_region',
+            label: 'Selling Region',
+            type: 'select',
+            required: true,
+            placeholder: 'Please select Selling Region',
+            options: [
+              { label: 'North America', value: 'NA' },
+              { label: 'Europe', value: 'EU' },
+              { label: 'Far East', value: 'FE' }
+            ],
+            description: 'select sellingRegion'
+          },
+          {
+            key: 'client_id',
+            label: 'Client ID',
+            type: 'text',
+            required: true,
+            placeholder: 'The client ID for the OAuth2 client',
+            description: 'The client ID for the OAuth2 client.'
+          },
+          {
+            key: 'client_secret',
+            label: 'Client Secret',
+            type: 'password',
+            required: true,
+            placeholder: 'The client secret for the OAuth2 client',
+            description: 'The client secret for the OAuth2 client.'
+          },
+          {
+            key: 'refresh_token',
+            label: 'RefreshToken',
+            type: 'password',
+            required: true,
+            placeholder: 'The refresh token for the OAuth2 client',
+            description: 'The refresh token for the OAuth2 client.'
+          },
+          {
+            key: 'selling_partner_id',
+            label: 'selling_partner_id',
+            type: 'text',
+            required: true,
+            placeholder: 'The refresh token for the OAuth2 client',
+            description: 'The refresh token for the OAuth2 client.'
+          }
+        ]
+      },
+      {
+        type: AuthType.FTP,
+        label: 'FTP',
+        fields: [
+          {
+            key: 'server',
+            label: 'server',
+            type: 'text',
+            required: true,
+            placeholder: 'select sellingRegion',
+            description: 'select sellingRegion'
+          },
+          {
+            key: 'port',
+            label: 'port',
+            type: 'text',
+            required: true,
+            placeholder: 'select sellingRegion',
+            description: 'select sellingRegion'
+          },
+          {
+            key: 'username',
+            label: 'username',
+            type: 'text',
+            required: true,
+            placeholder: 'select sellingRegion',
+            description: 'select sellingRegion'
+          },
+          {
+            key: 'password',
+            label: 'password',
+            type: 'password',
+            required: true,
+            placeholder: 'select sellingRegion',
+            description: 'select sellingRegion'
+          }
+        ]
+      }
+    ]
   }
 }
 

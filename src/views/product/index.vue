@@ -980,11 +980,11 @@ const confirmBatchSpecialPrice = () => {
 
 // 单个商品操作方法
 const handleView = (row: Product) => {
-  router.push(`/product/view/${row.id}`);
+  router.push(`/product/${row.id}`);
 };
 
 const handleEdit = (row: Product) => {
-  router.push(`/product/edit/${row.id}`);
+  router.push(`/product/${row.id}`);
 };
 
 const handleCreate = () => {

@@ -60,6 +60,17 @@
           </div>
               <div class="platform-info">
                 <div class="name">{{ row.name }}</div>
+                <div class="rating-row">
+                  <el-rate
+                    :model-value="getIntegrationRating(row.id.toString().split('-')[0])"
+                    disabled
+                    show-score
+                    text-color="#ff9900"
+                    score-template="{value}"
+                    size="small"
+                  />
+                  <span class="review-count">({{ getIntegrationReviewCount(row.id.toString().split('-')[0]) }})</span>
+                </div>
                 <div class="tags">
                   <el-tag size="small" :type="getTypeTagType(row.type)">{{ row.type }}</el-tag>
                   <el-tag size="small" type="info" v-if="row.subType">{{ row.subType }}</el-tag>
@@ -243,6 +254,20 @@
                     {{ integration.type }}
                   </el-tag>
                   </div>
+                  
+                  <!-- Star Rating -->
+                  <div class="rating-section">
+                    <el-rate
+                      :model-value="getIntegrationRating(integration.id)"
+                      disabled
+                      show-score
+                      text-color="#ff9900"
+                      score-template="{value}"
+                      size="small"
+                    />
+                    <span class="rating-count">({{ getIntegrationReviewCount(integration.id) }} reviews)</span>
+                  </div>
+                  
                 <p class="description">{{ integration.description }}</p>
                 <div class="features" v-if="integration.features">
                   <div 
@@ -280,6 +305,17 @@
         </div>
 
         <div class="auth-form">
+          <!-- Error Alert -->
+          <div v-if="authError" class="error-alert">
+            <el-alert
+              :title="authError"
+              type="error"
+              show-icon
+              closable
+              @close="authError = null"
+            />
+          </div>
+          
           <div v-if="AUTH_CONFIGS[selectedIntegration.subType].instructions" class="instructions">
             <el-alert
               type="info"
@@ -296,37 +332,142 @@
             :rules="authFormRules"
             label-width="120px"
           >
+            <!-- Connector Name Field -->
             <el-form-item
-              v-for="field in AUTH_CONFIGS[selectedIntegration.subType].fields"
-              :key="field.key"
-              :label="field.label"
-              :prop="field.key"
+              label="Connector Name"
+              prop="connectorName"
+              class="connector-name-field"
             >
-              <template v-if="field.type === 'select'">
-                <el-select
-                  v-model="formData[field.key]"
-                  :placeholder="field.placeholder"
-                  style="width: 100%"
-                  @change="field.key === 'environment' ? handleEnvironmentChange($event) : undefined"
-                >
-                  <el-option
-                    v-for="option in field.options"
-                    :key="option.value"
-                    :label="option.label"
-                    :value="option.value"
-                  />
-                </el-select>
-              </template>
-              
-              <template v-else>
-                <el-input
-                  v-model="formData[field.key]"
-                  :type="field.type"
-                  :placeholder="field.placeholder"
-                  :show-password="field.type === 'password'"
-                />
-              </template>
+              <el-input
+                v-model="formData.connectorName"
+                placeholder="Enter a custom name for this connection"
+                :maxlength="50"
+                show-word-limit
+                clearable
+              >
+                <template #prefix>
+                  <el-icon><Edit /></el-icon>
+                </template>
+              </el-input>
+              <div class="field-hint">
+                This name will help you identify this connection in your integration list
+              </div>
             </el-form-item>
+            
+            <!-- Divider -->
+            <el-divider content-position="left">Connection Settings</el-divider>
+            
+            <!-- Auth Type Selection -->
+            <div v-if="AUTH_CONFIGS[selectedIntegration.subType]?.authTypes?.length > 1" class="auth-type-selection">
+              <el-radio-group v-model="selectedAuthType" @change="handleAuthTypeChange">
+                <el-radio-button 
+                  v-for="authType in AUTH_CONFIGS[selectedIntegration.subType].authTypes"
+                  :key="authType.type"
+                  :value="authType.type">
+                  {{ authType.label }}
+                </el-radio-button>
+              </el-radio-group>
+            </div>
+            
+            <!-- Dynamic Form Fields based on selected auth type -->
+            <template v-if="selectedAuthType && AUTH_CONFIGS[selectedIntegration.subType]">
+              <template v-for="authTypeConfig in AUTH_CONFIGS[selectedIntegration.subType].authTypes" :key="authTypeConfig.type">
+                <template v-if="authTypeConfig.type === selectedAuthType">
+                  <!-- Auth Type Specific Fields -->
+                  <div v-if="authTypeConfig.type === AuthType.OAUTH_V2_CODE" class="oauth-section">
+                    <h4>fbm Authentication</h4>
+                    <p class="section-description">Schema for fbm authentication parameters</p>
+                  </div>
+                  
+                  <div v-if="authTypeConfig.type === AuthType.OAUTH_V2_REFRESH" class="oauth-section">
+                    <h4>fbm Authentication</h4>
+                    <p class="section-description">Schema for fbm authentication parameters</p>
+                    <div class="session-auth-section">
+                      <h5>Session Authentication</h5>
+                      <p class="section-description">Schema for session authentication parameters</p>
+                    </div>
+                  </div>
+                  
+                  <el-form-item
+                    v-for="field in authTypeConfig.fields"
+                    :key="field.key"
+                    :label="field.label"
+                    :prop="field.key"
+                    :class="{ 'required-field': field.required }"
+                  >
+                    <template v-if="field.type === 'select'">
+                      <el-select
+                        v-model="formData[field.key]"
+                        :placeholder="field.placeholder"
+                        style="width: 100%"
+                        @change="field.key === 'environment' ? handleEnvironmentChange($event) : undefined"
+                      >
+                        <el-option
+                          v-for="option in field.options"
+                          :key="option.value"
+                          :label="option.label"
+                          :value="option.value"
+                        />
+                      </el-select>
+                      <div v-if="field.description" class="field-description">
+                        {{ field.description }}
+                      </div>
+                    </template>
+                    
+                    <template v-else>
+                      <el-input
+                        v-model="formData[field.key]"
+                        :type="field.type"
+                        :placeholder="field.placeholder"
+                        :show-password="field.type === 'password'"
+                      />
+                      <div v-if="field.description" class="field-description">
+                        {{ field.description }}
+                      </div>
+                    </template>
+                  </el-form-item>
+                  
+                  <!-- OAuth V2 Code Special Fields -->
+                  <template v-if="authTypeConfig.type === AuthType.OAUTH_V2_CODE">
+                    <div class="oauth-verify-section">
+                      <div class="verify-email-section">
+                        <label class="verify-label">Verify email address</label>
+                        <el-input
+                          v-model="formData.verify_email"
+                          placeholder="lantester@item.com"
+                          readonly
+                        />
+                        <div class="verify-actions">
+                          <el-button type="primary" @click="handleGoToVerify">Go to verify</el-button>
+                          <el-button @click="handleShareLink">Share link</el-button>
+                        </div>
+                      </div>
+                      
+                      <el-input
+                        v-model="formData.verification_url"
+                        placeholder="Verification URL will appear here"
+                      >
+                        <template #append>
+                          <el-button @click="handleCopyUrl">Copy</el-button>
+                        </template>
+                      </el-input>
+                      
+                      <el-checkbox v-model="formData.send_email_on_expire">
+                        Send email when token expires
+                      </el-checkbox>
+                      
+                      <div class="alert-email-section">
+                        <label class="alert-label">Alert Email</label>
+                        <el-input
+                          v-model="formData.alert_email"
+                          placeholder="Enter alert email address"
+                        />
+                      </div>
+                    </div>
+                  </template>
+                </template>
+              </template>
+            </template>
           </el-form>
         </div>
       </div>
@@ -334,15 +475,42 @@
       <!-- Dialog Footer -->
       <template #footer>
         <div class="dialog-footer">
-          <el-button @click="handleCloseDialog">Cancel</el-button>
-          <el-button 
-            v-if="authDialogVisible && selectedIntegration"
-            type="primary" 
-            :loading="loading"
-            @click="handleAuthSubmit"
-          >
-            Connect
-          </el-button>
+          <div class="left-actions">
+            <el-button 
+              v-if="authDialogVisible && selectedIntegration"
+              type="info"
+              plain
+              :loading="isTesting"
+              @click="handleTestConnection"
+            >
+              {{ isTesting ? 'Testing...' : 'Test Connection' }}
+            </el-button>
+            <div v-if="testPassed" class="test-success-indicator">
+              <el-icon color="#67C23A"><SuccessFilled /></el-icon>
+              <span>Test Passed</span>
+            </div>
+          </div>
+          
+          <div class="right-actions">
+            <el-button @click="handleCloseDialog">Cancel</el-button>
+            <el-button 
+              v-if="authDialogVisible && selectedIntegration"
+              type="default"
+              :loading="isSaving"
+              @click="handleSaveDraft"
+            >
+              {{ isSaving ? 'Saving...' : 'Save' }}
+            </el-button>
+            <el-button 
+              v-if="authDialogVisible && selectedIntegration"
+              type="primary" 
+              :loading="isConnecting"
+              :disabled="!testPassed"
+              @click="handleAuthSubmit"
+            >
+              {{ isConnecting ? 'Connecting...' : 'Connect' }}
+            </el-button>
+          </div>
         </div>
       </template>
     </el-dialog>
@@ -353,10 +521,10 @@
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { InfoFilled, MoreFilled, Sort, Link, User, Location, House, Timer, Search, Check, ArrowLeft, Document } from '@element-plus/icons-vue'
+import { InfoFilled, MoreFilled, Sort, Link, User, Location, House, Timer, Search, Check, ArrowLeft, Document, Edit, SuccessFilled } from '@element-plus/icons-vue'
 import { useIntegration } from '@/composables/useIntegration'
 import type { Integration } from '@/types/integration'
-import { IntegrationType, IntegrationSubType, MOCK_INTEGRATIONS, AVAILABLE_INTEGRATIONS, AUTH_CONFIGS, INTEGRATION_LOGOS } from '@/constants/integration'
+import { IntegrationType, IntegrationSubType, AuthType, MOCK_INTEGRATIONS, AVAILABLE_INTEGRATIONS, AUTH_CONFIGS, INTEGRATION_LOGOS } from '@/constants/integration'
 import type { FormInstance } from 'element-plus'
 
 // 导入图片
@@ -389,6 +557,12 @@ const authDialogVisible = ref(false)
 const formRef = ref<FormInstance>()
 const formData = ref<Record<string, any>>({})
 const activeType = ref('')
+const selectedAuthType = ref<AuthType | null>(null)
+const authError = ref<string | null>(null)
+const isConnecting = ref(false)
+const isTesting = ref(false)
+const testPassed = ref(false)
+const isSaving = ref(false)
 
 // 过滤可用集成
 const filteredAvailableIntegrations = computed(() => {
@@ -414,18 +588,43 @@ const filteredAvailableIntegrations = computed(() => {
 
 // 生成表单验证规则
 const authFormRules = computed(() => {
-  const rules: Record<string, any> = {}
-  if (selectedIntegration.value?.subType) {
-    const config = AUTH_CONFIGS[selectedIntegration.value.subType]
-    config.fields.forEach(field => {
-      if (field.required) {
-        rules[field.key] = [{
-          required: true,
-          message: `Please enter ${field.label}`,
-          trigger: 'blur'
-        }]
+  const rules: Record<string, any> = {
+    // Connector Name validation
+    connectorName: [
+      {
+        required: true,
+        message: 'Please enter a connector name',
+        trigger: 'blur'
+      },
+      {
+        min: 2,
+        max: 50,
+        message: 'Connector name should be 2-50 characters',
+        trigger: 'blur'
+      },
+      {
+        pattern: /^[a-zA-Z0-9\s\-_]+$/,
+        message: 'Connector name can only contain letters, numbers, spaces, hyphens and underscores',
+        trigger: 'blur'
       }
-    })
+    ]
+  }
+  
+  if (selectedIntegration.value?.subType && selectedAuthType.value) {
+    const config = AUTH_CONFIGS[selectedIntegration.value.subType]
+    const authTypeConfig = config?.authTypes?.find(auth => auth.type === selectedAuthType.value)
+    
+    if (authTypeConfig) {
+      authTypeConfig.fields.forEach(field => {
+        if (field.required) {
+          rules[field.key] = [{
+            required: true,
+            message: `Please enter ${field.label}`,
+            trigger: 'blur'
+          }]
+        }
+      })
+    }
   }
   return rules
 })
@@ -434,7 +633,24 @@ const authFormRules = computed(() => {
 const handleSelectIntegration = (integration: Integration) => {
   selectedIntegration.value = integration
   authDialogVisible.value = true
-  formData.value = {} // 清空表单数据
+  
+  // 设置默认连接器名称和默认授权类型
+  const defaultConnectorName = `${integration.name} Connection`
+  formData.value = {
+    connectorName: defaultConnectorName
+  }
+  
+  // 设置默认授权类型为第一个可用类型
+  if (integration.subType && AUTH_CONFIGS[integration.subType]?.authTypes?.length > 0) {
+    selectedAuthType.value = AUTH_CONFIGS[integration.subType].authTypes[0].type
+  } else {
+    selectedAuthType.value = null
+  }
+  
+  // 重置测试状态
+  testPassed.value = false
+  authError.value = null
+  
   if (formRef.value) {
     formRef.value.resetFields()
   }
@@ -444,6 +660,9 @@ const handleSelectIntegration = (integration: Integration) => {
 const handleBackToList = () => {
   authDialogVisible.value = false
   selectedIntegration.value = null
+  selectedAuthType.value = null
+  authError.value = null
+  testPassed.value = false
   formData.value = {}
   if (formRef.value) {
     formRef.value.resetFields()
@@ -470,25 +689,54 @@ const handleAuthSubmit = async () => {
   
   try {
     await formRef.value.validate()
-    loading.value = true
+    isConnecting.value = true
+    authError.value = null // 清除之前的错误
     
     // 模拟API调用
-    await new Promise(resolve => setTimeout(resolve, 1000))
+    await new Promise(resolve => setTimeout(resolve, 2000))
     
-    // 模拟成功响应
-    ElMessage.success(`Successfully connected to ${selectedIntegration.value?.name}`)
-    addDialogVisible.value = false // 关闭整个对话框
+    // 模拟随机成功/失败响应（用于演示）
+    const isSuccess = Math.random() > 0.3 // 70% 成功率
     
-    // 重置状态
-    handleBackToList()
-    searchQuery.value = ''
-    activeType.value = ''
+    if (isSuccess) {
+      // 模拟成功响应
+      ElMessage.success(`Successfully connected to ${selectedIntegration.value?.name}`)
+      addDialogVisible.value = false // 关闭整个对话框
+      
+      // 重置状态
+      handleBackToList()
+      searchQuery.value = ''
+      activeType.value = ''
+    } else {
+      // 模拟授权失败
+      const errorMessages = [
+        'Invalid credentials. Please check your API key and secret.',
+        'Authentication failed. The provided credentials are incorrect or expired.',
+        'Connection timeout. Please check your network connection and try again.',
+        'Access denied. Please ensure your account has the necessary permissions.',
+        'Invalid shop domain. Please verify the domain name is correct.',
+        'OAuth authorization failed. Please complete the authorization process.',
+        'Server error occurred during authentication. Please try again later.'
+      ]
+      
+      const randomError = errorMessages[Math.floor(Math.random() * errorMessages.length)]
+      authError.value = randomError
+      
+      // 滚动到错误信息位置
+      setTimeout(() => {
+        const errorElement = document.querySelector('.error-alert')
+        if (errorElement) {
+          errorElement.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        }
+      }, 100)
+    }
     
   } catch (err) {
     // 表单验证失败
     console.error('Validation failed:', err)
+    authError.value = 'Please fill in all required fields correctly.'
   } finally {
-    loading.value = false
+    isConnecting.value = false
   }
 }
 
@@ -521,6 +769,35 @@ const getNameInitials = (name: string) => {
     .join('')
     .toUpperCase()
     .slice(0, 2)
+}
+
+// 模拟星评数据
+const INTEGRATION_RATINGS: Record<string, { rating: number; reviewCount: number }> = {
+  'shopify': { rating: 4.8, reviewCount: 2847 },
+  'amazon': { rating: 4.6, reviewCount: 1923 },
+  'walmart': { rating: 4.4, reviewCount: 856 },
+  'tiktok': { rating: 4.7, reviewCount: 1245 },
+  'facebook': { rating: 4.5, reviewCount: 1678 },
+  'instagram': { rating: 4.6, reviewCount: 1432 },
+  'woocommerce': { rating: 4.3, reviewCount: 967 },
+  'magento': { rating: 4.2, reviewCount: 743 },
+  'bigcommerce': { rating: 4.4, reviewCount: 589 },
+  'shipbob': { rating: 4.7, reviewCount: 1156 },
+  'fedex': { rating: 4.1, reviewCount: 892 },
+  'ups': { rating: 4.0, reviewCount: 756 },
+  'dhl': { rating: 4.2, reviewCount: 634 },
+  'unis-wms': { rating: 4.9, reviewCount: 234 },
+  'item-wms': { rating: 4.6, reviewCount: 178 }
+}
+
+// 获取集成星评
+const getIntegrationRating = (integrationId: string) => {
+  return INTEGRATION_RATINGS[integrationId]?.rating || 4.0
+}
+
+// 获取集成评论数量
+const getIntegrationReviewCount = (integrationId: string) => {
+  return INTEGRATION_RATINGS[integrationId]?.reviewCount || 0
 }
 
 // 搜索处理
@@ -632,6 +909,116 @@ const handleEnvironmentChange = (value: string) => {
     formData.value.api_url = WMS_URLS['UNIS WMS'][value as 'test' | 'production']
   } else if (subType === IntegrationSubType.ITEM_WMS) {
     formData.value.api_url = WMS_URLS['Item WMS'][value as 'test' | 'production']
+  }
+}
+
+// 处理授权类型变化
+const handleAuthTypeChange = (authType: AuthType) => {
+  // 清空表单数据，保留连接器名称
+  const connectorName = formData.value.connectorName
+  formData.value = { connectorName }
+  
+  // 清除错误信息和测试状态
+  authError.value = null
+  testPassed.value = false
+  
+  // 根据授权类型设置默认值
+  if (authType === AuthType.OAUTH_V2_CODE) {
+    formData.value.verify_email = 'lantester@item.com'
+    formData.value.send_email_on_expire = false
+  }
+}
+
+// OAuth相关处理函数
+const handleGoToVerify = () => {
+  ElMessage.info('Redirecting to verification page...')
+}
+
+const handleShareLink = () => {
+  ElMessage.success('Verification link shared successfully')
+}
+
+const handleCopyUrl = () => {
+  if (formData.value.verification_url) {
+    navigator.clipboard.writeText(formData.value.verification_url)
+    ElMessage.success('URL copied to clipboard')
+  } else {
+    ElMessage.warning('No URL to copy')
+  }
+}
+
+// 测试连接
+const handleTestConnection = async () => {
+  if (!formRef.value) return
+  
+  try {
+    await formRef.value.validate()
+    isTesting.value = true
+    authError.value = null
+    testPassed.value = false
+    
+    // 模拟测试连接API调用
+    await new Promise(resolve => setTimeout(resolve, 1500))
+    
+    // 模拟随机成功/失败响应（用于演示）
+    const isSuccess = Math.random() > 0.2 // 80% 成功率
+    
+    if (isSuccess) {
+      testPassed.value = true
+      ElMessage.success('Connection test passed successfully!')
+    } else {
+      // 模拟测试失败
+      const testErrorMessages = [
+        'Connection test failed: Invalid credentials.',
+        'Connection test failed: Network timeout.',
+        'Connection test failed: Server unreachable.',
+        'Connection test failed: Authentication error.',
+        'Connection test failed: Invalid configuration.'
+      ]
+      
+      const randomError = testErrorMessages[Math.floor(Math.random() * testErrorMessages.length)]
+      authError.value = randomError
+      
+      // 滚动到错误信息位置
+      setTimeout(() => {
+        const errorElement = document.querySelector('.error-alert')
+        if (errorElement) {
+          errorElement.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        }
+      }, 100)
+    }
+    
+  } catch (err) {
+    // 表单验证失败
+    console.error('Validation failed:', err)
+    authError.value = 'Please fill in all required fields correctly before testing.'
+  } finally {
+    isTesting.value = false
+  }
+}
+
+// 保存草稿
+const handleSaveDraft = async () => {
+  if (!formRef.value) return
+  
+  try {
+    await formRef.value.validate()
+    isSaving.value = true
+    
+    // 模拟保存草稿API调用
+    await new Promise(resolve => setTimeout(resolve, 1000))
+    
+    ElMessage.success(`Integration configuration saved as draft for ${selectedIntegration.value?.name}`)
+    
+    // 可以选择保持对话框打开或关闭
+    // addDialogVisible.value = false
+    
+  } catch (err) {
+    // 表单验证失败
+    console.error('Validation failed:', err)
+    ElMessage.warning('Please fill in all required fields before saving.')
+  } finally {
+    isSaving.value = false
   }
 }
 </script>
@@ -798,6 +1185,37 @@ const handleEnvironmentChange = (value: string) => {
               font-weight: 500;
               color: var(--el-text-color-primary);
           margin-bottom: 4px;
+        }
+        
+        .rating-row {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          margin-bottom: 6px;
+          
+          .el-rate {
+            --el-rate-icon-size: 12px;
+            --el-rate-icon-margin: 1px;
+            
+            :deep(.el-rate__text) {
+              font-size: 11px;
+              font-weight: 500;
+              color: var(--el-text-color-primary);
+              margin-left: 2px;
+            }
+            
+            :deep(.el-rate__item) {
+              .el-rate__icon {
+                color: #ff9900;
+              }
+            }
+          }
+          
+          .review-count {
+            font-size: 11px;
+            color: var(--el-text-color-secondary);
+            white-space: nowrap;
+          }
         }
 
         .tags {
@@ -1087,7 +1505,7 @@ const handleEnvironmentChange = (value: string) => {
                 display: flex;
                 align-items: center;
               gap: 12px;
-              margin-bottom: 12px;
+              margin-bottom: 8px;
 
               h4 {
                 margin: 0;
@@ -1101,6 +1519,37 @@ const handleEnvironmentChange = (value: string) => {
                 --el-tag-bg-color: transparent;
                 border-color: currentColor;
                 text-transform: capitalize;
+              }
+            }
+            
+            .rating-section {
+              display: flex;
+              align-items: center;
+              gap: 8px;
+              margin-bottom: 12px;
+              
+              .el-rate {
+                --el-rate-icon-size: 14px;
+                --el-rate-icon-margin: 2px;
+                
+                :deep(.el-rate__text) {
+                  font-size: 13px;
+                  font-weight: 500;
+                  color: var(--el-text-color-primary);
+                  margin-left: 4px;
+                }
+                
+                :deep(.el-rate__item) {
+                  .el-rate__icon {
+                    color: #ff9900;
+                  }
+                }
+              }
+              
+              .rating-count {
+                font-size: 12px;
+                color: var(--el-text-color-secondary);
+                white-space: nowrap;
               }
             }
 
@@ -1210,6 +1659,21 @@ const handleEnvironmentChange = (value: string) => {
       flex: 1;
       overflow-y: auto;
 
+      .error-alert {
+        margin-bottom: 20px;
+        
+        :deep(.el-alert) {
+          border-radius: 8px;
+          
+          .el-alert__content {
+            .el-alert__title {
+              font-weight: 500;
+              line-height: 1.5;
+            }
+          }
+        }
+      }
+      
       .instructions {
         margin-bottom: 24px;
       }
@@ -1217,6 +1681,159 @@ const handleEnvironmentChange = (value: string) => {
       .el-form {
         max-width: 600px;
         margin: 0 auto;
+        
+        .connector-name-field {
+          .el-input {
+            :deep(.el-input__wrapper) {
+              border: 2px solid var(--el-border-color);
+              border-radius: 8px;
+              transition: all 0.3s ease;
+              
+              &.is-focus {
+                border-color: var(--el-color-primary);
+                box-shadow: 0 0 0 2px rgba(64, 158, 255, 0.1);
+              }
+            }
+            
+            :deep(.el-input__prefix) {
+              color: var(--el-color-primary);
+            }
+          }
+          
+          .field-hint {
+            margin-top: 8px;
+            font-size: 12px;
+            color: var(--el-text-color-secondary);
+            line-height: 1.4;
+          }
+        }
+        
+        .el-divider {
+          margin: 32px 0 24px;
+          
+          :deep(.el-divider__text) {
+            font-weight: 500;
+            color: var(--el-text-color-primary);
+            background: var(--el-fill-color-light);
+            padding: 0 16px;
+          }
+        }
+        
+        .auth-type-selection {
+          margin-bottom: 24px;
+          
+          .el-radio-group {
+            width: 100%;
+            display: flex;
+            gap: 12px;
+            
+            .el-radio-button {
+              flex: 1;
+              
+              :deep(.el-radio-button__inner) {
+                width: 100%;
+                border-radius: 8px;
+                border: 1px solid var(--el-border-color);
+                font-weight: 500;
+                
+                &:not(:hover) {
+                  background: var(--el-bg-color-blank);
+                }
+              }
+              
+              &:first-child {
+                :deep(.el-radio-button__inner) {
+                  border-left: 1px solid var(--el-border-color);
+                }
+              }
+            }
+          }
+        }
+        
+        .oauth-section {
+          margin: 24px 0 16px;
+          
+          h4 {
+            margin: 0 0 8px;
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--el-text-color-primary);
+          }
+          
+          .section-description {
+            margin: 0 0 16px;
+            font-size: 14px;
+            color: var(--el-text-color-secondary);
+          }
+          
+          .session-auth-section {
+            margin-top: 24px;
+            padding-top: 16px;
+            border-top: 1px solid var(--el-border-color-lighter);
+            
+            h5 {
+              margin: 0 0 8px;
+              font-size: 14px;
+              font-weight: 600;
+              color: var(--el-text-color-primary);
+            }
+          }
+        }
+        
+        .required-field {
+          :deep(.el-form-item__label) {
+            &::before {
+              content: '*';
+              color: var(--el-color-danger);
+              margin-right: 4px;
+            }
+          }
+        }
+        
+        .field-description {
+          margin-top: 4px;
+          font-size: 12px;
+          color: var(--el-text-color-secondary);
+          line-height: 1.4;
+        }
+        
+        .oauth-verify-section {
+          margin-top: 24px;
+          
+          .verify-email-section {
+            margin-bottom: 16px;
+            
+            .verify-label {
+              display: block;
+              margin-bottom: 8px;
+              font-size: 14px;
+              font-weight: 500;
+              color: var(--el-text-color-primary);
+            }
+            
+            .verify-actions {
+              margin-top: 12px;
+              display: flex;
+              gap: 12px;
+            }
+          }
+          
+          .alert-email-section {
+            margin-top: 16px;
+            
+            .alert-label {
+              display: block;
+              margin-bottom: 8px;
+              font-size: 14px;
+              font-weight: 500;
+              color: var(--el-text-color-primary);
+            }
+          }
+          
+          .el-checkbox {
+            margin: 16px 0;
+          }
+        }
       }
     }
   }
@@ -1224,11 +1841,37 @@ const handleEnvironmentChange = (value: string) => {
   .dialog-footer {
     flex-shrink: 0;
     display: flex;
-    justify-content: flex-end;
+    justify-content: space-between;
+    align-items: center;
     gap: 12px;
     padding: 16px 24px;
     border-top: 1px solid var(--el-border-color-lighter);
     background: var(--el-bg-color-blank);
+    
+    .left-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      
+      .test-success-indicator {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        color: var(--el-color-success);
+        font-size: 14px;
+        font-weight: 500;
+        
+        .el-icon {
+          font-size: 16px;
+        }
+      }
+    }
+    
+    .right-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
   }
 }
 

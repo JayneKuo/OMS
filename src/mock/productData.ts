@@ -767,3 +767,93 @@ export const mockCreateProduct = (data: any) => {
   mockProducts.push(newProduct);
   return newProduct;
 };
+
+// 获取单个产品详情的模拟函数
+export function getMockProductDetail(id: string) {
+  // 查找产品
+  const product = mockProducts.find(p => p.id === id);
+  
+  if (!product) {
+    throw new Error('Product not found');
+  }
+  
+  // 返回详细的产品信息
+  return {
+    id: product.id,
+    name: product.name,
+    sku: product.sku,
+    spu: product.spu,
+    status: product.status,
+    type: product.type,
+    category: product.category,
+    brand: product.brand,
+    vendor: product.vendor,
+    sellingForm: product.sellingForm,
+    sellingPrice: product.sellingPrice,
+    cost: product.cost,
+    regularPrice: product.regularPrice,
+    salePrice: product.salePrice,
+    quantity: product.quantity,
+    uom: product.uom,
+    dataSource: product.dataSource,
+    publishedChannels: product.publishedChannels,
+    tags: product.tags,
+    created: product.created,
+    updated: product.updated,
+    // 扩展的详情信息
+    basic: {
+      productName: product.name,
+      sku: product.sku,
+      parentSku: product.spu,
+      type: product.type,
+      category: product.category,
+      status: product.status,
+      description: `This is a detailed description for ${product.name}. It includes all the necessary information about the product features, specifications, and usage instructions.`,
+      brand: product.brand,
+      vendor: product.vendor
+    },
+    media: {
+      mainImages: [
+        'https://via.placeholder.com/400x400/007bff/ffffff?text=Main+Image+1',
+        'https://via.placeholder.com/400x400/28a745/ffffff?text=Main+Image+2'
+      ],
+      additionalImages: [
+        'https://via.placeholder.com/400x400/dc3545/ffffff?text=Additional+1',
+        'https://via.placeholder.com/400x400/ffc107/ffffff?text=Additional+2'
+      ],
+      videoUrl: ''
+    },
+    warehouse: {
+      baseUOM: product.uom,
+      quantity: product.quantity,
+      dimensions: {
+        length: 10,
+        width: 8,
+        height: 2,
+        unit: 'cm'
+      },
+      weight: {
+        net: 0.15,
+        gross: 0.18,
+        unit: 'kg'
+      }
+    },
+    compliance: {
+      hsCode: '8517.70.00',
+      countryOfOrigin: 'China',
+      declaredValue: product.cost,
+      certificates: {}
+    },
+    bundle: {
+      enabled: product.sellingForm === 'bundle',
+      items: []
+    },
+    mapping: {
+      channels: product.publishedChannels?.map(channel => ({
+        name: channel,
+        status: 'Active',
+        lastSync: new Date().toISOString()
+      })) || []
+    }
+  };
+};
