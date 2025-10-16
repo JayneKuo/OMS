@@ -1,182 +1,196 @@
 <template>
   <div class="product-list">
-    <!-- 页面标题区域 -->
-    <div class="page-header">
-      <div class="page-title">
-        <h1>Products</h1>
-        <el-tag type="info" class="count-tag">
-          {{ total }} items
-        </el-tag>
-      </div>
-      <div class="page-actions">
-        <el-button :icon="Download" size="default">
-          Export
-        </el-button>
-        <el-button type="primary" :icon="Plus" @click="handleCreate" size="default">
-          Create
-        </el-button>
-      </div>
-    </div>
-
-    <el-card class="filter-card" shadow="never">
-      <div class="filter-header">
-        <div class="search-and-filters-row">
-          <!-- 搜索框 -->
+    <!-- Shein风格筛选面板 -->
+    <div class="filter-panel-shein">
+      <div class="filter-grid">
+        <!-- 第一行 -->
+        <div class="filter-item">
+          <label class="filter-label">Product Name</label>
           <el-input
             v-model="searchQuery"
-            placeholder="Search by name, SKU, or category..."
-            class="search-input-compact"
-            :prefix-icon="Search"
+            placeholder="Enter product name"
             clearable
             @input="handleSearch"
             @clear="handleSearch"
           />
-          
-          <!-- 筛选器组 -->
-          <div class="filters-group-compact">
-          <el-select
-            v-model="filterType"
-              placeholder="Type"
-            clearable
-            class="filter-select"
-            @change="handleSearch"
-          >
-              <el-option label="Physical" value="PHYSICAL" />
-              <el-option label="Virtual" value="VIRTUAL" />
-              <el-option label="Service" value="SERVICE" />
-              <el-option label="Gift" value="GIFT" />
-              <el-option label="Sample" value="SAMPLE" />
-              <el-option label="Material" value="MATERIAL" />
-          </el-select>
-          <el-select
-            v-model="filterStatus"
-            placeholder="Status"
-            clearable
-            class="filter-select"
-            @change="handleSearch"
-          >
-              <el-option label="Draft" value="Draft" />
-            <el-option label="Active" value="Active" />
-            <el-option label="Inactive" value="Inactive" />
-              <el-option label="Disabled" value="Disabled" />
-          </el-select>
-          <el-select
-              v-model="filterSellingForm"
-              placeholder="Form"
-            clearable
-            class="filter-select"
-            @change="handleSearch"
-          >
-              <el-option label="Single" value="single" />
-              <el-option label="Multi" value="multi" />
-              <el-option label="Bundle" value="bundle" />
-          </el-select>
-          <el-select
-              v-model="filterDataSource"
-              placeholder="Source"
-            clearable
-            class="filter-select"
-            @change="handleSearch"
-          >
-              <el-option label="OMS" value="oms" />
-              <el-option label="External" value="external" />
-              <el-option label="API" value="api" />
-          </el-select>
-          <el-select
-              v-model="filterIntegration"
-              placeholder="Channel"
-            clearable
-            class="filter-select"
-            @change="handleSearch"
-          >
-              <el-option label="Shopify" value="Shopify" />
-              <el-option label="Amazon" value="Amazon" />
-              <el-option label="eBay" value="eBay" />
-              <el-option label="Walmart" value="Walmart" />
-          </el-select>
-            
-            <!-- 清除筛选按钮 -->
-            <el-button
-              v-if="hasActiveFilters"
-              link
-              type="primary"
-              @click="clearAllFilters"
-              class="clear-filters-btn-compact"
-            >
-              Clear
-            </el-button>
         </div>
+        <div class="filter-item">
+          <label class="filter-label">Seller SKU</label>
+          <el-input
+            placeholder="Enter seller SKU"
+            clearable
+          />
         </div>
-      </div>
-    </el-card>
-
-    <!-- 批量操作区域 -->
-    <div class="batch-operations" v-if="selectedProducts.length > 0 || true">
-      <div class="batch-info">
-        <span v-if="selectedProducts.length > 0" class="selected-count">
-          {{ selectedProducts.length }} items selected
-        </span>
-        <span v-else class="selected-placeholder">
-          Select items for batch operations
-        </span>
-      </div>
-      <div class="batch-buttons">
-        <el-button-group class="batch-actions-group">
-          <el-tooltip content="Batch Publish" placement="top">
-            <el-button 
-              :icon="Upload" 
-              @click="handleBatchPublish" 
-              size="small"
-              type="success"
-              :disabled="selectedProducts.length === 0 || !canBatchPublish"
-            >
-              Publish
-            </el-button>
-          </el-tooltip>
-          <el-tooltip content="Batch Price Adjustment" placement="top">
-            <el-button 
-              :icon="Money" 
-              @click="handleBatchPriceAdjust" 
-              size="small"
-              :disabled="selectedProducts.length === 0"
-            >
-              Price
-            </el-button>
-          </el-tooltip>
-          <el-tooltip content="Batch Special Price" placement="top">
-            <el-button 
-              :icon="PriceTag" 
-              @click="handleBatchSpecialPrice" 
-              size="small"
-              type="warning"
-              :disabled="selectedProducts.length === 0"
-            >
-              Special
-            </el-button>
-          </el-tooltip>
-          <el-tooltip content="Batch Delete" placement="top">
-            <el-button 
-              :icon="Delete" 
-              @click="handleBatchDelete" 
-              size="small"
-              type="danger"
-              :disabled="selectedProducts.length === 0 || !canBatchDelete"
-            >
-              Delete
-            </el-button>
-          </el-tooltip>
-        </el-button-group>
+        <div class="filter-item">
+          <label class="filter-label">Parent SKU</label>
+          <el-input
+            placeholder="Enter parent SKU"
+            clearable
+          />
+        </div>
         
-        <el-button-group class="utility-actions-group">
-            <el-tooltip content="Refresh" placement="top">
-            <el-button :icon="Refresh" @click="loadProducts" size="small" />
-            </el-tooltip>
-            <el-tooltip content="Column Settings" placement="top">
-            <el-button :icon="Setting" @click="handleColumnConfig" size="small" />
-            </el-tooltip>
-          </el-button-group>
+        <!-- 第二行 -->
+        <div class="filter-item">
+          <label class="filter-label">SKC</label>
+          <el-input
+            placeholder="Enter SKC"
+            clearable
+          />
+        </div>
+        <div class="filter-item">
+          <label class="filter-label">Brand</label>
+          <el-select
+            v-model="filterBrand"
+            placeholder="Select brand"
+            clearable
+            @change="handleSearch"
+          >
+            <el-option
+              v-for="brand in brands"
+              :key="brand"
+              :label="brand"
+              :value="brand"
+            />
+          </el-select>
+        </div>
+        <div class="filter-item">
+          <label class="filter-label">Category</label>
+          <el-select
+            v-model="filterCategory"
+            placeholder="Select category"
+            clearable
+            @change="handleSearch"
+          >
+            <el-option label="Electronics" value="electronics" />
+            <el-option label="Clothing" value="clothing" />
+            <el-option label="Books" value="books" />
+            <el-option label="Home & Garden" value="home-garden" />
+          </el-select>
+        </div>
+        
+        <!-- 第三行 - 日期筛选 -->
+        <div class="filter-item filter-date">
+          <label class="filter-label">Date Created</label>
+          <div class="date-range">
+            <el-date-picker
+              placeholder="Start date"
+              style="width: 48%"
+            />
+            <span class="date-separator">to</span>
+            <el-date-picker
+              placeholder="End date"
+              style="width: 48%"
+            />
+          </div>
+        </div>
+        <div class="filter-item filter-date">
+          <label class="filter-label">Date Listed</label>
+          <div class="date-range">
+            <el-date-picker
+              placeholder="Start date"
+              style="width: 48%"
+            />
+            <span class="date-separator">to</span>
+            <el-date-picker
+              placeholder="End date"
+              style="width: 48%"
+            />
+          </div>
+        </div>
+        <div class="filter-item filter-date">
+          <label class="filter-label">Date Added</label>
+          <div class="date-range">
+            <el-date-picker
+              placeholder="Start date"
+              style="width: 48%"
+            />
+            <span class="date-separator">to</span>
+            <el-date-picker
+              placeholder="End date"
+              style="width: 48%"
+            />
+          </div>
         </div>
       </div>
+      
+      <!-- 搜索按钮区 -->
+      <div class="filter-actions">
+        <el-button @click="clearAllFilters" :icon="Refresh">Reset</el-button>
+        <el-button type="primary" @click="handleSearch" :icon="Search">Search</el-button>
+      </div>
+    </div>
+
+    <!-- 状态标签栏 + 统计 + 操作 -->
+    <div class="status-bar-shein">
+      <!-- 左侧：状态标签 -->
+      <div class="status-tabs">
+        <div class="status-tab active">
+          <span>All</span>
+          <span class="status-count">({{ total }})</span>
+        </div>
+        <div class="status-tab">
+          <span>Pending</span>
+          <span class="status-count">(1)</span>
+        </div>
+        <div class="status-tab">
+          <span>Listed</span>
+          <span class="status-count">(1)</span>
+        </div>
+        <div class="status-tab">
+          <span>Sold Out</span>
+          <span class="status-count">(1)</span>
+        </div>
+        <div class="status-tab">
+          <span>Deleted</span>
+          <span class="status-count">(1)</span>
+        </div>
+        <div class="status-tab">
+          <span>Draft</span>
+          <span class="status-count">(1)</span>
+        </div>
+        <div class="status-tab">
+          <span>Failed</span>
+          <span class="status-count">(1)</span>
+        </div>
+      </div>
+      
+      <!-- 右侧：统计 + 操作 -->
+      <div class="status-right">
+        <div class="stats-group">
+          <span class="stat-item">Total Products: <strong>{{ total }}</strong></span>
+          <span class="stat-item">Published: <strong class="text-success">2</strong></span>
+          <span class="stat-item">Remaining: <strong class="text-warning">5998</strong></span>
+        </div>
+        
+        <el-dropdown trigger="click" class="batch-dropdown">
+          <el-button type="primary" plain>
+            Batch Actions
+            <el-icon class="el-icon--right"><ArrowDown /></el-icon>
+          </el-button>
+          <template #dropdown>
+            <el-dropdown-menu>
+              <el-dropdown-item :icon="Upload" @click="handleBatchPublish" :disabled="selectedProducts.length === 0 || !canBatchPublish">
+                Batch Publish
+              </el-dropdown-item>
+              <el-dropdown-item :icon="Money" @click="handleBatchPriceAdjust" :disabled="selectedProducts.length === 0">
+                Batch Price
+              </el-dropdown-item>
+              <el-dropdown-item :icon="PriceTag" @click="handleBatchSpecialPrice" :disabled="selectedProducts.length === 0">
+                Batch Special Price
+              </el-dropdown-item>
+              <el-dropdown-item :icon="Delete" @click="handleBatchDelete" :disabled="selectedProducts.length === 0 || !canBatchDelete" divided>
+                Batch Delete
+              </el-dropdown-item>
+            </el-dropdown-menu>
+          </template>
+        </el-dropdown>
+        
+        <el-button type="primary" :icon="Plus" @click="handleCreate">Create</el-button>
+        
+        <el-button :icon="Refresh" @click="loadProducts" circle />
+        <el-button :icon="Setting" @click="handleColumnConfig" circle />
+      </div>
+    </div>
 
     <el-card class="table-card" shadow="never">
 
@@ -533,7 +547,8 @@ import {
   Link,
   Close,
   Download,
-  PriceTag
+  PriceTag,
+  Filter
 } from '@element-plus/icons-vue';
 import type { Product, ColumnConfig } from '@/types/product';
 import { useRouter } from 'vue-router';
@@ -552,6 +567,8 @@ const filterStatus = ref('');
 const filterIntegration = ref('');
 const filterSellingForm = ref('');
 const filterDataSource = ref('');
+const filterBrand = ref('');
+const filterCategory = ref('');
 const selectedProducts = ref<Array<Product>>([]);
 const vendors = ref<Array<string>>(mockVendors);
 const brands = ref<Array<string>>(mockBrands);
@@ -660,7 +677,9 @@ const hasActiveFilters = computed(() => {
     filterStatus.value ||
     filterSellingForm.value ||
     filterDataSource.value ||
-    filterIntegration.value
+    filterIntegration.value ||
+    filterBrand.value ||
+    filterCategory.value
   );
 });
 
@@ -828,6 +847,8 @@ const clearAllFilters = () => {
   filterSellingForm.value = '';
   filterDataSource.value = '';
   filterIntegration.value = '';
+  filterBrand.value = '';
+  filterCategory.value = '';
   loadProducts();
 };
 
@@ -1062,166 +1083,138 @@ onMounted(() => {
   position: relative;
 }
 
-/* 页面标题区域 */
-.page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+/* Shein风格筛选面板 */
+.filter-panel-shein {
+  background: var(--el-bg-color);
   padding: 20px 24px;
-  background: var(--el-bg-color);
-  border-bottom: 1px solid var(--el-border-color-lighter);
+  border-bottom: 1px solid var(--el-border-color-light);
+  flex-shrink: 0;
+}
+
+.filter-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px 20px;
   margin-bottom: 16px;
-  flex-shrink: 0;
 }
 
-.page-title {
+.filter-item {
   display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.page-title h1 {
-  margin: 0;
-  font-size: 24px;
-  font-weight: 600;
-  color: var(--el-text-color-primary);
-  line-height: 1.2;
-}
-
-.page-title .count-tag {
-  font-size: 12px;
-  padding: 4px 8px;
-}
-
-.page-actions {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-/* 批量操作区域 */
-.batch-operations {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 12px 24px;
-  background: var(--el-bg-color);
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: 6px;
-  margin: 0 16px 16px 16px;
-  transition: all 0.2s ease;
-}
-
-.batch-info .selected-count {
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--el-color-primary);
-}
-
-.batch-info .selected-placeholder {
-  font-size: 14px;
-  color: var(--el-text-color-placeholder);
-}
-
-.batch-buttons {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.batch-actions-group {
-  display: flex;
-}
-
-.utility-actions-group {
-  display: flex;
-  border-left: 1px solid var(--el-border-color-lighter);
-  padding-left: 12px;
-}
-
-.filter-card {
-  margin: 16px 16px 16px 16px;
-  flex-shrink: 0;
-}
-
-.filter-header {
-  padding: 16px 0;
-}
-
-.search-and-filters-row {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  flex-wrap: wrap;
-}
-
-.search-input-compact {
-  width: 320px;
-  min-width: 280px;
-  flex-shrink: 0;
-}
-
-.filters-group-compact {
-  display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
   gap: 8px;
-  align-items: center;
-  flex: 1;
-  min-width: 0;
 }
 
-.filter-select {
-  width: 120px;
-  flex-shrink: 0;
+.filter-label {
+  font-size: 13px;
+  color: var(--el-text-color-regular);
+  font-weight: 500;
 }
 
-.clear-filters-btn-compact {
-  font-size: 12px;
-  padding: 8px 12px;
-  flex-shrink: 0;
-}
-
-.right-actions {
-  display: flex;
-  gap: 16px;
-  align-items: center;
-  flex-shrink: 0;
-}
-
-.batch-actions {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 8px 12px;
-  background-color: var(--el-color-primary-light-9);
-  border: 1px solid var(--el-color-primary-light-5);
-  border-radius: 6px;
+.filter-date {
+  .date-range {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
   
-  .selected-count {
-    font-size: 13px;
-    color: var(--el-color-primary);
-    font-weight: 500;
-    
-    &.placeholder {
-      color: var(--el-text-color-secondary);
-      font-weight: normal;
-    }
+  .date-separator {
+    font-size: 12px;
+    color: var(--el-text-color-secondary);
   }
 }
 
-.action-group {
-  margin-right: 8px;
+.filter-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding-top: 8px;
 }
 
-.search-input {
-  width: 260px;
-  max-width: 100%;
+/* 状态标签栏 */
+.status-bar-shein {
+  background: var(--el-bg-color);
+  padding: 0 24px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-shrink: 0;
+  min-height: 56px;
 }
 
-.filter-select {
-  width: 120px;
-  max-width: 100%;
+.status-tabs {
+  display: flex;
+  gap: 4px;
+  flex: 1;
 }
+
+.status-tab {
+  padding: 16px 20px;
+  cursor: pointer;
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  color: var(--el-text-color-regular);
+  transition: all 0.3s;
+  border-bottom: 2px solid transparent;
+  
+  &:hover {
+    color: var(--el-color-primary);
+    background: var(--el-color-primary-light-9);
+  }
+  
+  &.active {
+    color: var(--el-color-primary);
+    font-weight: 600;
+    border-bottom-color: var(--el-color-primary);
+    
+    .status-count {
+      color: var(--el-color-primary);
+    }
+  }
+  
+  .status-count {
+    font-size: 13px;
+    color: var(--el-text-color-secondary);
+  }
+}
+
+.status-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-shrink: 0;
+}
+
+.stats-group {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding-right: 20px;
+  border-right: 1px solid var(--el-border-color-light);
+}
+
+.stat-item {
+  font-size: 13px;
+  color: var(--el-text-color-regular);
+  white-space: nowrap;
+  
+  strong {
+    font-weight: 600;
+    margin-left: 4px;
+  }
+  
+  .text-success {
+    color: var(--el-color-success);
+  }
+  
+  .text-warning {
+    color: var(--el-color-warning);
+  }
+}
+
 
 .table-card {
   flex: 1;
@@ -1440,73 +1433,6 @@ onMounted(() => {
   align-items: center;
 }
 
-/* 响应式设计 */
-@media (max-width: 1200px) {
-  .search-section {
-    .search-input-main {
-      width: 300px;
-    }
-  }
-  
-  .actions-row {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 12px;
-  }
-  
-  .filters-group {
-    justify-content: flex-start;
-  }
-  
-  .right-actions {
-    justify-content: space-between;
-  }
-}
-
-@media (max-width: 768px) {
-  .search-section {
-    .search-input-main {
-      width: 250px;
-    }
-  }
-  
-  .filters-group {
-    gap: 8px;
-    
-    .filter-select {
-      width: 120px;
-    }
-  }
-  
-  .right-actions {
-    flex-direction: column;
-    gap: 12px;
-    align-items: stretch;
-  }
-  
-  .batch-actions {
-    flex-direction: column;
-    gap: 8px;
-    text-align: center;
-  }
-}
-
-@media (max-width: 480px) {
-  .search-section {
-    .search-input-main {
-      width: 200px;
-    }
-  }
-  
-  .filters-group {
-    flex-direction: column;
-    align-items: stretch;
-    
-    .filter-select {
-      width: 100%;
-    }
-  }
-}
 
 /* SKU cell styling */
 .sku-cell {
@@ -1784,66 +1710,9 @@ onMounted(() => {
   }
 }
 
-/* 响应式设计 */
-@media (max-width: 1200px) {
-  .filter-header {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 12px;
-  }
-  
-  .right {
-    justify-content: flex-end;
-    margin-top: 8px;
-  }
-  
-  .filter-row {
-    gap: 8px;
-    
-    &.primary-filters .search-input {
-      width: 100%;
-      max-width: 300px;
-      margin-right: 0;
-      margin-bottom: 8px;
-    }
-  }
-}
 
+/* 额外的响应式设计 - 表格 */
 @media (max-width: 768px) {
-  .filter-card {
-    margin: 12px;
-  }
-  
-  .table-card {
-    margin: 0 12px 12px 12px;
-    width: calc(100% - 24px);
-  }
-  
-  .filter-header {
-    gap: 8px;
-  }
-  
-  .filter-row {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 6px;
-    
-    &.primary-filters .search-input {
-      width: 100%;
-      max-width: none;
-    }
-  }
-  
-  .filter-select {
-    width: 100%;
-  }
-  
-  .right {
-    flex-direction: row;
-    justify-content: space-between;
-    margin-top: 12px;
-  }
-  
   :deep(.el-table) {
     font-size: 12px;
     
@@ -1868,13 +1737,12 @@ onMounted(() => {
 }
 
 @media (max-width: 480px) {
-  .filter-card {
-    margin: 8px;
-  }
-  
-  .table-card {
-    margin: 0 8px 8px 8px;
-    width: calc(100% - 16px);
+  .main-search {
+    :deep(.el-input-group__append) {
+      .el-button {
+        padding: 0 12px;
+      }
+    }
   }
   
   :deep(.el-table) {
@@ -1891,19 +1759,16 @@ onMounted(() => {
     }
   }
   
-  .spu-cell .variant-toggle {
-    font-size: 10px;
+  .sku-cell {
+    .variant-info {
+      font-size: 10px;
+    }
   }
   
   .channels-cell {
     flex-direction: column;
     align-items: flex-start;
     gap: 2px;
-  }
-  
-  .channel-tag {
-    font-size: 10px;
-    padding: 2px 4px;
   }
 }
 
@@ -1957,86 +1822,96 @@ onMounted(() => {
 }
 
 /* 响应式设计 */
+@media (max-width: 1200px) {
+  .filter-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .status-tabs {
+    overflow-x: auto;
+    scrollbar-width: none;
+    
+    &::-webkit-scrollbar {
+      display: none;
+    }
+  }
+  
+  .stats-group {
+    flex-direction: column;
+    gap: 8px;
+    align-items: flex-start;
+  }
+}
+
 @media (max-width: 768px) {
-  .page-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 16px;
+  .filter-panel-shein {
     padding: 16px;
   }
   
-  .page-actions {
-    width: 100%;
-    justify-content: flex-end;
-  }
-  
-  .batch-operations {
-    flex-direction: column;
-    align-items: flex-start;
+  .filter-grid {
+    grid-template-columns: 1fr;
     gap: 12px;
-    margin: 0 12px 12px 12px;
-    padding: 16px;
   }
   
-  .batch-buttons {
+  .status-bar-shein {
+    padding: 0 16px;
+    flex-direction: column;
+    align-items: stretch;
+    min-height: auto;
+    padding-top: 8px;
+    padding-bottom: 8px;
+  }
+  
+  .status-tabs {
+    order: 1;
     width: 100%;
-    justify-content: flex-end;
+    margin-bottom: 12px;
+  }
+  
+  .status-right {
+    order: 2;
+    width: 100%;
     flex-wrap: wrap;
+    gap: 8px;
   }
   
-  .utility-actions-group {
-    border-left: none;
-    padding-left: 0;
-    margin-top: 8px;
-  }
-  
-  .filter-card {
-    margin: 12px;
-    width: calc(100% - 24px);
+  .stats-group {
+    width: 100%;
+    padding: 0;
+    border: none;
+    margin-bottom: 12px;
   }
   
   .table-card {
-    margin: 12px;
+    margin: 0 12px 12px 12px;
     width: calc(100% - 24px);
-  }
-  
-  .actions-row {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 12px;
-  }
-  
-  .filters-group {
-    width: 100%;
-    justify-content: flex-start;
-  }
-  
-  .search-input-main {
-    width: 100% !important;
   }
 }
 
 @media (max-width: 480px) {
-  .page-header {
+  .filter-panel-shein {
     padding: 12px;
   }
   
-  .page-title h1 {
-    font-size: 20px;
+  .filter-actions {
+    .el-button {
+      flex: 1;
+    }
   }
   
-  .batch-operations {
-    margin: 0 8px 8px 8px;
-    padding: 12px;
+  .status-tab {
+    padding: 12px 16px;
+    font-size: 13px;
   }
   
-  .filter-card {
-    margin: 8px;
-    width: calc(100% - 16px);
+  .status-right {
+    .el-button {
+      flex: 1;
+    }
   }
   
   .table-card {
-    margin: 8px;
+    margin: 0 8px 8px 8px;
     width: calc(100% - 16px);
   }
 }
