@@ -568,6 +568,16 @@ const routes: RouteRecordRaw[] = [
                   icon: 'List',
                   keepAlive: true
                 }
+              },
+              {
+                path: 'shein/create',
+                name: 'SheinProductCreate',
+                component: () => import('@/views/product/channel/shein/create.vue'),
+                meta: {
+                  title: 'Create Shein Product',
+                  activeMenu: '/product/channel/shein',
+                  hidden: true
+                }
               }
             ]
           },
@@ -595,9 +605,10 @@ const router = createRouter({
   ]
 })
 
-// 添加路由调试信息
+// 路由守卫
 router.beforeEach((to, from, next) => {
   console.log('路由跳转:', from.path, '->', to.path)
+  // 确保路由正常跳转
   next()
 })
 

@@ -313,12 +313,33 @@
 
                       <div class="action-divider"></div>
 
-                      <el-tooltip content="Create New Product" placement="top">
-                        <el-button type="primary" class="create-button" @click="handleCreateProduct">
+                      <!-- Create Dropdown -->
+                      <el-dropdown 
+                        trigger="click"
+                        @command="handleCreateCommand"
+                      >
+                        <el-button type="primary" class="create-button">
                           <el-icon><Plus /></el-icon>
                           Create
+                          <el-icon class="el-icon--right"><ArrowDown /></el-icon>
                         </el-button>
-                      </el-tooltip>
+                        <template #dropdown>
+                          <el-dropdown-menu>
+                            <el-dropdown-item command="manual">
+                              <el-icon><Edit /></el-icon>
+                              Manual Create
+                            </el-dropdown-item>
+                            <el-dropdown-item command="import">
+                              <el-icon><Upload /></el-icon>
+                              Bulk Import
+                            </el-dropdown-item>
+                            <el-dropdown-item command="fromLibrary">
+                              <el-icon><FolderOpened /></el-icon>
+                              Import from Product Library
+                            </el-dropdown-item>
+                          </el-dropdown-menu>
+                        </template>
+                      </el-dropdown>
                   </div>
                 </div>
               </div>
@@ -1062,10 +1083,33 @@
                     
                     <div class="action-divider"></div>
                     
-                    <!-- Create Button -->
-                    <el-button type="success" :icon="Plus" @click="handleCreateDraft">
-                      Create
-                    </el-button>
+                    <!-- Create Dropdown for Drafts -->
+                    <el-dropdown 
+                      trigger="click"
+                      @command="handleCreateCommand"
+                    >
+                      <el-button type="success">
+                        <el-icon><Plus /></el-icon>
+                        Create
+                        <el-icon class="el-icon--right"><ArrowDown /></el-icon>
+                      </el-button>
+                      <template #dropdown>
+                        <el-dropdown-menu>
+                          <el-dropdown-item command="manual">
+                            <el-icon><Edit /></el-icon>
+                            Manual Create
+                          </el-dropdown-item>
+                          <el-dropdown-item command="import">
+                            <el-icon><Upload /></el-icon>
+                            Bulk Import
+                          </el-dropdown-item>
+                          <el-dropdown-item command="fromLibrary">
+                            <el-icon><FolderOpened /></el-icon>
+                            Import from Product Library
+                          </el-dropdown-item>
+                        </el-dropdown-menu>
+                      </template>
+                    </el-dropdown>
                   </div>
                 </div>
               </div>
@@ -1338,6 +1382,126 @@
       </template>
     </el-dialog>
 
+    <!-- 从商品库导入对话框 -->
+    <el-dialog
+      v-model="productLibraryDialogVisible"
+      title="Import from Product Library"
+      width="1200px"
+      :before-close="handleProductLibraryDialogClose"
+    >
+      <div class="product-library-content">
+        <!-- 搜索区域 -->
+        <div class="library-search-section">
+          <el-input
+            v-model="librarySearchQuery"
+            placeholder="Search by product name, SKU..."
+            clearable
+            :prefix-icon="Search"
+            @input="handleLibrarySearch"
+            class="library-search-input"
+          />
+          <el-select
+            v-model="libraryFilterCategory"
+            placeholder="Select category"
+            clearable
+            class="library-filter-select"
+            @change="handleLibrarySearch"
+          >
+            <el-option label="All Categories" value="" />
+            <el-option label="Clothing" value="clothing" />
+            <el-option label="Accessories" value="accessories" />
+            <el-option label="Shoes" value="shoes" />
+            <el-option label="Bags" value="bags" />
+          </el-select>
+        </div>
+
+        <!-- 选中提示 -->
+        <div v-if="selectedLibraryProducts.length > 0" class="selection-info">
+          <span>{{ selectedLibraryProducts.length }} products selected</span>
+          <el-button link type="primary" @click="handleClearLibrarySelection">Clear</el-button>
+        </div>
+
+        <!-- 商品列表 -->
+        <el-table
+          v-loading="libraryLoading"
+          :data="libraryProductData"
+          style="width: 100%"
+          max-height="500px"
+          @selection-change="handleLibrarySelectionChange"
+        >
+          <el-table-column type="selection" width="55" />
+          
+          <el-table-column label="Product" min-width="300">
+            <template #default="{ row }">
+              <div class="library-product-info">
+                <el-image
+                  :src="row.image"
+                  fit="cover"
+                  class="library-product-image"
+                />
+                <div class="library-product-details">
+                  <div class="library-product-name">{{ row.name }}</div>
+                  <div class="library-product-sku">SKU: {{ row.sku }}</div>
+                </div>
+              </div>
+            </template>
+          </el-table-column>
+
+          <el-table-column label="Category" min-width="200">
+            <template #default="{ row }">
+              <span>{{ row.category }}</span>
+            </template>
+          </el-table-column>
+
+          <el-table-column label="Price" min-width="120">
+            <template #default="{ row }">
+              <span class="library-price">{{ formatPrice(row.price) }}</span>
+            </template>
+          </el-table-column>
+
+          <el-table-column label="Stock" min-width="100">
+            <template #default="{ row }">
+              <span :class="{ 'low-stock': row.stock < 10 }">{{ row.stock }}</span>
+            </template>
+          </el-table-column>
+
+          <el-table-column label="Status" min-width="100">
+            <template #default="{ row }">
+              <el-tag :type="row.status === 'active' ? 'success' : 'info'" size="small">
+                {{ row.status === 'active' ? 'Active' : 'Inactive' }}
+              </el-tag>
+            </template>
+          </el-table-column>
+        </el-table>
+
+        <!-- 分页 -->
+        <div class="library-pagination">
+          <el-pagination
+            v-model:current-page="libraryCurrentPage"
+            v-model:page-size="libraryPageSize"
+            :page-sizes="[10, 20, 50, 100]"
+            :total="libraryTotal"
+            layout="total, sizes, prev, pager, next, jumper"
+            @size-change="handleLibrarySizeChange"
+            @current-change="handleLibraryCurrentChange"
+          />
+        </div>
+      </div>
+
+      <template #footer>
+        <div class="dialog-footer">
+          <el-button @click="productLibraryDialogVisible = false">Cancel</el-button>
+          <el-button 
+            type="primary" 
+            :disabled="selectedLibraryProducts.length === 0"
+            @click="handleImportFromLibrary"
+          >
+            Import Selected ({{ selectedLibraryProducts.length }})
+          </el-button>
+        </div>
+      </template>
+    </el-dialog>
+
     <!-- 状态编辑弹窗 -->
     <el-dialog
       v-model="statusDialogVisible"
@@ -1429,6 +1593,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted, computed } from 'vue'
+import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { 
   Search, 
@@ -1451,8 +1616,12 @@ import {
   Discount,
   Warning,
   Close,
-  InfoFilled
+  InfoFilled,
+  Select
 } from '@element-plus/icons-vue'
+
+// Router
+const router = useRouter()
 
 // 主要标签页
 const activeTab = ref('published')
@@ -1612,6 +1781,17 @@ const batchSpecialPrice = ref('')
 
 // 状态编辑弹窗
 const statusDialogVisible = ref(false)
+
+// 商品库导入弹窗
+const productLibraryDialogVisible = ref(false)
+const libraryLoading = ref(false)
+const librarySearchQuery = ref('')
+const libraryFilterCategory = ref('')
+const libraryCurrentPage = ref(1)
+const libraryPageSize = ref(20)
+const libraryTotal = ref(0)
+const libraryProductData = ref([])
+const selectedLibraryProducts = ref([])
 
 // 统计数据
 const totalProducts = computed(() => 6000)
@@ -2395,6 +2575,110 @@ const mockHistoryData = [
     editType: 'Add',
     submittedTime: '2024-01-07 12:30:00',
     approvalTime: null
+  }
+]
+
+// 商品库模拟数据
+const mockLibraryData = [
+  {
+    id: 'LIB001',
+    name: 'Classic Cotton T-Shirt',
+    sku: 'TSH-001',
+    image: 'https://img.ltwebstatic.com/images3_pi/2024/01/15/tshirt1.jpg',
+    category: 'Clothing > Tops > T-Shirts',
+    price: 19.99,
+    stock: 150,
+    status: 'active'
+  },
+  {
+    id: 'LIB002',
+    name: 'Denim Skinny Jeans',
+    sku: 'JNS-002',
+    image: 'https://img.ltwebstatic.com/images3_pi/2024/01/15/jeans1.jpg',
+    category: 'Clothing > Bottoms > Jeans',
+    price: 49.99,
+    stock: 80,
+    status: 'active'
+  },
+  {
+    id: 'LIB003',
+    name: 'Leather Crossbody Bag',
+    sku: 'BAG-003',
+    image: 'https://img.ltwebstatic.com/images3_pi/2024/01/15/bag1.jpg',
+    category: 'Accessories > Bags',
+    price: 89.99,
+    stock: 35,
+    status: 'active'
+  },
+  {
+    id: 'LIB004',
+    name: 'Running Sneakers',
+    sku: 'SNK-004',
+    image: 'https://img.ltwebstatic.com/images3_pi/2024/01/15/sneaker1.jpg',
+    category: 'Shoes > Sneakers',
+    price: 69.99,
+    stock: 5,
+    status: 'active'
+  },
+  {
+    id: 'LIB005',
+    name: 'Floral Summer Dress',
+    sku: 'DRS-005',
+    image: 'https://img.ltwebstatic.com/images3_pi/2024/01/15/dress1.jpg',
+    category: 'Clothing > Dresses',
+    price: 59.99,
+    stock: 120,
+    status: 'active'
+  },
+  {
+    id: 'LIB006',
+    name: 'Wool Winter Coat',
+    sku: 'COT-006',
+    image: 'https://img.ltwebstatic.com/images3_pi/2024/01/15/coat1.jpg',
+    category: 'Clothing > Outerwear > Coats',
+    price: 129.99,
+    stock: 45,
+    status: 'active'
+  },
+  {
+    id: 'LIB007',
+    name: 'Canvas Tote Bag',
+    sku: 'BAG-007',
+    image: 'https://img.ltwebstatic.com/images3_pi/2024/01/15/tote1.jpg',
+    category: 'Accessories > Bags',
+    price: 29.99,
+    stock: 200,
+    status: 'active'
+  },
+  {
+    id: 'LIB008',
+    name: 'Casual Loafers',
+    sku: 'SHO-008',
+    image: 'https://img.ltwebstatic.com/images3_pi/2024/01/15/loafer1.jpg',
+    category: 'Shoes > Casual',
+    price: 54.99,
+    stock: 65,
+    status: 'active'
+  },
+  {
+    id: 'LIB009',
+    name: 'Striped Polo Shirt',
+    sku: 'POL-009',
+    image: 'https://img.ltwebstatic.com/images3_pi/2024/01/15/polo1.jpg',
+    category: 'Clothing > Tops > Polo',
+    price: 34.99,
+    stock: 90,
+    status: 'active'
+  },
+  {
+    id: 'LIB010',
+    name: 'Leather Belt',
+    sku: 'BLT-010',
+    image: 'https://img.ltwebstatic.com/images3_pi/2024/01/15/belt1.jpg',
+    category: 'Accessories > Belts',
+    price: 24.99,
+    stock: 180,
+    status: 'active'
   }
 ]
 
@@ -3552,6 +3836,132 @@ const handleDeleteDraft = async (row: any) => {
   ElMessage.success(`草稿 "${row.draftName}" 已删除`)
   loadDraftsData()
 }
+
+// 处理创建命令
+const handleCreateCommand = (command: string) => {
+  console.log('handleCreateCommand called with:', command)
+  switch (command) {
+    case 'manual':
+      // 手动创建 - 跳转到创建页面
+      console.log('Navigating to create page...')
+      router.push({ name: 'SheinProductCreate' })
+      break
+    case 'import':
+      // 批量导入
+      const input = document.createElement('input')
+      input.type = 'file'
+      input.accept = '.xlsx,.xls,.csv'
+      input.onchange = (e: any) => {
+        const file = e.target.files[0]
+        if (file) {
+          ElMessage.success(`File "${file.name}" selected for import`)
+          // TODO: 处理文件上传和导入
+        }
+      }
+      input.click()
+      break
+    case 'fromLibrary':
+      // 从商品库导入
+      productLibraryDialogVisible.value = true
+      loadLibraryData()
+      break
+  }
+}
+
+// 加载商品库数据
+const loadLibraryData = () => {
+  libraryLoading.value = true
+  
+  setTimeout(() => {
+    let filteredData = [...mockLibraryData]
+    
+    // 搜索筛选
+    if (librarySearchQuery.value) {
+      filteredData = filteredData.filter(item => 
+        item.name.toLowerCase().includes(librarySearchQuery.value.toLowerCase()) ||
+        item.sku.toLowerCase().includes(librarySearchQuery.value.toLowerCase())
+      )
+    }
+    
+    // 分类筛选
+    if (libraryFilterCategory.value) {
+      filteredData = filteredData.filter(item => 
+        item.category.toLowerCase().includes(libraryFilterCategory.value.toLowerCase())
+      )
+    }
+    
+    libraryTotal.value = filteredData.length
+    
+    // 分页
+    const start = (libraryCurrentPage.value - 1) * libraryPageSize.value
+    const end = start + libraryPageSize.value
+    libraryProductData.value = filteredData.slice(start, end)
+    
+    libraryLoading.value = false
+  }, 300)
+}
+
+// 商品库搜索
+const handleLibrarySearch = () => {
+  libraryCurrentPage.value = 1
+  loadLibraryData()
+}
+
+// 商品库选择变化
+const handleLibrarySelectionChange = (selection: any[]) => {
+  selectedLibraryProducts.value = selection
+}
+
+// 清空选择
+const handleClearLibrarySelection = () => {
+  selectedLibraryProducts.value = []
+}
+
+// 商品库分页
+const handleLibrarySizeChange = (size: number) => {
+  libraryPageSize.value = size
+  libraryCurrentPage.value = 1
+  loadLibraryData()
+}
+
+const handleLibraryCurrentChange = (page: number) => {
+  libraryCurrentPage.value = page
+  loadLibraryData()
+}
+
+// 从商品库导入
+const handleImportFromLibrary = async () => {
+  try {
+    await ElMessageBox.confirm(
+      `Are you sure you want to import ${selectedLibraryProducts.value.length} products to Shein?`,
+      'Confirm Import',
+      {
+        confirmButtonText: 'Import',
+        cancelButtonText: 'Cancel',
+        type: 'warning'
+      }
+    )
+    
+    // TODO: 实际导入逻辑
+    ElMessage.success(`Successfully imported ${selectedLibraryProducts.value.length} products`)
+    
+    // 关闭对话框并刷新数据
+    productLibraryDialogVisible.value = false
+    selectedLibraryProducts.value = []
+    loadData()
+  } catch (error) {
+    // User cancelled
+  }
+}
+
+// 关闭商品库对话框
+const handleProductLibraryDialogClose = () => {
+  productLibraryDialogVisible.value = false
+  librarySearchQuery.value = ''
+  libraryFilterCategory.value = ''
+  libraryCurrentPage.value = 1
+  selectedLibraryProducts.value = []
+}
 </script>
 
 <style scoped>
@@ -3845,6 +4255,109 @@ const handleDeleteDraft = async (row: any) => {
         }
       }
     }
+  }
+}
+
+/* 商品库导入对话框样式 */
+.product-library-content {
+  .library-search-section {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 20px;
+    
+    .library-search-input {
+      flex: 1;
+    }
+    
+    .library-filter-select {
+      width: 200px;
+    }
+  }
+  
+  .selection-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    background: var(--el-color-primary-light-9);
+    border-radius: 6px;
+    border: 1px solid var(--el-color-primary-light-5);
+    margin-bottom: 16px;
+    
+    span {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--el-color-primary);
+    }
+  }
+  
+  .library-product-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    
+    .library-product-image {
+      width: 50px;
+      height: 50px;
+      border-radius: 4px;
+      border: 1px solid var(--el-border-color-lighter);
+    }
+    
+    .library-product-details {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      
+      .library-product-name {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--el-text-color-primary);
+        line-height: 1.4;
+      }
+      
+      .library-product-sku {
+        font-size: 12px;
+        color: var(--el-text-color-regular);
+        font-family: 'Monaco', 'Menlo', monospace;
+      }
+    }
+  }
+  
+  .library-price {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--el-color-primary);
+  }
+  
+  .low-stock {
+    color: var(--el-color-danger);
+    font-weight: 600;
+  }
+  
+  .library-pagination {
+    display: flex;
+    justify-content: center;
+    margin-top: 20px;
+  }
+}
+
+/* 商品库对话框响应式 */
+@media (max-width: 1200px) {
+  .product-library-content {
+    .library-search-section {
+      flex-direction: column;
+      
+      .library-filter-select {
+        width: 100%;
+      }
+    }
+  }
+}
+
+@media (max-width: 768px) {
+  :deep(.el-dialog.product-library-dialog) {
+    width: 95% !important;
+    margin: 20px auto;
   }
 }
 
