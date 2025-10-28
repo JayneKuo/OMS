@@ -44,6 +44,122 @@ const ruleForm = ref<Rule>({
   source: 'simple' // Added source field
 })
 
+// 规则类型定义
+const ruleType = ref<string>('')
+
+// 规则类型选项
+const RULE_TYPES = [
+  {
+    value: 'order_merge',
+    label: 'Order Merge',
+    icon: 'Connection',
+    description: 'Automatically merge multiple orders based on conditions',
+    color: '#409EFF',
+    features: ['SO Level Merge', 'DN Level Merge', 'Time Window', 'Smart Matching']
+  },
+  {
+    value: 'order_routing',
+    label: 'Order Routing',
+    icon: 'Guide',
+    description: 'Route orders to specific warehouses or channels',
+    color: '#67C23A',
+    features: ['Warehouse Assignment', 'Channel Routing', 'Priority Rules', 'Load Balancing']
+  },
+  {
+    value: 'order_hold',
+    label: 'Order Hold',
+    icon: 'CircleClose',
+    description: 'Temporarily hold orders based on conditions',
+    color: '#E6A23C',
+    features: ['Auto Hold', 'Hold Duration', 'Release Conditions', 'Notifications']
+  },
+  {
+    value: 'inventory_check',
+    label: 'Inventory Check',
+    icon: 'Box',
+    description: 'Check inventory and take actions',
+    color: '#F56C6C',
+    features: ['Stock Validation', 'Auto Hold', 'Alert System', 'Restock Trigger']
+  },
+  {
+    value: 'order_update',
+    label: 'Order Update',
+    icon: 'Edit',
+    description: 'Update order fields automatically',
+    color: '#909399',
+    features: ['Field Update', 'Bulk Operations', 'Conditional Logic', 'Tag Management']
+  },
+  {
+    value: 'custom',
+    label: 'Custom Action',
+    icon: 'Setting',
+    description: 'Create custom automation with flexible actions',
+    color: '#606266',
+    features: ['Multiple Actions', 'Complex Logic', 'API Integration', 'Advanced Rules']
+  }
+]
+
+// Trigger Mode 选项
+const triggerModes = [
+  {
+    value: 'immediate',
+    label: 'Immediate',
+    description: 'Merge as soon as conditions are met',
+    icon: 'VideoPlay',
+    color: '#67C23A'
+  },
+  {
+    value: 'scheduled',
+    label: 'Scheduled',
+    description: 'Merge at specific time intervals',
+    icon: 'Timer',
+    color: '#409EFF'
+  },
+  {
+    value: 'manual',
+    label: 'Manual',
+    description: 'Require manual approval before merging',
+    icon: 'User',
+    color: '#E6A23C'
+  }
+]
+
+// DC 回传拆分策略
+const dcSplitStrategies = [
+  {
+    value: 'priority',
+    label: 'Priority-Based',
+    description: 'Fulfill orders based on priority (time, value, VIP level, etc.)',
+    icon: 'Sort',
+    color: '#409EFF',
+    example: 'Order A (earliest) gets 50 units ✓, Order B gets 40 units ✓, remaining unfulfilled'
+  },
+  {
+    value: 'proportional',
+    label: 'Proportional Split',
+    description: 'Distribute fulfilled quantity proportionally across all orders',
+    icon: 'PieChart',
+    color: '#67C23A',
+    example: 'Order A gets 45 units (90%), Order B gets 45 units (90%), both partially fulfilled'
+  },
+  {
+    value: 'complete_first',
+    label: 'Complete Orders First',
+    description: 'Fulfill complete orders first, mark others as unfulfilled',
+    icon: 'CircleCheck',
+    color: '#E6A23C',
+    example: 'Order A gets 50 units ✓ (complete), Order B gets 40 units ✗ (incomplete, mark unfulfilled)'
+  },
+  {
+    value: 'all_partial',
+    label: 'All Partial',
+    description: 'Mark all merged orders as partially fulfilled with actual quantities',
+    icon: 'PartlyCloudy',
+    color: '#909399',
+    example: 'Order A: 45/50 (partial), Order B: 45/50 (partial)'
+  }
+]
+
 // 拖拽相关状态
 const dragging = ref(false)
 let sortable: Sortable | null = null
@@ -134,6 +250,7 @@ const loadRules = async () => {
 // 创建规则
 const handleCreateRule = () => {
   editingRule.value = null
+  ruleType.value = '' // 重置规则类型
   ruleForm.value = {
     id: 0,
     name: '',
@@ -159,10 +276,156 @@ const handleCreateRule = () => {
   dialogVisible.value = true
 }
 
+// 处理规则类型变化
+const handleRuleTypeChange = (type: string) => {
+  ruleType.value = type
+  
+  // 根据规则类型初始化默认配置
+  switch (type) {
+    case 'order_merge':
+      ruleForm.value.actions = [{
+        type: 'merge_orders',
+        config: {
+          merge_node: '',
+          // 匹配条件开关
+          match_customer: true,
+          match_shipping_address: true,
+          match_recipient_name: false,
+          match_phone: false,
+          match_email: false,
+          match_warehouse: true,
+          match_carrier: false,
+          match_shipping_method: false,
+          match_payment_method: false,
+          match_currency: false,
+          match_channel: true,
+          match_tags: false,
+          // 指定值过滤（为空则匹配所有）
+          customer_filter_values: [],
+          customer_filter_expanded: false,
+          address_filter_values: [],
+          address_filter_expanded: false,
+          phone_filter_values: [],
+          phone_filter_expanded: false,
+          email_filter_values: [],
+          email_filter_expanded: false,
+          warehouse_filter_values: [],
+          warehouse_filter_expanded: false,
+          carrier_filter_values: [],
+          carrier_filter_expanded: false,
+          shipping_method_filter_values: [],
+          shipping_method_filter_expanded: false,
+          payment_method_filter_values: [],
+          payment_method_filter_expanded: false,
+          currency_filter_values: [],
+          currency_filter_expanded: false,
+          channel_filter_values: [],
+          channel_filter_expanded: false,
+          tags_filter_values: [],
+          tags_filter_expanded: false,
+          // 其他配置
+          time_window_enabled: true,
+          time_window_minutes: 60,
+          max_orders: 5,
+          priority_field: 'earliest',
+          trigger_mode: 'immediate',
+          notify_on_merge: true,
+          // DC 回传拆分策略
+          dc_split_strategy: 'priority',
+          split_priority_field: 'created_asc',
+          min_fulfillment_percentage: 80,
+          partial_ship_notification: true,
+          auto_create_backorder: true
+        },
+        order: 0
+      }]
+      break
+    case 'order_routing':
+      ruleForm.value.actions = [{
+        type: 'override_warehouse',
+        config: {
+          warehouse: ''
+        },
+        order: 0
+      }]
+      break
+    case 'order_hold':
+      ruleForm.value.actions = [{
+        type: 'hold_order',
+        config: {
+          hold_minutes: 60,
+          hold_by_business_hour: false,
+          hold_scope: 'whole_order',
+          next_status_after_hold: 'review_required'
+        },
+        order: 0
+      }]
+      break
+    case 'inventory_check':
+      ruleForm.value.actions = [{
+        type: 'check_inventory_hold',
+        config: {
+          hold_type: 'entire_order',
+          auto_release: true
+        },
+        order: 0
+      }]
+      break
+    case 'order_update':
+      ruleForm.value.actions = [{
+        type: 'update_order_field',
+        config: {
+          field: '',
+          value: ''
+        },
+        order: 0
+      }]
+      break
+    case 'custom':
+      ruleForm.value.actions = [{
+        type: '',
+        config: {},
+        order: 0
+      }]
+      break
+  }
+}
+
 // 编辑规则
 const handleEditRule = async (rule: Rule) => {
   editingRule.value = rule
   ruleForm.value = JSON.parse(JSON.stringify(rule))
+  
+  // 根据 action type 识别规则类型
+  if (rule.actions && rule.actions.length > 0) {
+    const actionType = rule.actions[0].type
+    switch (actionType) {
+      case 'merge_orders':
+        ruleType.value = 'order_merge'
+        break
+      case 'override_warehouse':
+        ruleType.value = 'order_routing'
+        break
+      case 'hold_order':
+        ruleType.value = 'order_hold'
+        break
+      case 'check_inventory_hold':
+        ruleType.value = 'inventory_check'
+        break
+      case 'update_order_field':
+      case 'add_line_item':
+      case 'update_line_item':
+        ruleType.value = 'order_update'
+        break
+      case 'create_exception':
+      case 'close_order':
+        ruleType.value = 'custom'
+        break
+      default:
+        ruleType.value = 'custom'
+    }
+  }
+  
   dialogVisible.value = true
 }
 
@@ -250,23 +513,7 @@ const removeCondition = (groupIndex: number, condIndex: number) => {
   group.conditions.splice(condIndex, 1)
 }
 
-// 添加动作
-const handleAddAction = () => {
-  ruleForm.value.actions.push({
-    type: '',
-    config: {},
-    order: ruleForm.value.actions.length,
-  })
-}
-
-// 移除动作
-const removeAction = (actionIndex: number) => {
-  if (ruleForm.value.actions.length <= 1) {
-    ElMessage.warning('At least one action is required')
-    return
-  }
-  ruleForm.value.actions.splice(actionIndex, 1)
-}
+// 移除动作方法（不再需要，因为规则类型决定动作）
 
 // 格式化条件显示
 const formatCondition = (condition: Condition): string => {
@@ -320,6 +567,15 @@ const formatAction = (action: Action): string => {
       break
     case 'close_order':
       result += ` (Reason: ${action.config.close_reason})`
+      break
+    case 'merge_orders':
+      const node = action.config.merge_node === 'so' ? 'SO Level' : 'DN Level'
+      const maxOrders = action.config.max_orders || 'N/A'
+      const timeWindow = action.config.time_window_enabled 
+        ? `${action.config.time_window_minutes}min` 
+        : 'No limit'
+      const triggerMode = action.config.trigger_mode || 'immediate'
+      result += ` (${node}, Max: ${maxOrders}, Time: ${timeWindow}, Trigger: ${triggerMode})`
       break
   }
 
@@ -400,6 +656,27 @@ const handleStatusChange = async (rule: Rule) => {
     console.error('Error updating rule status:', error)
     ElMessage.error('Failed to update rule status')
   }
+}
+
+// 获取当前选中的规则类型信息
+const getCurrentRuleType = () => {
+  return RULE_TYPES.find(type => type.value === ruleType.value)
+}
+
+// 判断字段是否应该显示（支持条件显示）
+const shouldShowField = (field: any, action: Action): boolean => {
+  // 如果字段名是 schedule_interval，只在 trigger_mode 为 scheduled 时显示
+  if (field.name === 'schedule_interval') {
+    return action.config.trigger_mode === 'scheduled'
+  }
+  
+  // 如果字段名是 time_window_minutes，只在 time_window_enabled 为 true 时显示
+  if (field.name === 'time_window_minutes') {
+    return action.config.time_window_enabled === true
+  }
+  
+  // 默认显示所有字段
+  return true
 }
 
 // 初始化
@@ -556,8 +833,9 @@ onMounted(async () => {
     <el-dialog
       v-model="dialogVisible"
       :title="editingRule ? 'Edit Rule' : 'Create Rule'"
-      width="80%"
+      width="1200px"
       destroy-on-close
+      class="rule-dialog"
     >
       <el-form 
         ref="ruleFormRef"
@@ -599,8 +877,68 @@ onMounted(async () => {
           </div>
         </div>
 
-        <!-- Conditions -->
+        <!-- Rule Type Selection -->
         <div class="form-section">
+          <div class="section-header">
+            <div class="section-title">
+              <h3>Rule Type</h3>
+              <p class="text-gray-500">Select the type of automation rule you want to create</p>
+            </div>
+          </div>
+
+          <div class="section-content">
+            <el-form-item label="Rule Type" prop="ruleType" required>
+              <el-select 
+                v-model="ruleType" 
+                placeholder="Select rule type"
+                size="large"
+                @change="handleRuleTypeChange"
+                class="rule-type-select"
+              >
+                <el-option
+                  v-for="type in RULE_TYPES"
+                  :key="type.value"
+                  :label="type.label"
+                  :value="type.value"
+                >
+                  <div class="rule-type-option">
+                    <div class="option-icon" :style="{ color: type.color }">
+                      <el-icon :size="20"><component :is="icons[type.icon]" /></el-icon>
+                    </div>
+                    <div class="option-content">
+                      <div class="option-label">{{ type.label }}</div>
+                      <div class="option-description">{{ type.description }}</div>
+                    </div>
+                  </div>
+                </el-option>
+              </el-select>
+            </el-form-item>
+
+            <!-- 规则类型说明卡片 -->
+            <div v-if="ruleType" class="rule-type-info">
+              <div class="info-icon" :style="{ backgroundColor: getCurrentRuleType()?.color + '15', color: getCurrentRuleType()?.color }">
+                <el-icon :size="24"><component :is="icons[getCurrentRuleType()?.icon]" /></el-icon>
+              </div>
+              <div class="info-content">
+                <h4 class="info-title">{{ getCurrentRuleType()?.label }}</h4>
+                <p class="info-description">{{ getCurrentRuleType()?.description }}</p>
+                <div class="info-features">
+                  <el-tag 
+                    v-for="feature in getCurrentRuleType()?.features" 
+                    :key="feature"
+                    size="small"
+                    effect="plain"
+                  >
+                    {{ feature }}
+                  </el-tag>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Conditions -->
+        <div v-if="ruleType" class="form-section">
           <div class="section-header">
             <div class="section-title">
               <h3>Filter Conditions</h3>
@@ -634,9 +972,463 @@ onMounted(async () => {
               </el-select>
             </div>
 
-            <!-- Condition Groups -->
+            <!-- 合单规则专用条件 -->
+            <div v-if="ruleType === 'order_merge'" class="merge-conditions-filter">
+              <div class="section-label">
+                <el-icon class="label-icon"><component :is="icons.Filter" /></el-icon>
+                <span>Merge Matching Conditions</span>
+                <span class="required-mark">*</span>
+                <el-tooltip content="Orders must meet ALL selected conditions to be merged together">
+                  <el-icon class="help-icon"><component :is="icons.QuestionFilled" /></el-icon>
+                </el-tooltip>
+              </div>
+              <div class="conditions-list">
+                <!-- ========== 必要条件区域 ========== -->
+                
+                <!-- Customer - Required -->
+                <div class="condition-item-advanced required-condition">
+                  <div class="condition-header">
+                    <el-switch v-model="ruleForm.actions[0].config.match_customer" disabled />
+                    <div class="condition-label">
+                      <span class="label-text">
+                        Same Customer
+                        <el-tag size="small" type="danger" effect="plain">Required</el-tag>
+                      </span>
+                      <span class="label-desc">Match customer ID - Cannot be disabled for safety</span>
+                    </div>
+                    <el-button 
+                      v-if="ruleForm.actions[0].config.match_customer"
+                      text 
+                      type="primary" 
+                      size="small"
+                      @click="ruleForm.actions[0].config.customer_filter_expanded = !ruleForm.actions[0].config.customer_filter_expanded"
+                    >
+                      <el-icon><component :is="icons.Setting" /></el-icon>
+                      {{ ruleForm.actions[0].config.customer_filter_values?.length ? `${ruleForm.actions[0].config.customer_filter_values.length} selected` : 'Configure' }}
+                    </el-button>
+                  </div>
+                  <div v-if="ruleForm.actions[0].config.match_customer && ruleForm.actions[0].config.customer_filter_expanded" class="condition-config">
+                    <el-select
+                      v-model="ruleForm.actions[0].config.customer_filter_values"
+                      multiple
+                      filterable
+                      allow-create
+                      placeholder="Select or enter customer IDs (leave empty to match all)"
+                      class="w-full"
+                    >
+                      <el-option label="All Customers (default)" value="" disabled />
+                    </el-select>
+                    <span class="config-hint">💡 Leave empty to merge all orders with same customer</span>
+                  </div>
+                </div>
+
+                <!-- Shipping Address - Required -->
+                <div class="condition-item-advanced required-condition">
+                  <div class="condition-header">
+                    <el-switch v-model="ruleForm.actions[0].config.match_shipping_address" disabled />
+                    <div class="condition-label">
+                      <span class="label-text">
+                        Same Shipping Address
+                        <el-tag size="small" type="danger" effect="plain">Required</el-tag>
+                      </span>
+                      <span class="label-desc">Identical delivery address - Cannot be disabled for logistics safety</span>
+                    </div>
+                    <el-button 
+                      v-if="ruleForm.actions[0].config.match_shipping_address"
+                      text 
+                      type="primary" 
+                      size="small"
+                      @click="ruleForm.actions[0].config.address_filter_expanded = !ruleForm.actions[0].config.address_filter_expanded"
+                    >
+                      <el-icon><component :is="icons.Setting" /></el-icon>
+                      {{ ruleForm.actions[0].config.address_filter_values?.length ? `${ruleForm.actions[0].config.address_filter_values.length} selected` : 'Configure' }}
+                    </el-button>
+                  </div>
+                  <div v-if="ruleForm.actions[0].config.match_shipping_address && ruleForm.actions[0].config.address_filter_expanded" class="condition-config">
+                    <el-select
+                      v-model="ruleForm.actions[0].config.address_filter_values"
+                      multiple
+                      filterable
+                      allow-create
+                      placeholder="Enter destination cities or zip codes (leave empty to match all)"
+                      class="w-full"
+                    >
+                      <el-option label="All Addresses (default)" value="" disabled />
+                    </el-select>
+                    <span class="config-hint">💡 Specify cities/zip codes to limit merging (e.g., "New York", "90001")</span>
+                  </div>
+                </div>
+
+                <!-- Warehouse - Required -->
+                <div class="condition-item-advanced required-condition">
+                  <div class="condition-header">
+                    <el-switch v-model="ruleForm.actions[0].config.match_warehouse" disabled />
+                    <div class="condition-label">
+                      <span class="label-text">
+                        Same Warehouse
+                        <el-tag size="small" type="danger" effect="plain">Required</el-tag>
+                      </span>
+                      <span class="label-desc">Allocated to same warehouse - Different warehouses cannot merge for logistics</span>
+                    </div>
+                    <el-button 
+                      v-if="ruleForm.actions[0].config.match_warehouse"
+                      text 
+                      type="primary" 
+                      size="small"
+                      @click="ruleForm.actions[0].config.warehouse_filter_expanded = !ruleForm.actions[0].config.warehouse_filter_expanded"
+                    >
+                      <el-icon><component :is="icons.Setting" /></el-icon>
+                      {{ ruleForm.actions[0].config.warehouse_filter_values?.length ? `${ruleForm.actions[0].config.warehouse_filter_values.length} selected` : 'Configure' }}
+                    </el-button>
+                  </div>
+                  <div v-if="ruleForm.actions[0].config.match_warehouse && ruleForm.actions[0].config.warehouse_filter_expanded" class="condition-config">
+                    <el-select
+                      v-model="ruleForm.actions[0].config.warehouse_filter_values"
+                      multiple
+                      filterable
+                      placeholder="Select warehouses (leave empty to match all)"
+                      class="w-full"
+                    >
+                      <el-option label="Warehouse A" value="WH001" />
+                      <el-option label="Warehouse B" value="WH002" />
+                      <el-option label="Warehouse C" value="WH003" />
+                    </el-select>
+                    <span class="config-hint">💡 Only merge orders from selected warehouses</span>
+                  </div>
+                </div>
+
+                <!-- Channel - Required -->
+                <div class="condition-item-advanced required-condition">
+                  <div class="condition-header">
+                    <el-switch v-model="ruleForm.actions[0].config.match_channel" disabled />
+                    <div class="condition-label">
+                      <span class="label-text">
+                        Same Sales Channel
+                        <el-tag size="small" type="danger" effect="plain">Required</el-tag>
+                      </span>
+                      <span class="label-desc">Same order source channel - Different channels have different business rules</span>
+                    </div>
+                    <el-button 
+                      v-if="ruleForm.actions[0].config.match_channel"
+                      text 
+                      type="primary" 
+                      size="small"
+                      @click="ruleForm.actions[0].config.channel_filter_expanded = !ruleForm.actions[0].config.channel_filter_expanded"
+                    >
+                      <el-icon><component :is="icons.Setting" /></el-icon>
+                      {{ ruleForm.actions[0].config.channel_filter_values?.length ? `${ruleForm.actions[0].config.channel_filter_values.length} selected` : 'Configure' }}
+                    </el-button>
+                  </div>
+                  <div v-if="ruleForm.actions[0].config.match_channel && ruleForm.actions[0].config.channel_filter_expanded" class="condition-config">
+                    <el-select
+                      v-model="ruleForm.actions[0].config.channel_filter_values"
+                      multiple
+                      filterable
+                      placeholder="Select channels (leave empty to match all)"
+                      class="w-full"
+                    >
+                      <el-option label="Amazon" value="amazon" />
+                      <el-option label="eBay" value="ebay" />
+                      <el-option label="Shopify" value="shopify" />
+                      <el-option label="Website" value="website" />
+                    </el-select>
+                    <span class="config-hint">💡 Only merge orders from selected channels</span>
+                  </div>
+                </div>
+
+                <!-- ========== 可选条件区域 ========== -->
+                
+                <!-- Recipient Name -->
+                <div class="condition-item-advanced">
+                  <div class="condition-header">
+                    <el-switch v-model="ruleForm.actions[0].config.match_recipient_name" />
+                    <div class="condition-label">
+                      <span class="label-text">Same Recipient Name</span>
+                      <span class="label-desc">Same receiver name</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Phone Number -->
+                <div class="condition-item-advanced">
+                  <div class="condition-header">
+                    <el-switch v-model="ruleForm.actions[0].config.match_phone" />
+                    <div class="condition-label">
+                      <span class="label-text">Same Phone Number</span>
+                      <span class="label-desc">Same contact phone</span>
+                    </div>
+                    <el-button 
+                      v-if="ruleForm.actions[0].config.match_phone"
+                      text 
+                      type="primary" 
+                      size="small"
+                      @click="ruleForm.actions[0].config.phone_filter_expanded = !ruleForm.actions[0].config.phone_filter_expanded"
+                    >
+                      <el-icon><component :is="icons.Setting" /></el-icon>
+                      {{ ruleForm.actions[0].config.phone_filter_values?.length ? `${ruleForm.actions[0].config.phone_filter_values.length} selected` : 'Configure' }}
+                    </el-button>
+                  </div>
+                  <div v-if="ruleForm.actions[0].config.match_phone && ruleForm.actions[0].config.phone_filter_expanded" class="condition-config">
+                    <el-select
+                      v-model="ruleForm.actions[0].config.phone_filter_values"
+                      multiple
+                      filterable
+                      allow-create
+                      placeholder="Enter phone numbers (leave empty to match all)"
+                      class="w-full"
+                    >
+                      <el-option label="All Phones (default)" value="" disabled />
+                    </el-select>
+                    <span class="config-hint">💡 Only merge orders with specified phone numbers</span>
+                  </div>
+                </div>
+
+                <!-- Email -->
+                <div class="condition-item-advanced">
+                  <div class="condition-header">
+                    <el-switch v-model="ruleForm.actions[0].config.match_email" />
+                    <div class="condition-label">
+                      <span class="label-text">Same Email</span>
+                      <span class="label-desc">Same email address</span>
+                    </div>
+                    <el-button 
+                      v-if="ruleForm.actions[0].config.match_email"
+                      text 
+                      type="primary" 
+                      size="small"
+                      @click="ruleForm.actions[0].config.email_filter_expanded = !ruleForm.actions[0].config.email_filter_expanded"
+                    >
+                      <el-icon><component :is="icons.Setting" /></el-icon>
+                      {{ ruleForm.actions[0].config.email_filter_values?.length ? `${ruleForm.actions[0].config.email_filter_values.length} selected` : 'Configure' }}
+                    </el-button>
+                  </div>
+                  <div v-if="ruleForm.actions[0].config.match_email && ruleForm.actions[0].config.email_filter_expanded" class="condition-config">
+                    <el-select
+                      v-model="ruleForm.actions[0].config.email_filter_values"
+                      multiple
+                      filterable
+                      allow-create
+                      placeholder="Enter email addresses (leave empty to match all)"
+                      class="w-full"
+                    >
+                      <el-option label="All Emails (default)" value="" disabled />
+                    </el-select>
+                    <span class="config-hint">💡 Only merge orders with specified email addresses</span>
+                  </div>
+                </div>
+
+                <!-- Carrier -->
+                <div class="condition-item-advanced">
+                  <div class="condition-header">
+                    <el-switch v-model="ruleForm.actions[0].config.match_carrier" />
+                    <div class="condition-label">
+                      <span class="label-text">Same Carrier</span>
+                      <span class="label-desc">Same delivery carrier</span>
+                    </div>
+                    <el-button 
+                      v-if="ruleForm.actions[0].config.match_carrier"
+                      text 
+                      type="primary" 
+                      size="small"
+                      @click="ruleForm.actions[0].config.carrier_filter_expanded = !ruleForm.actions[0].config.carrier_filter_expanded"
+                    >
+                      <el-icon><component :is="icons.Setting" /></el-icon>
+                      {{ ruleForm.actions[0].config.carrier_filter_values?.length ? `${ruleForm.actions[0].config.carrier_filter_values.length} selected` : 'Configure' }}
+                    </el-button>
+                  </div>
+                  <div v-if="ruleForm.actions[0].config.match_carrier && ruleForm.actions[0].config.carrier_filter_expanded" class="condition-config">
+                    <el-select
+                      v-model="ruleForm.actions[0].config.carrier_filter_values"
+                      multiple
+                      filterable
+                      placeholder="Select carriers (leave empty to match all)"
+                      class="w-full"
+                    >
+                      <el-option label="UPS" value="UPS" />
+                      <el-option label="FedEx" value="FedEx" />
+                      <el-option label="DHL" value="DHL" />
+                      <el-option label="USPS" value="USPS" />
+                      <el-option label="SF Express" value="SF" />
+                    </el-select>
+                    <span class="config-hint">💡 Only merge orders using selected carriers</span>
+                  </div>
+                </div>
+
+                <!-- Shipping Method -->
+                <div class="condition-item-advanced">
+                  <div class="condition-header">
+                    <el-switch v-model="ruleForm.actions[0].config.match_shipping_method" />
+                    <div class="condition-label">
+                      <span class="label-text">Same Shipping Method</span>
+                      <span class="label-desc">Same delivery method</span>
+                    </div>
+                    <el-button 
+                      v-if="ruleForm.actions[0].config.match_shipping_method"
+                      text 
+                      type="primary" 
+                      size="small"
+                      @click="ruleForm.actions[0].config.shipping_method_filter_expanded = !ruleForm.actions[0].config.shipping_method_filter_expanded"
+                    >
+                      <el-icon><component :is="icons.Setting" /></el-icon>
+                      {{ ruleForm.actions[0].config.shipping_method_filter_values?.length ? `${ruleForm.actions[0].config.shipping_method_filter_values.length} selected` : 'Configure' }}
+                    </el-button>
+                  </div>
+                  <div v-if="ruleForm.actions[0].config.match_shipping_method && ruleForm.actions[0].config.shipping_method_filter_expanded" class="condition-config">
+                    <el-select
+                      v-model="ruleForm.actions[0].config.shipping_method_filter_values"
+                      multiple
+                      filterable
+                      placeholder="Select shipping methods (leave empty to match all)"
+                      class="w-full"
+                    >
+                      <el-option label="Standard Shipping" value="standard" />
+                      <el-option label="Express Shipping" value="express" />
+                      <el-option label="Overnight" value="overnight" />
+                      <el-option label="Economy" value="economy" />
+                    </el-select>
+                    <span class="config-hint">💡 Only merge orders with selected shipping methods</span>
+                  </div>
+                </div>
+
+                <!-- Payment Method -->
+                <div class="condition-item-advanced">
+                  <div class="condition-header">
+                    <el-switch v-model="ruleForm.actions[0].config.match_payment_method" />
+                    <div class="condition-label">
+                      <span class="label-text">Same Payment Method</span>
+                      <span class="label-desc">Same payment type</span>
+                    </div>
+                    <el-button 
+                      v-if="ruleForm.actions[0].config.match_payment_method"
+                      text 
+                      type="primary" 
+                      size="small"
+                      @click="ruleForm.actions[0].config.payment_method_filter_expanded = !ruleForm.actions[0].config.payment_method_filter_expanded"
+                    >
+                      <el-icon><component :is="icons.Setting" /></el-icon>
+                      {{ ruleForm.actions[0].config.payment_method_filter_values?.length ? `${ruleForm.actions[0].config.payment_method_filter_values.length} selected` : 'Configure' }}
+                    </el-button>
+                  </div>
+                  <div v-if="ruleForm.actions[0].config.match_payment_method && ruleForm.actions[0].config.payment_method_filter_expanded" class="condition-config">
+                    <el-select
+                      v-model="ruleForm.actions[0].config.payment_method_filter_values"
+                      multiple
+                      filterable
+                      placeholder="Select payment methods (leave empty to match all)"
+                      class="w-full"
+                    >
+                      <el-option label="Credit Card" value="credit_card" />
+                      <el-option label="PayPal" value="paypal" />
+                      <el-option label="Cash on Delivery" value="cod" />
+                      <el-option label="Bank Transfer" value="bank_transfer" />
+                    </el-select>
+                    <span class="config-hint">💡 Only merge orders with selected payment methods</span>
+                  </div>
+                </div>
+
+                <!-- Currency -->
+                <div class="condition-item-advanced">
+                  <div class="condition-header">
+                    <el-switch v-model="ruleForm.actions[0].config.match_currency" />
+                    <div class="condition-label">
+                      <span class="label-text">Same Currency</span>
+                      <span class="label-desc">Same order currency</span>
+                    </div>
+                    <el-button 
+                      v-if="ruleForm.actions[0].config.match_currency"
+                      text 
+                      type="primary" 
+                      size="small"
+                      @click="ruleForm.actions[0].config.currency_filter_expanded = !ruleForm.actions[0].config.currency_filter_expanded"
+                    >
+                      <el-icon><component :is="icons.Setting" /></el-icon>
+                      {{ ruleForm.actions[0].config.currency_filter_values?.length ? `${ruleForm.actions[0].config.currency_filter_values.length} selected` : 'Configure' }}
+                    </el-button>
+                  </div>
+                  <div v-if="ruleForm.actions[0].config.match_currency && ruleForm.actions[0].config.currency_filter_expanded" class="condition-config">
+                    <el-select
+                      v-model="ruleForm.actions[0].config.currency_filter_values"
+                      multiple
+                      filterable
+                      placeholder="Select currencies (leave empty to match all)"
+                      class="w-full"
+                    >
+                      <el-option label="USD" value="USD" />
+                      <el-option label="EUR" value="EUR" />
+                      <el-option label="GBP" value="GBP" />
+                      <el-option label="CNY" value="CNY" />
+                      <el-option label="JPY" value="JPY" />
+                    </el-select>
+                    <span class="config-hint">💡 Only merge orders in selected currencies</span>
+                  </div>
+                </div>
+
+                <!-- Tags -->
+                <div class="condition-item-advanced">
+                  <div class="condition-header">
+                    <el-switch v-model="ruleForm.actions[0].config.match_tags" />
+                    <div class="condition-label">
+                      <span class="label-text">Same Order Tags</span>
+                      <span class="label-desc">Orders with identical tags</span>
+                    </div>
+                    <el-button 
+                      v-if="ruleForm.actions[0].config.match_tags"
+                      text 
+                      type="primary" 
+                      size="small"
+                      @click="ruleForm.actions[0].config.tags_filter_expanded = !ruleForm.actions[0].config.tags_filter_expanded"
+                    >
+                      <el-icon><component :is="icons.Setting" /></el-icon>
+                      {{ ruleForm.actions[0].config.tags_filter_values?.length ? `${ruleForm.actions[0].config.tags_filter_values.length} selected` : 'Configure' }}
+                    </el-button>
+                  </div>
+                  <div v-if="ruleForm.actions[0].config.match_tags && ruleForm.actions[0].config.tags_filter_expanded" class="condition-config">
+                    <el-select
+                      v-model="ruleForm.actions[0].config.tags_filter_values"
+                      multiple
+                      filterable
+                      allow-create
+                      placeholder="Select or create tags (leave empty to match all)"
+                      class="w-full"
+                    >
+                      <el-option label="VIP" value="vip" />
+                      <el-option label="Urgent" value="urgent" />
+                      <el-option label="Gift" value="gift" />
+                    </el-select>
+                    <span class="config-hint">💡 Only merge orders with selected tags</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 时间窗口配置 -->
+              <div class="time-window-filter mt-4">
+                <div class="section-label">
+                  <el-icon class="label-icon"><component :is="icons.Timer" /></el-icon>
+                  <span>Time Window</span>
+                </div>
+                <div class="time-window-config">
+                  <div class="switch-row">
+                    <el-switch v-model="ruleForm.actions[0].config.time_window_enabled" />
+                    <span class="switch-label">Only merge orders within a time window</span>
+                  </div>
+                  <div v-if="ruleForm.actions[0].config.time_window_enabled" class="time-input-row">
+                    <el-input-number
+                      v-model="ruleForm.actions[0].config.time_window_minutes"
+                      :min="1"
+                      :max="1440"
+                      :step="5"
+                    />
+                    <span class="unit-label">minutes</span>
+                    <span class="hint-text">Orders created within this time range can be merged</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 通用条件组（非合单规则使用） -->
+            <template v-if="ruleType !== 'order_merge'">
             <div class="filter-label mb-4">
-              <span class="text-sm font-medium">Filter Conditions</span>
+                <span class="text-sm font-medium">Advanced Conditions</span>
               <el-tooltip content="Set specific conditions for when this rule should apply">
                 <el-icon class="text-gray-400 ml-1"><component :is="icons.InfoFilled" /></el-icon>
               </el-tooltip>
@@ -740,11 +1532,12 @@ onMounted(async () => {
                 </div>
               </div>
             </div>
+            </template>
           </div>
         </div>
 
         <!-- Actions -->
-        <div class="form-section">
+        <div v-if="ruleType" class="form-section">
           <div class="section-header">
             <div class="section-title">
               <h3>Actions</h3>
@@ -798,9 +1591,430 @@ onMounted(async () => {
                 </el-button>
               </div>
 
-              <div v-if="action.type" class="action-config">
-                <template v-for="field in getActionConfigFields(action.type)" :key="field.name">
-                  <div class="config-field">
+              <!-- Merge Orders Preview -->
+              <div v-if="ruleType === 'order_merge' && action.config.merge_node" class="merge-preview-banner">
+                <div class="preview-icon">
+                  <el-icon><component :is="icons.Connection" /></el-icon>
+                </div>
+                <div class="preview-content">
+                  <div class="preview-title">
+                    Merge at {{ action.config.merge_node === 'so' ? 'Sales Order (SO)' : 'Delivery Note (DN)' }} Level
+                  </div>
+                  <div class="preview-conditions">
+                    <el-tag v-if="action.config.match_customer" size="small" type="success">
+                      Customer
+                      <span v-if="action.config.customer_filter_values?.length" class="tag-count">({{ action.config.customer_filter_values.length }})</span>
+                    </el-tag>
+                    <el-tag v-if="action.config.match_shipping_address" size="small" type="success">
+                      Address
+                      <span v-if="action.config.address_filter_values?.length" class="tag-count">({{ action.config.address_filter_values.length }})</span>
+                    </el-tag>
+                    <el-tag v-if="action.config.match_recipient_name" size="small" type="success">Name</el-tag>
+                    <el-tag v-if="action.config.match_phone" size="small" type="success">
+                      Phone
+                      <span v-if="action.config.phone_filter_values?.length" class="tag-count">({{ action.config.phone_filter_values.length }})</span>
+                    </el-tag>
+                    <el-tag v-if="action.config.match_email" size="small" type="success">
+                      Email
+                      <span v-if="action.config.email_filter_values?.length" class="tag-count">({{ action.config.email_filter_values.length }})</span>
+                    </el-tag>
+                    <el-tag v-if="action.config.match_warehouse" size="small" type="success">
+                      Warehouse
+                      <span v-if="action.config.warehouse_filter_values?.length" class="tag-count">({{ action.config.warehouse_filter_values.length }})</span>
+                    </el-tag>
+                    <el-tag v-if="action.config.match_carrier" size="small" type="success">
+                      Carrier
+                      <span v-if="action.config.carrier_filter_values?.length" class="tag-count">({{ action.config.carrier_filter_values.length }})</span>
+                    </el-tag>
+                    <el-tag v-if="action.config.match_shipping_method" size="small" type="success">
+                      Shipping
+                      <span v-if="action.config.shipping_method_filter_values?.length" class="tag-count">({{ action.config.shipping_method_filter_values.length }})</span>
+                    </el-tag>
+                    <el-tag v-if="action.config.match_payment_method" size="small" type="success">
+                      Payment
+                      <span v-if="action.config.payment_method_filter_values?.length" class="tag-count">({{ action.config.payment_method_filter_values.length }})</span>
+                    </el-tag>
+                    <el-tag v-if="action.config.match_currency" size="small" type="success">
+                      Currency
+                      <span v-if="action.config.currency_filter_values?.length" class="tag-count">({{ action.config.currency_filter_values.length }})</span>
+                    </el-tag>
+                    <el-tag v-if="action.config.match_channel" size="small" type="success">
+                      Channel
+                      <span v-if="action.config.channel_filter_values?.length" class="tag-count">({{ action.config.channel_filter_values.length }})</span>
+                    </el-tag>
+                    <el-tag v-if="action.config.match_tags" size="small" type="success">
+                      Tags
+                      <span v-if="action.config.tags_filter_values?.length" class="tag-count">({{ action.config.tags_filter_values.length }})</span>
+                    </el-tag>
+                    <el-tag v-if="action.config.time_window_enabled" size="small" type="info">
+                      ⏱️ {{ action.config.time_window_minutes }}min
+                    </el-tag>
+                  </div>
+                </div>
+              </div>
+
+              <div v-if="ruleType === 'order_merge'" class="action-config">
+                <!-- 合并规则专用配置 -->
+                <template v-if="action.type === 'merge_orders'">
+                  <div class="merge-node-selection">
+                    <div class="section-label">
+                      <el-icon class="label-icon"><component :is="icons.Location" /></el-icon>
+                      <span>Merge Node</span>
+                      <span class="required-mark">*</span>
+                      <el-tooltip content="Select at which stage orders should be merged">
+                        <el-icon class="help-icon"><component :is="icons.QuestionFilled" /></el-icon>
+                      </el-tooltip>
+                    </div>
+                    <div class="node-cards">
+                      <div 
+                        class="node-card" 
+                        :class="{ active: action.config.merge_node === 'so' }"
+                        @click="action.config.merge_node = 'so'"
+                      >
+                        <div class="card-header">
+                          <el-icon class="card-icon"><component :is="icons.Document" /></el-icon>
+                          <span class="card-title">SO Level</span>
+                        </div>
+                        <div class="card-desc">Sales Order</div>
+                        <div class="card-info">Merge before warehouse allocation</div>
+                        <div class="card-badge" v-if="action.config.merge_node === 'so'">
+                          <el-icon><component :is="icons.Check" /></el-icon>
+                        </div>
+                      </div>
+                      <div 
+                        class="node-card" 
+                        :class="{ active: action.config.merge_node === 'dn' }"
+                        @click="action.config.merge_node = 'dn'"
+                      >
+                        <div class="card-header">
+                          <el-icon class="card-icon"><component :is="icons.Box" /></el-icon>
+                          <span class="card-title">DN Level</span>
+                        </div>
+                        <div class="card-desc">Delivery Note</div>
+                        <div class="card-info">Merge after warehouse allocation</div>
+                        <div class="card-badge" v-if="action.config.merge_node === 'dn'">
+                          <el-icon><component :is="icons.Check" /></el-icon>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- 合并策略 -->
+                  <div class="merge-strategy-section">
+                    <div class="section-label">
+                      <el-icon class="label-icon"><component :is="icons.Setting" /></el-icon>
+                      <span>Merge Strategy</span>
+                    </div>
+                    <div class="strategy-grid">
+                      <div class="strategy-item">
+                        <label class="strategy-label">Max Orders <span class="required-mark">*</span></label>
+                        <el-input-number
+                          v-model="action.config.max_orders"
+                          :min="2"
+                          :max="50"
+                          style="width: 100%"
+                        />
+                        <span class="strategy-hint">Maximum number of orders to merge together</span>
+                      </div>
+                      <div class="strategy-item">
+                        <label class="strategy-label">Max Items (Optional)</label>
+                        <el-input-number
+                          v-model="action.config.max_items"
+                          :min="1"
+                          style="width: 100%"
+                        />
+                        <span class="strategy-hint">Maximum total items in merged order</span>
+                      </div>
+                      <div class="strategy-item full-width">
+                        <label class="strategy-label">Primary Order Selection <span class="required-mark">*</span></label>
+                        <el-select v-model="action.config.priority_field" style="width: 100%">
+                          <el-option label="Earliest Order" value="earliest">
+                            <div class="option-content">
+                              <span>Earliest Order</span>
+                              <span class="option-desc">Use the first order's information</span>
+                            </div>
+                          </el-option>
+                          <el-option label="Latest Order" value="latest">
+                            <div class="option-content">
+                              <span>Latest Order</span>
+                              <span class="option-desc">Use the most recent order's information</span>
+                            </div>
+                          </el-option>
+                          <el-option label="Highest Value" value="highest_value">
+                            <div class="option-content">
+                              <span>Highest Value</span>
+                              <span class="option-desc">Use the highest value order's information</span>
+                            </div>
+                          </el-option>
+                        </el-select>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- 触发模式 -->
+                  <div class="trigger-mode-section">
+                    <div class="section-label">
+                      <el-icon class="label-icon"><component :is="icons.VideoPlay" /></el-icon>
+                      <span>Trigger Mode</span>
+                      <span class="required-mark">*</span>
+                    </div>
+                    <div class="trigger-mode-cards">
+                      <div 
+                        v-for="mode in triggerModes" 
+                        :key="mode.value"
+                        class="trigger-mode-card"
+                        :class="{ active: action.config.trigger_mode === mode.value }"
+                        @click="action.config.trigger_mode = mode.value"
+                      >
+                        <div class="mode-icon" :style="{ backgroundColor: mode.color + '15', color: mode.color }">
+                          <el-icon :size="20"><component :is="icons[mode.icon]" /></el-icon>
+                        </div>
+                        <div class="mode-content">
+                          <div class="mode-title">{{ mode.label }}</div>
+                          <div class="mode-desc">{{ mode.description }}</div>
+                        </div>
+                        <div class="mode-check">
+                          <el-icon v-if="action.config.trigger_mode === mode.value"><component :is="icons.Select" /></el-icon>
+                        </div>
+                      </div>
+                    </div>
+                    <div v-if="action.config.trigger_mode === 'scheduled'" class="schedule-config">
+                      <div class="schedule-label">
+                        <el-icon><component :is="icons.Timer" /></el-icon>
+                        <span>Check Interval</span>
+                      </div>
+                      <div class="schedule-input-row">
+                        <el-input-number
+                          v-model="action.config.schedule_interval"
+                          :min="5"
+                          :max="1440"
+                          :step="5"
+                          size="large"
+                        />
+                        <span class="unit-label">minutes</span>
+                        <span class="hint-text">System will check and merge orders every {{ action.config.schedule_interval }} minutes</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- 通知配置 -->
+                  <div class="notification-section">
+                    <div class="section-label">
+                      <el-icon class="label-icon"><component :is="icons.Bell" /></el-icon>
+                      <span>Notification</span>
+                    </div>
+                    <div class="notification-config">
+                      <el-switch v-model="action.config.notify_on_merge" />
+                      <span class="switch-label">Send notification when orders are merged</span>
+                    </div>
+                  </div>
+
+                  <!-- DC 回传拆分策略 -->
+                  <div class="dc-split-section">
+                    <div class="section-label">
+                      <el-icon class="label-icon"><component :is="icons.Operation" /></el-icon>
+                      <span>DC Partial Fulfillment Strategy</span>
+                      <el-tooltip content="When DC ships less quantity than ordered, decide how to split the fulfillment status">
+                        <el-icon class="help-icon"><component :is="icons.QuestionFilled" /></el-icon>
+                      </el-tooltip>
+                    </div>
+                    
+                    <div class="strategy-description">
+                      <el-alert
+                        type="info"
+                        :closable="false"
+                        show-icon
+                      >
+                        <template #title>
+                          <span class="alert-title">Scenario Example</span>
+                        </template>
+                        <div class="scenario-text">
+                          Order A (50 units) + Order B (50 units) = Merged Order (100 units)<br/>
+                          DC ships only 90 units → How to report fulfillment status?
+                        </div>
+                      </el-alert>
+                    </div>
+
+                    <div class="split-strategy-cards">
+                      <div 
+                        v-for="strategy in dcSplitStrategies" 
+                        :key="strategy.value"
+                        class="strategy-card"
+                        :class="{ active: action.config.dc_split_strategy === strategy.value }"
+                        @click="action.config.dc_split_strategy = strategy.value"
+                      >
+                        <div class="strategy-header">
+                          <div class="strategy-icon" :style="{ backgroundColor: strategy.color + '15', color: strategy.color }">
+                            <el-icon :size="20"><component :is="icons[strategy.icon]" /></el-icon>
+                          </div>
+                          <div class="strategy-title">{{ strategy.label }}</div>
+                          <div class="strategy-check">
+                            <el-icon v-if="action.config.dc_split_strategy === strategy.value"><component :is="icons.Select" /></el-icon>
+                          </div>
+                        </div>
+                        <div class="strategy-desc">{{ strategy.description }}</div>
+                        <div class="strategy-example">
+                          <span class="example-label">Example:</span>
+                          <span class="example-text">{{ strategy.example }}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- 高级配置 -->
+                    <div v-if="action.config.dc_split_strategy" class="advanced-split-config">
+                      <el-divider />
+                      
+                      <!-- Priority Field 配置 -->
+                      <div v-if="action.config.dc_split_strategy === 'priority'" class="priority-config">
+                        <div class="config-label">
+                          <el-icon><component :is="icons.Sort" /></el-icon>
+                          <span>Priority Field</span>
+                          <span class="required-mark">*</span>
+                        </div>
+                        <el-select 
+                          v-model="action.config.split_priority_field" 
+                          placeholder="Select priority field"
+                          class="w-full"
+                        >
+                          <el-option label="Order Created Time (Earliest First)" value="created_asc" />
+                          <el-option label="Order Created Time (Latest First)" value="created_desc" />
+                          <el-option label="Order Value (Highest First)" value="value_desc" />
+                          <el-option label="Order Value (Lowest First)" value="value_asc" />
+                          <el-option label="Customer VIP Level (High First)" value="vip_level_desc" />
+                          <el-option label="Shipping Priority (Urgent First)" value="shipping_priority" />
+                        </el-select>
+                      </div>
+
+                      <!-- Proportional 配置 -->
+                      <div v-if="action.config.dc_split_strategy === 'proportional'" class="proportional-config">
+                        <div class="config-label">
+                          <el-icon><component :is="icons.PieChart" /></el-icon>
+                          <span>Minimum Fulfillment Percentage</span>
+                        </div>
+                        <div class="percentage-input">
+                          <el-input-number
+                            v-model="action.config.min_fulfillment_percentage"
+                            :min="0"
+                            :max="100"
+                            :step="5"
+                          />
+                          <span class="unit-label">%</span>
+                          <span class="hint-text">Orders fulfilled below this percentage will be marked as unfulfilled</span>
+                        </div>
+                      </div>
+
+                      <!-- 通用配置 -->
+                      <div class="common-split-config">
+                        <div class="config-row">
+                          <el-checkbox v-model="action.config.partial_ship_notification">
+                            Send notification when partial shipment occurs
+                          </el-checkbox>
+                        </div>
+                        <div class="config-row">
+                          <el-checkbox v-model="action.config.auto_create_backorder">
+                            Automatically create backorder for unfulfilled quantity
+                          </el-checkbox>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </template>
+
+                <!-- 其他规则类型的配置 -->
+                <template v-else-if="ruleType === 'order_routing'">
+                  <div class="routing-config">
+                    <div class="section-label">
+                      <el-icon class="label-icon"><component :is="icons.Guide" /></el-icon>
+                      <span>Warehouse Assignment</span>
+                      <span class="required-mark">*</span>
+                    </div>
+                    <el-select v-model="action.config.warehouse" placeholder="Select warehouse" style="width: 100%">
+                      <el-option label="Main Warehouse" value="WH001" />
+                      <el-option label="East DC" value="WH002" />
+                      <el-option label="West DC" value="WH003" />
+                    </el-select>
+                  </div>
+                </template>
+
+                <template v-else-if="ruleType === 'order_hold'">
+                  <div class="hold-config">
+                    <div class="section-label">
+                      <el-icon class="label-icon"><component :is="icons.CircleClose" /></el-icon>
+                      <span>Hold Configuration</span>
+                    </div>
+                    <div class="config-grid">
+                      <div class="config-item">
+                        <label class="config-label">Hold Duration (Minutes) <span class="required-mark">*</span></label>
+                        <el-input-number v-model="action.config.hold_minutes" :min="1" style="width: 100%" />
+                      </div>
+                      <div class="config-item">
+                        <label class="config-label">Hold Scope <span class="required-mark">*</span></label>
+                        <el-select v-model="action.config.hold_scope" style="width: 100%">
+                          <el-option label="Entire Order" value="whole_order" />
+                          <el-option label="Specific Items" value="specific_items" />
+                        </el-select>
+                      </div>
+                    </div>
+                    <div class="config-item mt-3">
+                      <div class="boolean-field">
+                        <el-switch v-model="action.config.hold_by_business_hour" />
+                        <span class="boolean-label">Calculate by business hours only</span>
+                      </div>
+                    </div>
+                  </div>
+                </template>
+
+                <template v-else-if="ruleType === 'inventory_check'">
+                  <div class="inventory-config">
+                    <div class="section-label">
+                      <el-icon class="label-icon"><component :is="icons.Box" /></el-icon>
+                      <span>Inventory Check Configuration</span>
+                    </div>
+                    <div class="config-grid">
+                      <div class="config-item">
+                        <label class="config-label">Hold Type <span class="required-mark">*</span></label>
+                        <el-select v-model="action.config.hold_type" style="width: 100%">
+                          <el-option label="Hold Entire Order" value="entire_order" />
+                          <el-option label="Hold Items Only" value="items_only" />
+                        </el-select>
+                      </div>
+                      <div class="config-item">
+                        <div class="boolean-field">
+                          <el-switch v-model="action.config.auto_release" />
+                          <span class="boolean-label">Auto release when stock available</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </template>
+
+                <template v-else-if="ruleType === 'order_update'">
+                  <div class="update-config">
+                    <div class="section-label">
+                      <el-icon class="label-icon"><component :is="icons.Edit" /></el-icon>
+                      <span>Field Update Configuration</span>
+                    </div>
+                    <div class="config-grid">
+                      <div class="config-item">
+                        <label class="config-label">Field to Update <span class="required-mark">*</span></label>
+                        <el-select v-model="action.config.field" placeholder="Select field" style="width: 100%">
+                          <el-option label="Status" value="status" />
+                          <el-option label="Tags" value="tags" />
+                          <el-option label="Currency" value="currency" />
+                          <el-option label="Order Note" value="order_note" />
+                        </el-select>
+                      </div>
+                      <div class="config-item">
+                        <label class="config-label">New Value <span class="required-mark">*</span></label>
+                        <el-input v-model="action.config.value" placeholder="Enter new value" />
+                      </div>
+                    </div>
+                  </div>
+                </template>
+
+                <!-- Custom 类型：显示通用配置 -->
+                <template v-else-if="ruleType === 'custom'" v-for="field in getActionConfigFields(action.type)" :key="field.name">
+                  <div class="config-field" v-if="shouldShowField(field, action)">
                     <label class="field-label">
                       {{ field.label }}
                       <span v-if="field.required" class="text-red-500">*</span>
@@ -811,6 +2025,7 @@ onMounted(async () => {
 
                     <template v-if="field.type === 'string'">
                       <el-input 
+                        v-if="shouldShowField(field, action)"
                         v-model="action.config[field.name]"
                         :placeholder="field.label"
                       />
@@ -818,23 +2033,27 @@ onMounted(async () => {
 
                     <template v-else-if="field.type === 'number'">
                       <el-input-number
+                        v-if="shouldShowField(field, action)"
                         v-model="action.config[field.name]"
                         :min="field.min"
                         :max="field.max"
                         :placeholder="field.label"
+                        style="width: 100%"
                       />
                     </template>
 
                     <template v-else-if="field.type === 'boolean'">
+                      <div v-if="shouldShowField(field, action)" class="boolean-field">
                       <el-switch
                         v-model="action.config[field.name]"
-                        :active-text="field.label"
-                        :default-value="field.default"
                       />
+                        <span class="boolean-label">{{ field.label }}</span>
+                      </div>
                     </template>
 
                     <template v-else-if="field.type === 'enum'">
                       <el-select 
+                        v-if="shouldShowField(field, action)"
                         v-model="action.config[field.name]"
                         :placeholder="field.label"
                       >
@@ -940,14 +2159,7 @@ onMounted(async () => {
               </div>
             </div>
 
-            <el-button
-              type="primary"
-              link
-              @click="handleAddAction"
-            >
-              <el-icon><component :is="icons.Plus" /></el-icon>
-              Add Action
-            </el-button>
+            <!-- 移除 Add Action 按钮，因为规则类型决定了动作 -->
           </div>
         </div>
       </el-form>
@@ -1089,10 +2301,15 @@ onMounted(async () => {
 }
 
 .form-section {
-  background: var(--el-bg-color);
+  background: transparent;
   border-radius: 8px;
-  margin-bottom: 24px;
-  border: 1px solid var(--el-border-color-light);
+  margin-bottom: 32px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+}
+
+.form-section:last-child {
+  border-bottom: none;
 }
 
 .section-header {
@@ -1322,5 +2539,907 @@ onMounted(async () => {
 .filter-radio-item.is-checked {
   background-color: var(--el-color-primary-light-8);
   font-weight: bold;
+}
+
+/* Merge Orders Preview Banner */
+.merge-preview-banner {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  margin: 16px;
+  background: linear-gradient(135deg, rgba(64, 158, 255, 0.1) 0%, rgba(103, 194, 58, 0.1) 100%);
+  border: 1px solid var(--el-color-primary-light-7);
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+.merge-preview-banner:hover {
+  border-color: var(--el-color-primary);
+  box-shadow: 0 4px 12px rgba(64, 158, 255, 0.15);
+}
+
+.preview-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--el-color-primary-light-9);
+  color: var(--el-color-primary);
+  font-size: 24px;
+  flex-shrink: 0;
+}
+
+.preview-content {
+  flex: 1;
+}
+
+.preview-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+  margin-bottom: 8px;
+}
+
+.preview-conditions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.tag-count {
+  margin-left: 4px;
+  opacity: 0.8;
+  font-weight: 600;
+}
+
+/* Boolean Field Styling */
+.boolean-field {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  background: var(--el-fill-color-light);
+  border-radius: 6px;
+  transition: background 0.2s ease;
+}
+
+.boolean-field:hover {
+  background: var(--el-fill-color);
+}
+
+.boolean-label {
+  font-size: 14px;
+  color: var(--el-text-color-regular);
+  user-select: none;
+}
+
+/* Enhanced config field for merge orders */
+.action-item[data-action-type="merge_orders"] .action-config {
+  padding: 20px;
+}
+
+.action-item[data-action-type="merge_orders"] .config-field {
+  margin-bottom: 16px;
+}
+
+/* Grid layout for merge config - 上下流式布局 */
+.action-item .action-config {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Full width for certain fields */
+.config-field:has(.el-select[placeholder*="Primary"]),
+.config-field:has(.el-select[placeholder*="Trigger"]),
+.config-field:has(.el-select[placeholder*="Merge Node"]) {
+  grid-column: 1 / -1;
+}
+
+/* 合并规则专用样式 */
+.merge-node-selection {
+  margin-bottom: 24px;
+  padding: 20px 0;
+  background: transparent;
+  border-radius: 8px;
+}
+
+/* 高级条件列表样式 */
+.conditions-list {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+@media (max-width: 1200px) {
+  .conditions-list {
+    grid-template-columns: 1fr;
+  }
+}
+
+.condition-item-advanced {
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  padding: 12px 0;
+  transition: all 0.2s ease;
+}
+
+.condition-item-advanced:hover {
+  background: var(--el-fill-color-light);
+  padding: 12px 16px;
+}
+
+.condition-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.condition-header .condition-label {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.condition-header .label-text {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--el-text-color-primary);
+}
+
+.condition-header .label-desc {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+
+.condition-config {
+  margin-top: 12px;
+  padding-top: 12px;
+  padding-left: 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.config-hint {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  line-height: 1.5;
+}
+
+/* 必要条件样式 */
+.required-condition {
+  background: linear-gradient(90deg, rgba(245, 108, 108, 0.03) 0%, transparent 100%);
+  border-left: 3px solid var(--el-color-danger);
+  padding-left: 13px !important;
+}
+
+.required-condition .label-text {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.required-condition .el-switch.is-disabled {
+  opacity: 0.6;
+}
+
+.required-condition:hover {
+  background: linear-gradient(90deg, rgba(245, 108, 108, 0.05) 0%, var(--el-fill-color-light) 100%);
+}
+
+.section-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+  margin-bottom: 16px;
+}
+
+.label-icon {
+  font-size: 18px;
+  color: var(--el-color-primary);
+}
+
+.help-icon {
+  font-size: 14px;
+  color: var(--el-text-color-placeholder);
+  cursor: help;
+  margin-left: auto;
+}
+
+.required-mark {
+  color: var(--el-color-danger);
+  margin-left: 2px;
+}
+
+.node-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.node-card {
+  position: relative;
+  padding: 20px;
+  background: var(--el-fill-color-blank);
+  border: 1px solid transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.node-card:hover {
+  background: var(--el-fill-color-light);
+}
+
+.node-card.active {
+  border-color: var(--el-color-primary);
+  background: var(--el-color-primary-light-9);
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.card-icon {
+  font-size: 28px;
+  color: var(--el-color-primary);
+}
+
+.card-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+
+.card-desc {
+  font-size: 13px;
+  color: var(--el-text-color-regular);
+  margin-bottom: 4px;
+}
+
+.card-info {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+
+.card-badge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--el-color-success);
+  color: white;
+  border-radius: 50%;
+  font-size: 14px;
+}
+
+/* 合并条件网格 */
+.merge-conditions-section,
+.time-window-section,
+.merge-strategy-section,
+.trigger-mode-section,
+.notification-section {
+  margin-bottom: 24px;
+  padding: 20px;
+  background: var(--el-fill-color-blank);
+  border-radius: 8px;
+  border: 1px solid var(--el-border-color-lighter);
+}
+
+.conditions-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.condition-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px;
+  background: var(--el-bg-color);
+  border-radius: 6px;
+  border: 1px solid var(--el-border-color-lighter);
+  transition: all 0.2s ease;
+}
+
+.condition-item:hover {
+  border-color: var(--el-border-color);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.condition-label {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.label-text {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--el-text-color-primary);
+}
+
+.label-desc {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+
+/* 时间窗口配置 */
+.time-window-config {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.switch-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.switch-label {
+  font-size: 14px;
+  color: var(--el-text-color-regular);
+}
+
+.time-input-row,
+.schedule-input-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-left: 48px;
+}
+
+.unit-label {
+  font-size: 14px;
+  color: var(--el-text-color-regular);
+  font-weight: 500;
+}
+
+.hint-text {
+  font-size: 12px;
+  color: var(--el-text-color-placeholder);
+  font-style: italic;
+}
+
+/* 合并策略 */
+.strategy-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.strategy-item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.strategy-item.full-width {
+  grid-column: 1 / -1;
+}
+
+.strategy-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--el-text-color-regular);
+}
+
+.strategy-hint {
+  font-size: 12px;
+  color: var(--el-text-color-placeholder);
+}
+
+/* 触发模式 */
+.trigger-radios {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.trigger-radios :deep(.el-radio) {
+  margin-right: 0;
+  padding: 12px;
+  background: var(--el-bg-color);
+  border-radius: 6px;
+  border: 1px solid var(--el-border-color-lighter);
+  transition: all 0.2s ease;
+}
+
+.trigger-radios :deep(.el-radio:hover) {
+  border-color: var(--el-color-primary-light-5);
+}
+
+.trigger-radios :deep(.el-radio.is-checked) {
+  border-color: var(--el-color-primary);
+  background: linear-gradient(90deg, rgba(64, 158, 255, 0.05) 0%, transparent 100%);
+}
+
+.radio-option {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-left: 8px;
+}
+
+.radio-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--el-text-color-primary);
+}
+
+.radio-desc {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+
+/* Trigger Mode Cards */
+.trigger-mode-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.trigger-mode-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  background: var(--el-fill-color-blank);
+  border: 1px solid transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.trigger-mode-card:hover {
+  background: var(--el-fill-color-light);
+}
+
+.trigger-mode-card.active {
+  border-color: var(--el-color-primary);
+  background: var(--el-color-primary-light-9);
+}
+
+.mode-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+
+.mode-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.mode-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+  margin-bottom: 2px;
+}
+
+.mode-desc {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  line-height: 1.4;
+}
+
+.mode-check {
+  flex-shrink: 0;
+  color: var(--el-color-primary);
+  font-size: 20px;
+}
+
+.schedule-config {
+  margin-top: 12px;
+  padding: 20px;
+  background: var(--el-fill-color-light);
+  border-radius: 8px;
+  border: 1px solid var(--el-border-color-lighter);
+}
+
+.schedule-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+  margin-bottom: 12px;
+}
+
+.schedule-input-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.schedule-input-row .hint-text {
+  flex: 1;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  line-height: 1.5;
+}
+
+/* 通知配置 */
+.notification-config {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* 选项内容样式 */
+.option-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.option-desc {
+  font-size: 11px;
+  color: var(--el-text-color-placeholder);
+}
+
+/* 弹窗响应式 */
+.rule-dialog {
+  max-width: 95vw;
+}
+
+@media (max-width: 1400px) {
+  .rule-dialog :deep(.el-dialog) {
+    width: 95% !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .rule-dialog :deep(.el-dialog) {
+    width: 100% !important;
+    margin: 0 !important;
+    max-height: 100vh;
+  }
+}
+
+/* 响应式调整 - 已全部改为流式布局，无需响应式 */
+
+/* 规则类型下拉选择器 */
+.rule-type-select {
+  width: 100%;
+}
+
+.rule-type-select :deep(.el-input__wrapper) {
+  padding: 12px 16px;
+}
+
+/* 下拉选项样式 */
+.rule-type-option {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 0;
+}
+
+.option-icon {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.option-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.option-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--el-text-color-primary);
+}
+
+.option-description {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  line-height: 1.4;
+}
+
+/* 规则类型信息卡片 */
+.rule-type-info {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 20px;
+  margin-top: 16px;
+  background: var(--el-fill-color-blank);
+  border-radius: 8px;
+  border: 1px solid var(--el-border-color-lighter);
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.info-icon {
+  width: 56px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  flex-shrink: 0;
+}
+
+.info-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.info-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+  margin: 0;
+}
+
+.info-description {
+  font-size: 13px;
+  color: var(--el-text-color-secondary);
+  line-height: 1.6;
+  margin: 0;
+}
+
+.info-features {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.info-features .el-tag {
+  background: var(--el-fill-color-light);
+  border-color: transparent;
+  font-size: 11px;
+  padding: 0 8px;
+  height: 22px;
+  line-height: 22px;
+}
+
+/* 合单规则过滤条件样式 */
+.merge-conditions-filter {
+  margin-top: 24px;
+  padding: 20px 0;
+  background: transparent;
+  border-radius: 8px;
+}
+
+.time-window-filter {
+  padding: 20px 0;
+  background: transparent;
+  border-radius: 8px;
+}
+
+.mb-6 {
+  margin-bottom: 24px;
+}
+
+/* 其他规则类型的配置样式 */
+.routing-config,
+.hold-config,
+.inventory-config,
+.update-config {
+  padding: 20px 0;
+  background: transparent;
+  border-radius: 8px;
+}
+
+.config-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.config-item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.config-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--el-text-color-regular);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.mt-3 {
+  margin-top: 12px;
+}
+
+.mt-4 {
+  margin-top: 16px;
+}
+
+/* DC 回传拆分策略样式 */
+.dc-split-section {
+  margin-top: 24px;
+  padding: 24px 0;
+  background: transparent;
+  border-radius: 8px;
+}
+
+.strategy-description {
+  margin: 16px 0 20px 0;
+}
+
+.alert-title {
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.scenario-text {
+  font-size: 13px;
+  line-height: 1.8;
+  color: var(--el-text-color-regular);
+}
+
+.split-strategy-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.strategy-card {
+  padding: 16px;
+  background: var(--el-fill-color-blank);
+  border: 1px solid transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.strategy-card:hover {
+  background: var(--el-fill-color-light);
+}
+
+.strategy-card.active {
+  border-color: var(--el-color-primary);
+  background: var(--el-color-primary-light-9);
+}
+
+.strategy-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.strategy-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+
+.strategy-title {
+  flex: 1;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+
+.strategy-check {
+  flex-shrink: 0;
+  color: var(--el-color-primary);
+  font-size: 20px;
+}
+
+.strategy-desc {
+  font-size: 13px;
+  color: var(--el-text-color-secondary);
+  line-height: 1.5;
+  margin-bottom: 12px;
+}
+
+.strategy-example {
+  padding: 10px 12px;
+  background: var(--el-fill-color-light);
+  border-radius: 6px;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.example-label {
+  font-weight: 600;
+  color: var(--el-text-color-regular);
+  margin-right: 6px;
+}
+
+.example-text {
+  color: var(--el-text-color-secondary);
+}
+
+.advanced-split-config {
+  margin-top: 20px;
+}
+
+.priority-config,
+.proportional-config {
+  margin-bottom: 16px;
+}
+
+.percentage-input {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.percentage-input .hint-text {
+  flex: 1;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  line-height: 1.5;
+}
+
+.common-split-config {
+  margin-top: 16px;
+  padding: 16px;
+  background: var(--el-fill-color-light);
+  border-radius: 6px;
+}
+
+.config-row {
+  margin-bottom: 12px;
+}
+
+.config-row:last-child {
+  margin-bottom: 0;
+}
+
+.help-icon {
+  color: var(--el-text-color-placeholder);
+  margin-left: 4px;
+  cursor: help;
 }
 </style> 
