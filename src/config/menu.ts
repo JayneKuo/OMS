@@ -22,6 +22,11 @@ export const menuConfig: MenuItem[] = [
         icon: 'Document'
       },
       {
+        title: 'Shipping Request',
+        path: '/order/shipping-request',
+        icon: 'Van'
+      },
+      {
         title: 'Shipment',
         path: '/order/shipment',
         icon: 'Ship'

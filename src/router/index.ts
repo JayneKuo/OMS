@@ -120,6 +120,22 @@ const routes: RouteRecordRaw[] = [
             component: () => import('@/views/order/shipment/detail.vue')
           },
           {
+            path: 'shipping-request',
+            name: 'ShippingRequest',
+            component: () => import('@/views/order/shipping-request/index.vue'),
+            meta: {
+              title: 'Shipping Request'
+            }
+          },
+          {
+            path: 'shipping-request/:id',
+            name: 'ShippingRequestDetail',
+            component: () => import('@/views/order/shipping-request/detail.vue'),
+            meta: {
+              title: 'Shipping Request Detail'
+            }
+          },
+          {
             path: 'ai-tracelink',
             name: 'ai-tracelink',
             component: () => import('@/views/order/ai-tracelink/index.vue'),
