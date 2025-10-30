@@ -802,154 +802,11 @@ export const ACTION_GROUPS: ActionGroup[] = [
     description: 'Automatically merge orders based on conditions',
     actions: [
       {
-        label: 'Merge Orders',
-        value: 'merge_orders',
-        description: 'Combine multiple orders into one based on specified rules',
+        label: 'Merge Orders (SO Level)',
+        value: 'merge_orders_so',
+        description: 'Merge at Sales Order level before warehouse allocation',
         config: {
           fields: [
-            {
-              name: 'merge_node',
-              type: 'enum',
-              label: 'Merge Node',
-              description: 'Select at which stage orders should be merged',
-              required: true,
-              options: [
-                { 
-                  label: 'SO (Sales Order)', 
-                  value: 'so',
-                  description: 'Merge at sales order level before warehouse allocation'
-                },
-                { 
-                  label: 'DN (Delivery Note)', 
-                  value: 'dn',
-                  description: 'Merge at delivery note level after warehouse allocation'
-                }
-              ]
-            },
-            {
-              name: 'match_customer',
-              type: 'boolean',
-              label: 'Same Customer',
-              description: 'Only merge orders from the same customer',
-              required: true,
-              default: true
-            },
-            {
-              name: 'match_shipping_address',
-              type: 'boolean',
-              label: 'Same Shipping Address',
-              description: 'Only merge orders with identical shipping addresses',
-              required: true,
-              default: true
-            },
-            {
-              name: 'match_recipient_name',
-              type: 'boolean',
-              label: 'Same Recipient Name',
-              description: 'Only merge orders with the same receiver name',
-              required: false,
-              default: false
-            },
-            {
-              name: 'match_phone',
-              type: 'boolean',
-              label: 'Same Phone Number',
-              description: 'Only merge orders with the same contact phone',
-              required: false,
-              default: false
-            },
-            {
-              name: 'match_email',
-              type: 'boolean',
-              label: 'Same Email',
-              description: 'Only merge orders with the same email address',
-              required: false,
-              default: false
-            },
-            {
-              name: 'match_warehouse',
-              type: 'boolean',
-              label: 'Same Warehouse',
-              description: 'Only merge orders allocated to the same warehouse (DN level only)',
-              required: false,
-              default: true
-            },
-            {
-              name: 'match_shipping_method',
-              type: 'boolean',
-              label: 'Same Shipping Method',
-              description: 'Only merge orders with the same shipping method',
-              required: false,
-              default: false
-            },
-            {
-              name: 'match_payment_method',
-              type: 'boolean',
-              label: 'Same Payment Method',
-              description: 'Only merge orders with the same payment method',
-              required: false,
-              default: false
-            },
-            {
-              name: 'match_currency',
-              type: 'boolean',
-              label: 'Same Currency',
-              description: 'Only merge orders with the same currency',
-              required: false,
-              default: false
-            },
-            {
-              name: 'match_channel',
-              type: 'boolean',
-              label: 'Same Sales Channel',
-              description: 'Only merge orders from the same sales channel',
-              required: false,
-              default: false
-            },
-            {
-              name: 'match_tags',
-              type: 'boolean',
-              label: 'Same Order Tags',
-              description: 'Only merge orders with identical tags',
-              required: false,
-              default: false
-            },
-            {
-              name: 'time_window_enabled',
-              type: 'boolean',
-              label: 'Enable Time Window',
-              description: 'Set a time limit for merging orders',
-              required: true,
-              default: true
-            },
-            {
-              name: 'time_window_minutes',
-              type: 'number',
-              label: 'Time Window (Minutes)',
-              description: 'Orders within this time range can be merged',
-              required: false,
-              default: 60,
-              min: 1,
-              max: 1440
-            },
-            {
-              name: 'max_orders',
-              type: 'number',
-              label: 'Max Orders to Merge',
-              description: 'Maximum number of orders that can be merged together',
-              required: true,
-              default: 5,
-              min: 2,
-              max: 50
-            },
-            {
-              name: 'max_items',
-              type: 'number',
-              label: 'Max Total Items',
-              description: 'Maximum total items in merged order (optional)',
-              required: false,
-              min: 1
-            },
             {
               name: 'priority_field',
               type: 'enum',
@@ -964,47 +821,106 @@ export const ACTION_GROUPS: ActionGroup[] = [
               ]
             },
             {
-              name: 'trigger_mode',
+              name: 'allocation_strategy',
               type: 'enum',
-              label: 'Trigger Mode',
-              description: 'When to trigger the merge',
+              label: 'Allocation Strategy',
+              description: 'How to allocate fulfilled quantity when DC ships less than ordered',
               required: true,
-              default: 'immediate',
+              default: 'PRIORITY_BASED',
               options: [
                 { 
-                  label: 'Immediate', 
-                  value: 'immediate',
-                  description: 'Merge as soon as conditions are met'
+                  label: 'Priority-Based', 
+                  value: 'PRIORITY_BASED',
+                  description: 'Allocate by priority (earliest order first)'
                 },
                 { 
-                  label: 'Scheduled', 
-                  value: 'scheduled',
-                  description: 'Merge at specific time intervals'
-                },
-                { 
-                  label: 'Manual', 
-                  value: 'manual',
-                  description: 'Require manual approval before merging'
+                  label: 'Complete Orders First', 
+                  value: 'COMPLETE_FIRST',
+                  description: 'Fulfill complete orders first, then split partial'
                 }
               ]
             },
             {
-              name: 'schedule_interval',
-              type: 'number',
-              label: 'Schedule Interval (Minutes)',
-              description: 'How often to check and merge orders',
-              required: false,
-              default: 30,
-              min: 5,
-              max: 1440
+              name: 'shipment_sync_timing',
+              type: 'enum',
+              label: 'Shipment Sync Timing',
+              description: 'When to report shipment to sales channel',
+              required: true,
+              default: 'WAIT_UNTIL_FULLY_SHIPPED',
+              options: [
+                { 
+                  label: 'Wait Until Fully Shipped', 
+                  value: 'WAIT_UNTIL_FULLY_SHIPPED',
+                  description: 'Report shipment only after all items are shipped'
+                },
+                { 
+                  label: 'Immediate on Partial', 
+                  value: 'IMMEDIATE_ON_PARTIAL',
+                  description: 'Report immediately when any partial shipment occurs'
+                }
+              ]
+            }
+          ]
+        }
+      },
+      {
+        label: 'Merge Orders (DN Level)',
+        value: 'merge_orders_dn',
+        description: 'Merge at Delivery Note level after warehouse allocation',
+        config: {
+          fields: [
+            {
+              name: 'priority_field',
+              type: 'enum',
+              label: 'Primary Order Selection',
+              description: 'Which order\'s data to use as primary',
+              required: true,
+              default: 'earliest',
+              options: [
+                { label: 'Earliest Order', value: 'earliest' },
+                { label: 'Latest Order', value: 'latest' },
+                { label: 'Highest Value', value: 'highest_value' }
+              ]
             },
             {
-              name: 'notify_on_merge',
-              type: 'boolean',
-              label: 'Notify on Merge',
-              description: 'Send notification when orders are merged',
-              required: false,
-              default: true
+              name: 'allocation_strategy',
+              type: 'enum',
+              label: 'Allocation Strategy',
+              description: 'How to allocate fulfilled quantity when DC ships less than ordered',
+              required: true,
+              default: 'PRIORITY_BASED',
+              options: [
+                { 
+                  label: 'Priority-Based', 
+                  value: 'PRIORITY_BASED',
+                  description: 'Allocate by priority (earliest order first)'
+                },
+                { 
+                  label: 'Complete Orders First', 
+                  value: 'COMPLETE_FIRST',
+                  description: 'Fulfill complete orders first, then split partial'
+                }
+              ]
+            },
+            {
+              name: 'shipment_sync_timing',
+              type: 'enum',
+              label: 'Shipment Sync Timing',
+              description: 'When to report shipment to sales channel',
+              required: true,
+              default: 'WAIT_UNTIL_FULLY_SHIPPED',
+              options: [
+                { 
+                  label: 'Wait Until Fully Shipped', 
+                  value: 'WAIT_UNTIL_FULLY_SHIPPED',
+                  description: 'Report shipment only after all items are shipped'
+                },
+                { 
+                  label: 'Immediate on Partial', 
+                  value: 'IMMEDIATE_ON_PARTIAL',
+                  description: 'Report immediately when any partial shipment occurs'
+                }
+              ]
             }
           ]
         }

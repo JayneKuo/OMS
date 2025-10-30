@@ -240,22 +240,35 @@ export function deleteCategoryMapping(categoryId: string, mappingId: string) {
 
 // 获取平台分类列表
 export function getPlatformCategories(platform: string) {
-  // 模拟平台分类数据
-  const platformCategories = defaultCategories.map(category => ({
-    id: `${platform}_${category.id}`,
-    name: category.name,
-    platform,
-    originalId: category.code,
-    path: category.path,
-    level: category.level,
-    parentId: category.parentId,
-    lastSyncTime: new Date().toISOString(),
-    status: 'active' as const
-  }))
+  // 递归转换树形结构，为每个节点添加平台前缀
+  const convertTree = (categories: any[]): any[] => {
+    return categories.map(category => {
+      const converted: any = {
+        id: `${platform}_${category.id}`,
+        name: category.name,
+        platform,
+        originalId: category.code,
+        path: category.path,
+        level: category.level,
+        parentId: category.parentId ? `${platform}_${category.parentId}` : null,
+        lastSyncTime: new Date().toISOString(),
+        status: 'active' as const
+      }
+
+      // 递归处理子节点
+      if (category.children && category.children.length > 0) {
+        converted.children = convertTree(category.children)
+      }
+
+      return converted
+    })
+  }
+
+  const treeData = convertTree(defaultCategories)
 
   return Promise.resolve({
     code: 200,
-    data: platformCategories
+    data: treeData
   })
 }
 

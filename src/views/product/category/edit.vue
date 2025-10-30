@@ -1,7 +1,7 @@
 <template>
   <div class="category-edit-container">
     <page-header
-      :title="isEdit ? '编辑分类' : '新增分类'"
+      :title="isEdit ? 'Edit Category' : 'Add Category'"
       :back="{ name: 'ProductCategory' }"
     />
 
@@ -10,11 +10,11 @@
         ref="formRef"
         :model="form"
         :rules="rules"
-        label-width="120px"
+        label-width="140px"
         class="category-form"
       >
-        <!-- 上级分类选择 -->
-        <el-form-item label="上级分类">
+        <!-- Parent Category Selection -->
+        <el-form-item label="Parent Category">
           <div class="parent-category">
             <div class="selected-path">
               <template v-if="selectedPath.length">
@@ -27,57 +27,57 @@
                   {{ category.name }}
                 </el-tag>
               </template>
-              <span v-else class="no-parent">顶级分类</span>
+              <span v-else class="no-parent">Root Category</span>
             </div>
             <el-button type="primary" link @click="selectParentVisible = true">
-              选择上级分类
+              Select Parent
             </el-button>
           </div>
         </el-form-item>
 
-        <el-form-item label="分类名称" prop="name">
-          <el-input v-model="form.name" placeholder="请输入分类名称" />
+        <el-form-item label="Category Name" prop="name">
+          <el-input v-model="form.name" placeholder="Enter category name" />
         </el-form-item>
 
-        <el-form-item label="分类编码" prop="code">
-          <el-input v-model="form.code" placeholder="请输入分类编码">
+        <el-form-item label="Category Code" prop="code">
+          <el-input v-model="form.code" placeholder="Enter category code">
             <template #append>
-              <el-button @click="generateCode">生成编码</el-button>
+              <el-button @click="generateCode">Generate</el-button>
             </template>
           </el-input>
         </el-form-item>
 
-        <el-form-item label="排序" prop="sort">
+        <el-form-item label="Sort Order" prop="sort">
           <el-input-number v-model="form.sort" :min="0" :max="999" />
         </el-form-item>
 
-        <el-form-item label="状态" prop="status">
+        <el-form-item label="Status" prop="status">
           <el-radio-group v-model="form.status">
-            <el-radio label="active">启用</el-radio>
-            <el-radio label="inactive">禁用</el-radio>
+            <el-radio label="active">Active</el-radio>
+            <el-radio label="inactive">Inactive</el-radio>
           </el-radio-group>
         </el-form-item>
 
-        <el-form-item label="描述" prop="description">
+        <el-form-item label="Description" prop="description">
           <el-input
             v-model="form.description"
             type="textarea"
             :rows="3"
-            placeholder="请输入分类描述"
+            placeholder="Enter category description"
           />
         </el-form-item>
 
         <el-form-item>
-          <el-button type="primary" @click="handleSubmit">保存</el-button>
-          <el-button @click="$router.back()">取消</el-button>
+          <el-button type="primary" @click="handleSubmit">Save</el-button>
+          <el-button @click="$router.back()">Cancel</el-button>
         </el-form-item>
       </el-form>
     </el-card>
 
-    <!-- 选择上级分类对话框 -->
+    <!-- Select Parent Category Dialog -->
     <el-dialog
       v-model="selectParentVisible"
-      title="选择上级分类"
+      title="Select Parent Category"
       width="600px"
       destroy-on-close
     >
@@ -85,7 +85,7 @@
         <div class="tree-search">
           <el-input
             v-model="searchQuery"
-            placeholder="搜索分类"
+            placeholder="Search category"
             clearable
           >
             <template #prefix>
@@ -109,7 +109,7 @@
                 <span>{{ node.label }}</span>
                 <span class="level-tag">
                   <el-tag size="small" :type="getLevelType(data.level)">
-                    {{ `${data.level}级` }}
+                    {{ `L${data.level}` }}
                   </el-tag>
                 </span>
               </div>
@@ -118,25 +118,25 @@
         </div>
 
         <div class="selected-info" v-if="currentSelected">
-          <div class="info-title">已选分类：</div>
+          <div class="info-title">Selected Category:</div>
           <div class="info-content">
             <div class="info-item">
-              <span class="label">分类名称：</span>
+              <span class="label">Category Name:</span>
               <span class="value">{{ currentSelected.name }}</span>
             </div>
             <div class="info-item">
-              <span class="label">当前层级：</span>
-              <span class="value">{{ currentSelected.level }}级</span>
+              <span class="label">Current Level:</span>
+              <span class="value">Level {{ currentSelected.level }}</span>
             </div>
             <div class="info-item">
-              <span class="label">新建层级：</span>
-              <span class="value">{{ currentSelected.level + 1 }}级</span>
+              <span class="label">New Level:</span>
+              <span class="value">Level {{ currentSelected.level + 1 }}</span>
               <el-tag 
                 size="small" 
                 :type="currentSelected.level >= 4 ? 'danger' : 'success'"
                 class="level-warning"
               >
-                {{ currentSelected.level >= 4 ? '已达到最大层级' : '可以创建子分类' }}
+                {{ currentSelected.level >= 4 ? 'Max level reached' : 'Can create subcategory' }}
               </el-tag>
             </div>
           </div>
@@ -145,13 +145,13 @@
 
       <template #footer>
           <span class="dialog-footer">
-            <el-button @click="selectParentVisible = false">取消</el-button>
+            <el-button @click="selectParentVisible = false">Cancel</el-button>
             <el-button
               type="primary"
               :disabled="!canSelectParent"
               @click="handleParentConfirm"
             >
-              确认
+              Confirm
             </el-button>
           </span>
         </template>
@@ -173,10 +173,10 @@ const route = useRoute()
 const router = useRouter()
 const formRef = ref<FormInstance>()
 
-// 判断是否为编辑模式
+// Check if edit mode
 const isEdit = computed(() => route.name === 'EditCategory')
 
-// 表单数据
+// Form data
 const form = ref({
   name: '',
   code: '',
@@ -187,25 +187,25 @@ const form = ref({
   level: 1
 })
 
-// 表单校验规则
+// Form validation rules
 const rules: FormRules = {
   name: [
-    { required: true, message: '请输入分类名称', trigger: 'blur' },
-    { min: 2, max: 50, message: '长度在 2 到 50 个字符', trigger: 'blur' }
+    { required: true, message: 'Please enter category name', trigger: 'blur' },
+    { min: 2, max: 50, message: 'Length should be 2 to 50 characters', trigger: 'blur' }
   ],
   code: [
-    { required: true, message: '请输入分类编码', trigger: 'blur' },
-    { pattern: /^[A-Z0-9-_]+$/, message: '只能包含大写字母、数字、横线和下划线', trigger: 'blur' }
+    { required: true, message: 'Please enter category code', trigger: 'blur' },
+    { pattern: /^[A-Z0-9-_]+$/, message: 'Only uppercase letters, numbers, hyphens and underscores are allowed', trigger: 'blur' }
   ],
   sort: [
-    { required: true, message: '请输入排序值', trigger: 'blur' }
+    { required: true, message: 'Please enter sort order', trigger: 'blur' }
   ],
   status: [
-    { required: true, message: '请选择状态', trigger: 'change' }
+    { required: true, message: 'Please select status', trigger: 'change' }
   ]
 }
 
-// 选择上级分类相关
+// Parent category selection
 const selectParentVisible = ref(false)
 const searchQuery = ref('')
 const categoryTree = ref<LocalCategory[]>([])
@@ -218,69 +218,69 @@ const treeProps = {
   children: 'children'
 }
 
-// 是否可以选择当前分类作为父分类
+// Check if can select as parent
 const canSelectParent = computed(() => {
   if (!currentSelected.value) return false
-  return currentSelected.value.level < 4 // 最多支持4级分类
+  return currentSelected.value.level < 4 // Max 4 levels
 })
 
-// 获取层级类型
+// Get level type
 const getLevelType = (level: number) => {
   const types = ['', 'success', 'warning', 'danger', 'info']
   return types[level] || 'info'
 }
 
-// 过滤节点
+// Filter node
 const filterNode = (value: string, data: LocalCategory) => {
   if (!value) return true
   return data.name.toLowerCase().includes(value.toLowerCase())
 }
 
-// 监听搜索关键词变化
+// Watch search query
 watch(searchQuery, (val) => {
   treeRef.value?.filter(val)
 })
 
-// 生成分类编码
+// Generate category code
 const generateCode = async () => {
   if (!form.value.name) {
-    ElMessage.warning('请先输入分类名称')
+    ElMessage.warning('Please enter category name first')
     return
   }
   try {
     const { data } = await generateCategoryCode(form.value.name)
     form.value.code = data.code
   } catch (error) {
-    ElMessage.error('生成编码失败')
+    ElMessage.error('Failed to generate code')
   }
 }
 
-// 处理分类选择
+// Handle category select
 const handleCategorySelect = (data: LocalCategory) => {
   currentSelected.value = data
 }
 
-// 处理确认选择父分类
+// Handle parent confirm
 const handleParentConfirm = () => {
   if (!currentSelected.value || currentSelected.value.level >= 4) return
   
-  // 更新父分类信息
+  // Update parent info
   form.value.parentId = currentSelected.value.id
   form.value.level = currentSelected.value.level + 1
   
-  // 构建选中路径
+  // Build selected path
   const path = []
-  let current = currentSelected.value
+  let current: LocalCategory | null = currentSelected.value
   while (current) {
     path.unshift(current)
-    current = categoryTree.value.find(c => c.id === current.parentId) || null
+    current = categoryTree.value.find(c => c.id === current?.parentId) || null
   }
   selectedPath.value = path
   
   selectParentVisible.value = false
 }
 
-// 提交表单
+// Handle submit
 const handleSubmit = async () => {
   if (!formRef.value) return
   
@@ -289,44 +289,44 @@ const handleSubmit = async () => {
       try {
         if (isEdit.value) {
           await updateCategory(route.params.id as string, form.value)
-          ElMessage.success('更新成功')
+          ElMessage.success('Updated successfully')
         } else {
           await createCategory(form.value)
-          ElMessage.success('创建成功')
+          ElMessage.success('Created successfully')
         }
         router.push({ name: 'ProductCategory' })
       } catch (error) {
-        ElMessage.error(isEdit.value ? '更新失败' : '创建失败')
+        ElMessage.error(isEdit.value ? 'Failed to update' : 'Failed to create')
       }
     }
   })
 }
 
-// 初始化
+// Initialize
 const init = async () => {
   try {
-    // 加载分类树
+    // Load category tree
     const { data } = await getCategoryTree()
     categoryTree.value = data
 
-    // 编辑模式下加载分类详情
+    // Load detail in edit mode
     if (isEdit.value && route.params.id) {
       const { data: detail } = await getCategoryDetail(route.params.id as string)
       Object.assign(form.value, detail)
       
-      // 构建选中路径
+      // Build selected path
       if (detail.parentId) {
         const path = []
-        let current = detail
+        let current: LocalCategory | null = detail
         while (current) {
           path.unshift(current)
-          current = categoryTree.value.find(c => c.id === current.parentId) || null
+          current = categoryTree.value.find(c => c.id === current?.parentId) || null
         }
-        selectedPath.value = path.slice(0, -1) // 不包含当前分类
+        selectedPath.value = path.slice(0, -1) // Exclude current category
       }
     }
   } catch (error) {
-    ElMessage.error('加载数据失败')
+    ElMessage.error('Failed to load data')
   }
 }
 

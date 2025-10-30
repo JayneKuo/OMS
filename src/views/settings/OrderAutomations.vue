@@ -124,39 +124,39 @@ const triggerModes = [
   }
 ]
 
-// DC 回传拆分策略
-const dcSplitStrategies = [
+// DC 分配策略选项
+const allocationStrategyOptions = [
   {
-    value: 'priority',
+    value: 'PRIORITY_BASED',
     label: 'Priority-Based',
-    description: 'Fulfill orders based on priority (time, value, VIP level, etc.)',
-    icon: 'Sort',
-    color: '#409EFF',
-    example: 'Order A (earliest) gets 50 units ✓, Order B gets 40 units ✓, remaining unfulfilled'
+    description: 'Allocate by priority (earliest order first)',
+    note: '按优先级分配（订单创建时间最早）',
+    isDefault: true
   },
   {
-    value: 'proportional',
-    label: 'Proportional Split',
-    description: 'Distribute fulfilled quantity proportionally across all orders',
-    icon: 'PieChart',
-    color: '#67C23A',
-    example: 'Order A gets 45 units (90%), Order B gets 45 units (90%), both partially fulfilled'
-  },
-  {
-    value: 'complete_first',
+    value: 'COMPLETE_FIRST',
     label: 'Complete Orders First',
-    description: 'Fulfill complete orders first, mark others as unfulfilled',
-    icon: 'CircleCheck',
-    color: '#E6A23C',
-    example: 'Order A gets 50 units ✓ (complete), Order B gets 40 units ✗ (incomplete, mark unfulfilled)'
+    description: 'Fulfill complete orders first, then split partial',
+    note: '整单优先（先满足整单，再拆部分）',
+    isDefault: false
+  }
+]
+
+// DC 发货回传时机选项
+const shipmentSyncTimingOptions = [
+  {
+    value: 'WAIT_UNTIL_FULLY_SHIPPED',
+    label: 'Wait Until Fully Shipped',
+    description: 'Report shipment only after all items are shipped',
+    note: '等到全部发货完成后，再统一回传 Shipment',
+    isDefault: true
   },
   {
-    value: 'all_partial',
-    label: 'All Partial',
-    description: 'Mark all merged orders as partially fulfilled with actual quantities',
-    icon: 'PartlyCloudy',
-    color: '#909399',
-    example: 'Order A: 45/50 (partial), Order B: 45/50 (partial)'
+    value: 'IMMEDIATE_ON_PARTIAL',
+    label: 'Immediate on Partial',
+    description: 'Report immediately when any partial shipment occurs',
+    note: '一旦有部分发货即立即回传渠道',
+    isDefault: false
   }
 ]
 
@@ -284,23 +284,28 @@ const handleRuleTypeChange = (type: string) => {
   switch (type) {
     case 'order_merge':
       ruleForm.value.actions = [{
-        type: 'merge_orders',
+        type: '', // 用户需要选择 merge_orders_so 或 merge_orders_dn
         config: {
-          merge_node: '',
-          // 匹配条件开关
+          // Primary Order Selection
+          priority_field: 'earliest',
+          // DC 配置
+          allocation_strategy: 'PRIORITY_BASED',
+          shipment_sync_timing: 'WAIT_UNTIL_FULLY_SHIPPED',
+          // 必填条件 - 默认打开
           match_customer: true,
           match_shipping_address: true,
+          match_warehouse: true,
+          match_channel: true,
+          // 可选条件 - 默认关闭
           match_recipient_name: false,
           match_phone: false,
           match_email: false,
-          match_warehouse: true,
           match_carrier: false,
           match_shipping_method: false,
           match_payment_method: false,
           match_currency: false,
-          match_channel: true,
           match_tags: false,
-          // 指定值过滤（为空则匹配所有）
+          // 初始化过滤值数组和展开状态
           customer_filter_values: [],
           customer_filter_expanded: false,
           address_filter_values: [],
@@ -323,19 +328,9 @@ const handleRuleTypeChange = (type: string) => {
           channel_filter_expanded: false,
           tags_filter_values: [],
           tags_filter_expanded: false,
-          // 其他配置
+          // 初始化时间窗口
           time_window_enabled: true,
-          time_window_minutes: 60,
-          max_orders: 5,
-          priority_field: 'earliest',
-          trigger_mode: 'immediate',
-          notify_on_merge: true,
-          // DC 回传拆分策略
-          dc_split_strategy: 'priority',
-          split_priority_field: 'created_asc',
-          min_fulfillment_percentage: 80,
-          partial_ship_notification: true,
-          auto_create_backorder: true
+          time_window_minutes: 60
         },
         order: 0
       }]
@@ -401,6 +396,8 @@ const handleEditRule = async (rule: Rule) => {
     const actionType = rule.actions[0].type
     switch (actionType) {
       case 'merge_orders':
+      case 'merge_orders_so':
+      case 'merge_orders_dn':
         ruleType.value = 'order_merge'
         break
       case 'override_warehouse':
@@ -569,13 +566,12 @@ const formatAction = (action: Action): string => {
       result += ` (Reason: ${action.config.close_reason})`
       break
     case 'merge_orders':
-      const node = action.config.merge_node === 'so' ? 'SO Level' : 'DN Level'
-      const maxOrders = action.config.max_orders || 'N/A'
-      const timeWindow = action.config.time_window_enabled 
-        ? `${action.config.time_window_minutes}min` 
-        : 'No limit'
-      const triggerMode = action.config.trigger_mode || 'immediate'
-      result += ` (${node}, Max: ${maxOrders}, Time: ${timeWindow}, Trigger: ${triggerMode})`
+    case 'merge_orders_so':
+    case 'merge_orders_dn':
+      const priorityLabel = action.config.priority_field === 'earliest' ? 'Earliest' : 
+                           action.config.priority_field === 'latest' ? 'Latest' : 'Highest Value'
+      const allocationLabel = action.config.allocation_strategy === 'PRIORITY_BASED' ? 'Priority' : 'Complete First'
+      result += ` (Priority: ${priorityLabel}, Allocation: ${allocationLabel})`
       break
   }
 
@@ -611,6 +607,11 @@ const handleActionTypeChange = (actionIndex: number) => {
   const action = ruleForm.value.actions[actionIndex]
   console.log('Action type changed:', action.type)
   if (action.type) {
+    // 如果是合并订单 action，保留已有的匹配条件配置
+    const preservedConfig = (action.type === 'merge_orders_so' || action.type === 'merge_orders_dn') 
+      ? { ...action.config } 
+      : {}
+    
     // 初始化配置对象
     action.config = {}
     
@@ -637,6 +638,14 @@ const handleActionTypeChange = (actionIndex: number) => {
 
     // 初始化所有字段
     fields.forEach(initFieldValue)
+    
+    // 如果是合并订单 action，恢复保留的配置（包括匹配条件）
+    if (action.type === 'merge_orders_so' || action.type === 'merge_orders_dn') {
+      action.config = {
+        ...action.config,
+        ...preservedConfig
+      }
+    }
   }
 }
 
@@ -914,25 +923,10 @@ onMounted(async () => {
               </el-select>
             </el-form-item>
 
-            <!-- 规则类型说明卡片 -->
-            <div v-if="ruleType" class="rule-type-info">
-              <div class="info-icon" :style="{ backgroundColor: getCurrentRuleType()?.color + '15', color: getCurrentRuleType()?.color }">
-                <el-icon :size="24"><component :is="icons[getCurrentRuleType()?.icon]" /></el-icon>
-              </div>
-              <div class="info-content">
-                <h4 class="info-title">{{ getCurrentRuleType()?.label }}</h4>
-                <p class="info-description">{{ getCurrentRuleType()?.description }}</p>
-                <div class="info-features">
-                  <el-tag 
-                    v-for="feature in getCurrentRuleType()?.features" 
-                    :key="feature"
-                    size="small"
-                    effect="plain"
-                  >
-                    {{ feature }}
-                  </el-tag>
-                </div>
-              </div>
+            <!-- 规则类型说明 -->
+            <div v-if="ruleType" class="rule-type-hint">
+              <el-icon class="hint-icon"><component :is="icons.InfoFilled" /></el-icon>
+              <span>{{ getCurrentRuleType()?.description }}</span>
             </div>
           </div>
         </div>
@@ -1591,330 +1585,128 @@ onMounted(async () => {
                 </el-button>
               </div>
 
-              <!-- Merge Orders Preview -->
-              <div v-if="ruleType === 'order_merge' && action.config.merge_node" class="merge-preview-banner">
-                <div class="preview-icon">
-                  <el-icon><component :is="icons.Connection" /></el-icon>
-                </div>
-                <div class="preview-content">
-                  <div class="preview-title">
-                    Merge at {{ action.config.merge_node === 'so' ? 'Sales Order (SO)' : 'Delivery Note (DN)' }} Level
-                  </div>
-                  <div class="preview-conditions">
-                    <el-tag v-if="action.config.match_customer" size="small" type="success">
-                      Customer
-                      <span v-if="action.config.customer_filter_values?.length" class="tag-count">({{ action.config.customer_filter_values.length }})</span>
-                    </el-tag>
-                    <el-tag v-if="action.config.match_shipping_address" size="small" type="success">
-                      Address
-                      <span v-if="action.config.address_filter_values?.length" class="tag-count">({{ action.config.address_filter_values.length }})</span>
-                    </el-tag>
-                    <el-tag v-if="action.config.match_recipient_name" size="small" type="success">Name</el-tag>
-                    <el-tag v-if="action.config.match_phone" size="small" type="success">
-                      Phone
-                      <span v-if="action.config.phone_filter_values?.length" class="tag-count">({{ action.config.phone_filter_values.length }})</span>
-                    </el-tag>
-                    <el-tag v-if="action.config.match_email" size="small" type="success">
-                      Email
-                      <span v-if="action.config.email_filter_values?.length" class="tag-count">({{ action.config.email_filter_values.length }})</span>
-                    </el-tag>
-                    <el-tag v-if="action.config.match_warehouse" size="small" type="success">
-                      Warehouse
-                      <span v-if="action.config.warehouse_filter_values?.length" class="tag-count">({{ action.config.warehouse_filter_values.length }})</span>
-                    </el-tag>
-                    <el-tag v-if="action.config.match_carrier" size="small" type="success">
-                      Carrier
-                      <span v-if="action.config.carrier_filter_values?.length" class="tag-count">({{ action.config.carrier_filter_values.length }})</span>
-                    </el-tag>
-                    <el-tag v-if="action.config.match_shipping_method" size="small" type="success">
-                      Shipping
-                      <span v-if="action.config.shipping_method_filter_values?.length" class="tag-count">({{ action.config.shipping_method_filter_values.length }})</span>
-                    </el-tag>
-                    <el-tag v-if="action.config.match_payment_method" size="small" type="success">
-                      Payment
-                      <span v-if="action.config.payment_method_filter_values?.length" class="tag-count">({{ action.config.payment_method_filter_values.length }})</span>
-                    </el-tag>
-                    <el-tag v-if="action.config.match_currency" size="small" type="success">
-                      Currency
-                      <span v-if="action.config.currency_filter_values?.length" class="tag-count">({{ action.config.currency_filter_values.length }})</span>
-                    </el-tag>
-                    <el-tag v-if="action.config.match_channel" size="small" type="success">
-                      Channel
-                      <span v-if="action.config.channel_filter_values?.length" class="tag-count">({{ action.config.channel_filter_values.length }})</span>
-                    </el-tag>
-                    <el-tag v-if="action.config.match_tags" size="small" type="success">
-                      Tags
-                      <span v-if="action.config.tags_filter_values?.length" class="tag-count">({{ action.config.tags_filter_values.length }})</span>
-                    </el-tag>
-                    <el-tag v-if="action.config.time_window_enabled" size="small" type="info">
-                      ⏱️ {{ action.config.time_window_minutes }}min
-                    </el-tag>
-                  </div>
-                </div>
-              </div>
-
               <div v-if="ruleType === 'order_merge'" class="action-config">
                 <!-- 合并规则专用配置 -->
-                <template v-if="action.type === 'merge_orders'">
-                  <div class="merge-node-selection">
+                <template v-if="action.type === 'merge_orders_so' || action.type === 'merge_orders_dn'">
+                  <!-- Primary Order Selection -->
+                  <div class="primary-order-section">
                     <div class="section-label">
-                      <el-icon class="label-icon"><component :is="icons.Location" /></el-icon>
-                      <span>Merge Node</span>
+                      <el-icon class="label-icon"><component :is="icons.User" /></el-icon>
+                      <span>Primary Order Selection</span>
                       <span class="required-mark">*</span>
-                      <el-tooltip content="Select at which stage orders should be merged">
+                      <el-tooltip content="Select which order's information to use as primary in the merged order">
                         <el-icon class="help-icon"><component :is="icons.QuestionFilled" /></el-icon>
                       </el-tooltip>
                     </div>
-                    <div class="node-cards">
-                      <div 
-                        class="node-card" 
-                        :class="{ active: action.config.merge_node === 'so' }"
-                        @click="action.config.merge_node = 'so'"
-                      >
-                        <div class="card-header">
-                          <el-icon class="card-icon"><component :is="icons.Document" /></el-icon>
-                          <span class="card-title">SO Level</span>
+                    <el-select v-model="action.config.priority_field" size="large" style="width: 100%">
+                      <el-option label="Earliest Order" value="earliest">
+                        <div class="option-content">
+                          <span>Earliest Order</span>
+                          <span class="option-desc">Use the first order's information</span>
                         </div>
-                        <div class="card-desc">Sales Order</div>
-                        <div class="card-info">Merge before warehouse allocation</div>
-                        <div class="card-badge" v-if="action.config.merge_node === 'so'">
-                          <el-icon><component :is="icons.Check" /></el-icon>
+                      </el-option>
+                      <el-option label="Latest Order" value="latest">
+                        <div class="option-content">
+                          <span>Latest Order</span>
+                          <span class="option-desc">Use the most recent order's information</span>
                         </div>
-                      </div>
-                      <div 
-                        class="node-card" 
-                        :class="{ active: action.config.merge_node === 'dn' }"
-                        @click="action.config.merge_node = 'dn'"
-                      >
-                        <div class="card-header">
-                          <el-icon class="card-icon"><component :is="icons.Box" /></el-icon>
-                          <span class="card-title">DN Level</span>
+                      </el-option>
+                      <el-option label="Highest Value" value="highest_value">
+                        <div class="option-content">
+                          <span>Highest Value</span>
+                          <span class="option-desc">Use the highest value order's information</span>
                         </div>
-                        <div class="card-desc">Delivery Note</div>
-                        <div class="card-info">Merge after warehouse allocation</div>
-                        <div class="card-badge" v-if="action.config.merge_node === 'dn'">
-                          <el-icon><component :is="icons.Check" /></el-icon>
-                        </div>
-                      </div>
-                    </div>
+                      </el-option>
+                    </el-select>
                   </div>
 
-                  <!-- 合并策略 -->
-                  <div class="merge-strategy-section">
-                    <div class="section-label">
-                      <el-icon class="label-icon"><component :is="icons.Setting" /></el-icon>
-                      <span>Merge Strategy</span>
-                    </div>
-                    <div class="strategy-grid">
-                      <div class="strategy-item">
-                        <label class="strategy-label">Max Orders <span class="required-mark">*</span></label>
-                        <el-input-number
-                          v-model="action.config.max_orders"
-                          :min="2"
-                          :max="50"
-                          style="width: 100%"
-                        />
-                        <span class="strategy-hint">Maximum number of orders to merge together</span>
-                      </div>
-                      <div class="strategy-item">
-                        <label class="strategy-label">Max Items (Optional)</label>
-                        <el-input-number
-                          v-model="action.config.max_items"
-                          :min="1"
-                          style="width: 100%"
-                        />
-                        <span class="strategy-hint">Maximum total items in merged order</span>
-                      </div>
-                      <div class="strategy-item full-width">
-                        <label class="strategy-label">Primary Order Selection <span class="required-mark">*</span></label>
-                        <el-select v-model="action.config.priority_field" style="width: 100%">
-                          <el-option label="Earliest Order" value="earliest">
-                            <div class="option-content">
-                              <span>Earliest Order</span>
-                              <span class="option-desc">Use the first order's information</span>
-                            </div>
-                          </el-option>
-                          <el-option label="Latest Order" value="latest">
-                            <div class="option-content">
-                              <span>Latest Order</span>
-                              <span class="option-desc">Use the most recent order's information</span>
-                            </div>
-                          </el-option>
-                          <el-option label="Highest Value" value="highest_value">
-                            <div class="option-content">
-                              <span>Highest Value</span>
-                              <span class="option-desc">Use the highest value order's information</span>
-                            </div>
-                          </el-option>
-                        </el-select>
-                      </div>
-                    </div>
-                  </div>
-
-                  <!-- 触发模式 -->
-                  <div class="trigger-mode-section">
-                    <div class="section-label">
-                      <el-icon class="label-icon"><component :is="icons.VideoPlay" /></el-icon>
-                      <span>Trigger Mode</span>
-                      <span class="required-mark">*</span>
-                    </div>
-                    <div class="trigger-mode-cards">
-                      <div 
-                        v-for="mode in triggerModes" 
-                        :key="mode.value"
-                        class="trigger-mode-card"
-                        :class="{ active: action.config.trigger_mode === mode.value }"
-                        @click="action.config.trigger_mode = mode.value"
-                      >
-                        <div class="mode-icon" :style="{ backgroundColor: mode.color + '15', color: mode.color }">
-                          <el-icon :size="20"><component :is="icons[mode.icon]" /></el-icon>
-                        </div>
-                        <div class="mode-content">
-                          <div class="mode-title">{{ mode.label }}</div>
-                          <div class="mode-desc">{{ mode.description }}</div>
-                        </div>
-                        <div class="mode-check">
-                          <el-icon v-if="action.config.trigger_mode === mode.value"><component :is="icons.Select" /></el-icon>
-                        </div>
-                      </div>
-                    </div>
-                    <div v-if="action.config.trigger_mode === 'scheduled'" class="schedule-config">
-                      <div class="schedule-label">
-                        <el-icon><component :is="icons.Timer" /></el-icon>
-                        <span>Check Interval</span>
-                      </div>
-                      <div class="schedule-input-row">
-                        <el-input-number
-                          v-model="action.config.schedule_interval"
-                          :min="5"
-                          :max="1440"
-                          :step="5"
-                          size="large"
-                        />
-                        <span class="unit-label">minutes</span>
-                        <span class="hint-text">System will check and merge orders every {{ action.config.schedule_interval }} minutes</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <!-- 通知配置 -->
-                  <div class="notification-section">
-                    <div class="section-label">
-                      <el-icon class="label-icon"><component :is="icons.Bell" /></el-icon>
-                      <span>Notification</span>
-                    </div>
-                    <div class="notification-config">
-                      <el-switch v-model="action.config.notify_on_merge" />
-                      <span class="switch-label">Send notification when orders are merged</span>
-                    </div>
-                  </div>
-
-                  <!-- DC 回传拆分策略 -->
-                  <div class="dc-split-section">
+                  <!-- DC 配置 -->
+                  <div class="dc-config-section">
                     <div class="section-label">
                       <el-icon class="label-icon"><component :is="icons.Operation" /></el-icon>
-                      <span>DC Partial Fulfillment Strategy</span>
-                      <el-tooltip content="When DC ships less quantity than ordered, decide how to split the fulfillment status">
+                      <span>DC Configuration</span>
+                      <el-tooltip content="Configure how DC handles partial fulfillment and shipment reporting">
                         <el-icon class="help-icon"><component :is="icons.QuestionFilled" /></el-icon>
                       </el-tooltip>
                     </div>
                     
-                    <div class="strategy-description">
-                      <el-alert
-                        type="info"
-                        :closable="false"
-                        show-icon
-                      >
-                        <template #title>
-                          <span class="alert-title">Scenario Example</span>
-                        </template>
-                        <div class="scenario-text">
-                          Order A (50 units) + Order B (50 units) = Merged Order (100 units)<br/>
-                          DC ships only 90 units → How to report fulfillment status?
-                        </div>
-                      </el-alert>
-                    </div>
-
-                    <div class="split-strategy-cards">
-                      <div 
-                        v-for="strategy in dcSplitStrategies" 
-                        :key="strategy.value"
-                        class="strategy-card"
-                        :class="{ active: action.config.dc_split_strategy === strategy.value }"
-                        @click="action.config.dc_split_strategy = strategy.value"
-                      >
-                        <div class="strategy-header">
-                          <div class="strategy-icon" :style="{ backgroundColor: strategy.color + '15', color: strategy.color }">
-                            <el-icon :size="20"><component :is="icons[strategy.icon]" /></el-icon>
-                          </div>
-                          <div class="strategy-title">{{ strategy.label }}</div>
-                          <div class="strategy-check">
-                            <el-icon v-if="action.config.dc_split_strategy === strategy.value"><component :is="icons.Select" /></el-icon>
-                          </div>
-                        </div>
-                        <div class="strategy-desc">{{ strategy.description }}</div>
-                        <div class="strategy-example">
-                          <span class="example-label">Example:</span>
-                          <span class="example-text">{{ strategy.example }}</span>
-                        </div>
+                    <!-- Allocation Strategy -->
+                    <div class="dc-config-item">
+                      <div class="config-item-label">
+                        <span class="label-name">Allocation Strategy</span>
+                        <span class="label-subtitle">分配策略</span>
                       </div>
-                    </div>
-
-                    <!-- 高级配置 -->
-                    <div v-if="action.config.dc_split_strategy" class="advanced-split-config">
-                      <el-divider />
-                      
-                      <!-- Priority Field 配置 -->
-                      <div v-if="action.config.dc_split_strategy === 'priority'" class="priority-config">
-                        <div class="config-label">
-                          <el-icon><component :is="icons.Sort" /></el-icon>
-                          <span>Priority Field</span>
-                          <span class="required-mark">*</span>
-                        </div>
-                        <el-select 
-                          v-model="action.config.split_priority_field" 
-                          placeholder="Select priority field"
-                          class="w-full"
+                      <el-select 
+                        v-model="action.config.allocation_strategy" 
+                        placeholder="Select allocation strategy"
+                        class="w-full"
+                        size="large"
+                      >
+                        <el-option
+                          v-for="option in allocationStrategyOptions"
+                          :key="option.value"
+                          :label="option.label"
+                          :value="option.value"
                         >
-                          <el-option label="Order Created Time (Earliest First)" value="created_asc" />
-                          <el-option label="Order Created Time (Latest First)" value="created_desc" />
-                          <el-option label="Order Value (Highest First)" value="value_desc" />
-                          <el-option label="Order Value (Lowest First)" value="value_asc" />
-                          <el-option label="Customer VIP Level (High First)" value="vip_level_desc" />
-                          <el-option label="Shipping Priority (Urgent First)" value="shipping_priority" />
-                        </el-select>
+                          <div class="dc-option-content">
+                            <div class="option-header">
+                              <span class="option-label">{{ option.label }}</span>
+                              <el-tag v-if="option.isDefault" size="small" type="success" effect="plain">Default</el-tag>
+                            </div>
+                            <div class="option-note">{{ option.note }}</div>
+                          </div>
+                        </el-option>
+                      </el-select>
+                      <div class="config-hint">
+                        <el-icon><component :is="icons.InfoFilled" /></el-icon>
+                        <span>
+                          <template v-if="action.config.allocation_strategy === 'PRIORITY_BASED'">
+                            Orders will be fulfilled based on creation time (earliest first)
+                          </template>
+                          <template v-else-if="action.config.allocation_strategy === 'COMPLETE_FIRST'">
+                            Complete orders will be fulfilled first, partial quantities will be distributed to remaining orders
+                          </template>
+                        </span>
                       </div>
+                    </div>
 
-                      <!-- Proportional 配置 -->
-                      <div v-if="action.config.dc_split_strategy === 'proportional'" class="proportional-config">
-                        <div class="config-label">
-                          <el-icon><component :is="icons.PieChart" /></el-icon>
-                          <span>Minimum Fulfillment Percentage</span>
-                        </div>
-                        <div class="percentage-input">
-                          <el-input-number
-                            v-model="action.config.min_fulfillment_percentage"
-                            :min="0"
-                            :max="100"
-                            :step="5"
-                          />
-                          <span class="unit-label">%</span>
-                          <span class="hint-text">Orders fulfilled below this percentage will be marked as unfulfilled</span>
-                        </div>
+                    <!-- Shipment Sync Timing -->
+                    <div class="dc-config-item">
+                      <div class="config-item-label">
+                        <span class="label-name">Shipment Sync Timing</span>
+                        <span class="label-subtitle">发货回传时机</span>
                       </div>
-
-                      <!-- 通用配置 -->
-                      <div class="common-split-config">
-                        <div class="config-row">
-                          <el-checkbox v-model="action.config.partial_ship_notification">
-                            Send notification when partial shipment occurs
-                          </el-checkbox>
-                        </div>
-                        <div class="config-row">
-                          <el-checkbox v-model="action.config.auto_create_backorder">
-                            Automatically create backorder for unfulfilled quantity
-                          </el-checkbox>
-                        </div>
+                      <el-select 
+                        v-model="action.config.shipment_sync_timing" 
+                        placeholder="Select shipment sync timing"
+                        class="w-full"
+                        size="large"
+                      >
+                        <el-option
+                          v-for="option in shipmentSyncTimingOptions"
+                          :key="option.value"
+                          :label="option.label"
+                          :value="option.value"
+                        >
+                          <div class="dc-option-content">
+                            <div class="option-header">
+                              <span class="option-label">{{ option.label }}</span>
+                              <el-tag v-if="option.isDefault" size="small" type="success" effect="plain">Default</el-tag>
+                            </div>
+                            <div class="option-note">{{ option.note }}</div>
+                          </div>
+                        </el-option>
+                      </el-select>
+                      <div class="config-hint">
+                        <el-icon><component :is="icons.InfoFilled" /></el-icon>
+                        <span>
+                          <template v-if="action.config.shipment_sync_timing === 'WAIT_UNTIL_FULLY_SHIPPED'">
+                            System will wait until all items are shipped before reporting to channel
+                          </template>
+                          <template v-else-if="action.config.shipment_sync_timing === 'IMMEDIATE_ON_PARTIAL'">
+                            System will immediately report to channel when any partial shipment occurs
+                          </template>
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -2833,8 +2625,7 @@ onMounted(async () => {
 .merge-conditions-section,
 .time-window-section,
 .merge-strategy-section,
-.trigger-mode-section,
-.notification-section {
+.trigger-mode-section {
   margin-bottom: 24px;
   padding: 20px;
   background: var(--el-fill-color-blank);
@@ -3084,13 +2875,6 @@ onMounted(async () => {
   line-height: 1.5;
 }
 
-/* 通知配置 */
-.notification-config {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
 /* 选项内容样式 */
 .option-content {
   display: flex;
@@ -3169,75 +2953,25 @@ onMounted(async () => {
   line-height: 1.4;
 }
 
-/* 规则类型信息卡片 */
-.rule-type-info {
-  display: flex;
-  align-items: flex-start;
-  gap: 16px;
-  padding: 20px;
-  margin-top: 16px;
-  background: var(--el-fill-color-blank);
-  border-radius: 8px;
-  border: 1px solid var(--el-border-color-lighter);
-  animation: fadeIn 0.3s ease;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(-10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.info-icon {
-  width: 56px;
-  height: 56px;
+/* 规则类型提示 */
+.rule-type-hint {
   display: flex;
   align-items: center;
-  justify-content: center;
-  border-radius: 12px;
-  flex-shrink: 0;
-}
-
-.info-content {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
   gap: 8px;
-}
-
-.info-title {
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--el-text-color-primary);
-  margin: 0;
-}
-
-.info-description {
+  padding: 12px 16px;
+  margin-top: 12px;
+  background: var(--el-color-info-light-9);
+  border-left: 3px solid var(--el-color-info);
+  border-radius: 4px;
   font-size: 13px;
   color: var(--el-text-color-secondary);
   line-height: 1.6;
-  margin: 0;
 }
 
-.info-features {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 4px;
-}
-
-.info-features .el-tag {
-  background: var(--el-fill-color-light);
-  border-color: transparent;
-  font-size: 11px;
-  padding: 0 8px;
-  height: 22px;
-  line-height: 22px;
+.rule-type-hint .hint-icon {
+  color: var(--el-color-info);
+  font-size: 16px;
+  flex-shrink: 0;
 }
 
 /* 合单规则过滤条件样式 */
@@ -3297,136 +3031,108 @@ onMounted(async () => {
   margin-top: 16px;
 }
 
-/* DC 回传拆分策略样式 */
-.dc-split-section {
+/* Primary Order Selection 样式 */
+.primary-order-section {
+  margin-bottom: 24px;
+  padding: 24px 0;
+  background: transparent;
+  border-radius: 8px;
+}
+
+/* DC 配置样式 */
+.dc-config-section {
   margin-top: 24px;
   padding: 24px 0;
   background: transparent;
   border-radius: 8px;
 }
 
-.strategy-description {
-  margin: 16px 0 20px 0;
-}
-
-.alert-title {
-  font-weight: 600;
-  font-size: 14px;
-}
-
-.scenario-text {
-  font-size: 13px;
-  line-height: 1.8;
-  color: var(--el-text-color-regular);
-}
-
-.split-strategy-cards {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  margin-top: 16px;
-}
-
-.strategy-card {
-  padding: 16px;
+.dc-config-item {
+  margin-bottom: 24px;
+  padding: 20px;
   background: var(--el-fill-color-blank);
-  border: 1px solid transparent;
+  border: 1px solid var(--el-border-color-lighter);
   border-radius: 8px;
-  cursor: pointer;
   transition: all 0.2s ease;
 }
 
-.strategy-card:hover {
-  background: var(--el-fill-color-light);
+.dc-config-item:hover {
+  border-color: var(--el-border-color);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
-.strategy-card.active {
-  border-color: var(--el-color-primary);
-  background: var(--el-color-primary-light-9);
+.dc-config-item:last-child {
+  margin-bottom: 0;
 }
 
-.strategy-header {
+.config-item-label {
   display: flex;
-  align-items: center;
-  gap: 12px;
+  flex-direction: column;
+  gap: 4px;
   margin-bottom: 12px;
 }
 
-.strategy-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  border-radius: 8px;
-  flex-shrink: 0;
-}
-
-.strategy-title {
-  flex: 1;
+.label-name {
   font-size: 15px;
   font-weight: 600;
   color: var(--el-text-color-primary);
 }
 
-.strategy-check {
-  flex-shrink: 0;
-  color: var(--el-color-primary);
-  font-size: 20px;
+.label-subtitle {
+  font-size: 12px;
+  color: var(--el-text-color-placeholder);
+  font-style: italic;
 }
 
-.strategy-desc {
-  font-size: 13px;
+/* DC 选项内容样式 */
+.dc-option-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 4px 0;
+}
+
+.option-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.option-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--el-text-color-primary);
+}
+
+.option-note {
+  font-size: 12px;
   color: var(--el-text-color-secondary);
   line-height: 1.5;
-  margin-bottom: 12px;
 }
 
-.strategy-example {
-  padding: 10px 12px;
-  background: var(--el-fill-color-light);
-  border-radius: 6px;
+.config-hint {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 12px;
+  background: var(--el-color-info-light-9);
+  border-left: 3px solid var(--el-color-info);
+  border-radius: 4px;
   font-size: 12px;
+  color: var(--el-text-color-secondary);
   line-height: 1.6;
 }
 
-.example-label {
-  font-weight: 600;
-  color: var(--el-text-color-regular);
-  margin-right: 6px;
+.config-hint .el-icon {
+  color: var(--el-color-info);
+  font-size: 14px;
+  margin-top: 2px;
+  flex-shrink: 0;
 }
 
-.example-text {
-  color: var(--el-text-color-secondary);
-}
-
-.advanced-split-config {
-  margin-top: 20px;
-}
-
-.priority-config,
-.proportional-config {
-  margin-bottom: 16px;
-}
-
-.percentage-input {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.percentage-input .hint-text {
+.config-hint span {
   flex: 1;
-  font-size: 12px;
-  color: var(--el-text-color-secondary);
-  line-height: 1.5;
-}
-
-.common-split-config {
-  margin-top: 16px;
-  padding: 16px;
-  background: var(--el-fill-color-light);
-  border-radius: 6px;
 }
 
 .config-row {
