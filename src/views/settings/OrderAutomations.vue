@@ -90,6 +90,14 @@ const RULE_TYPES = [
     features: ['Field Update', 'Bulk Operations', 'Conditional Logic', 'Tag Management']
   },
   {
+    value: 'shipping_rate',
+    label: 'Shipping Rate Quote',
+    icon: 'Van',
+    description: 'Get shipping quotes and trigger approval for high-cost shipments',
+    color: '#13C2C2',
+    features: ['Multi-Carrier Quotes', 'Dimensional Weight', 'Price Approval', 'Insurance Options']
+  },
+  {
     value: 'custom',
     label: 'Custom Action',
     icon: 'Setting',
@@ -376,6 +384,77 @@ const handleRuleTypeChange = (type: string) => {
         order: 0
       }]
       break
+    case 'shipping_rate':
+      ruleForm.value.actions = [{
+        type: 'request_shipping_rate',
+        config: {
+          // 基础配置字段
+          has_contract_rate: false,
+          assigned_carrier: '',
+          ship_method: 'Freight',
+          ship_service_level: 'Standard',
+          service_type: 'LTL',
+          estimated_freight_cost: 0,
+          weight_lbs: 100,
+          volume_cbm: 1,
+          pallet_count_config: 1,
+          priority_level: 'Normal',
+          customer_code: '',
+          account_type: 'Prepaid',
+          ship_from: '',
+          ship_to: '',
+          hazmat_flag: false,
+          // 承运商池配置
+          carrier_pool: ['UPS', 'FedEx'],
+          service_types: ['Ground', 'Express'],
+          inquiry_method: 'API',
+          timeout_min: 60,
+          max_carrier_count: 5,
+          package_dimensions: {
+            length: 12,
+            width: 12,
+            height: 12
+          },
+          weight_config: {
+            actual_weight: 5,
+            use_dimensional_weight: true,
+            dim_divisor: 139
+          },
+          shipping_mode: 'parcel',
+          freight_class: '',
+          pallet_count: 1,
+          stackable: true,
+          liftgate_required: false,
+          auto_select_carrier: true,
+          auto_assign_shipment: true,
+          save_rate_result: true,
+          generate_quote_id: true,
+          require_approval_if_cost_gt: 2000,
+          approval_roles: ['transportation_manager'],
+          auto_requote_on_timeout: true,
+          fallback_carrier: 'SWFT',
+          notify_roles: ['dispatcher', 'operations'],
+          webhook_callback_url: '',
+          billing_mode: 'prepaid',
+          billing_account_source: 'customer',
+          billing_account_default: 'ITEM_DEFAULT_ACCOUNT',
+          fallback_policy: 'use_default',
+          charge_to_party: 'shipper',
+          validate_account: false,
+          update_status: 'rate_inquired',
+          update_oms_status: true,
+          log_inquiry_result: true,
+          log_table: 'tms_rate_inquiry_log',
+          generate_report: false,
+          score_weighting: {
+            cost: 0.7,
+            service: 0.3
+          },
+          response_validity_hours: 24
+        },
+        order: 0
+      }]
+      break
     case 'custom':
       ruleForm.value.actions = [{
         type: '',
@@ -413,6 +492,9 @@ const handleEditRule = async (rule: Rule) => {
       case 'add_line_item':
       case 'update_line_item':
         ruleType.value = 'order_update'
+        break
+      case 'request_shipping_rate':
+        ruleType.value = 'shipping_rate'
         break
       case 'create_exception':
       case 'close_order':
@@ -573,6 +655,13 @@ const formatAction = (action: Action): string => {
       const allocationLabel = action.config.allocation_strategy === 'PRIORITY_BASED' ? 'Priority' : 'Complete First'
       result += ` (Priority: ${priorityLabel}, Allocation: ${allocationLabel})`
       break
+    case 'request_shipping_rate':
+      const carrierPool = action.config.carrier_pool?.join(', ') || 'N/A'
+      const inquiryMethod = action.config.inquiry_method || 'API'
+      const requireApproval = action.config.require_approval_if_cost_gt || 0
+      const autoSelect = action.config.auto_select_carrier ? 'Yes' : 'No'
+      result += ` (Carriers: ${carrierPool}, Method: ${inquiryMethod}, Auto-Select: ${autoSelect}, Approval > $${requireApproval})`
+      break
   }
 
   return result
@@ -583,6 +672,104 @@ const getOperatorOptions = (fieldType: string) => {
   return OPERATOR_OPTIONS.filter(op => 
     op.applicableTypes?.includes(fieldType)
   )
+}
+
+// 获取运价规则相关的字段组
+const getShippingRateFieldGroups = () => {
+  // 只返回与运价相关的字段组
+  const shippingRateKeys = [
+    'basic',           // 基本信息（订单状态等）
+    'shipping_rate',   // 运价信息
+    'shipping_location', // 运输地点
+    'shipping_specs',  // 运输规格
+    'customer_account', // 客户账户
+    'special_requirements' // 特殊要求
+  ]
+  
+  return FIELD_GROUPS.filter(group => shippingRateKeys.includes(group.key))
+}
+
+// 获取字段的预设选项
+const getFieldOptions = (fieldValue: string) => {
+  const field = FIELD_GROUPS
+    .flatMap(g => g.fields)
+    .find(f => f.value === fieldValue)
+  
+  // 如果字段有options，返回options
+  if (field?.options && field.options.length > 0) {
+    return field.options
+  }
+  
+  // 为一些常用字段提供预设值
+  const presetOptions: Record<string, Array<{label: string, value: any}>> = {
+    // 订单状态
+    'status': [
+      { label: 'Open', value: 'open' },
+      { label: 'Pending', value: 'pending' },
+      { label: 'Processing', value: 'processing' },
+      { label: 'On Hold', value: 'on_hold' }
+    ],
+    // 承运商
+    'assigned_carrier': [
+      { label: 'Not Assigned', value: '' },
+      { label: 'UPS', value: 'UPS' },
+      { label: 'FedEx', value: 'FedEx' },
+      { label: 'USPS', value: 'USPS' },
+      { label: 'DHL', value: 'DHL' }
+    ],
+    // 州代码（美国常用州）
+    'origin_state': [
+      { label: 'California (CA)', value: 'CA' },
+      { label: 'Texas (TX)', value: 'TX' },
+      { label: 'New York (NY)', value: 'NY' },
+      { label: 'Florida (FL)', value: 'FL' },
+      { label: 'Illinois (IL)', value: 'IL' },
+      { label: 'Pennsylvania (PA)', value: 'PA' },
+      { label: 'Ohio (OH)', value: 'OH' },
+      { label: 'Georgia (GA)', value: 'GA' },
+      { label: 'North Carolina (NC)', value: 'NC' },
+      { label: 'Michigan (MI)', value: 'MI' }
+    ],
+    'destination_state': [
+      { label: 'California (CA)', value: 'CA' },
+      { label: 'Texas (TX)', value: 'TX' },
+      { label: 'New York (NY)', value: 'NY' },
+      { label: 'Florida (FL)', value: 'FL' },
+      { label: 'Illinois (IL)', value: 'IL' },
+      { label: 'Pennsylvania (PA)', value: 'PA' },
+      { label: 'Ohio (OH)', value: 'OH' },
+      { label: 'Georgia (GA)', value: 'GA' },
+      { label: 'North Carolina (NC)', value: 'NC' },
+      { label: 'Michigan (MI)', value: 'MI' }
+    ],
+    // 运输线路
+    'lane_code': [
+      { label: 'CA → TX', value: 'CA→TX' },
+      { label: 'CA → NY', value: 'CA→NY' },
+      { label: 'TX → CA', value: 'TX→CA' },
+      { label: 'NY → CA', value: 'NY→CA' },
+      { label: 'FL → NY', value: 'FL→NY' }
+    ],
+    // 布尔值字段
+    'has_contract_rate': [
+      { label: 'Yes', value: true },
+      { label: 'No', value: false }
+    ],
+    'temperature_control': [
+      { label: 'Yes', value: true },
+      { label: 'No', value: false }
+    ],
+    'hazmat_flag': [
+      { label: 'Yes', value: true },
+      { label: 'No', value: false }
+    ],
+    'insurance_required': [
+      { label: 'Yes', value: true },
+      { label: 'No', value: false }
+    ]
+  }
+  
+  return presetOptions[fieldValue] || []
 }
 
 // 获取动作配置字段
@@ -1422,10 +1609,23 @@ onMounted(async () => {
             <!-- 通用条件组（非合单规则使用） -->
             <template v-if="ruleType !== 'order_merge'">
             <div class="filter-label mb-4">
-                <span class="text-sm font-medium">Advanced Conditions</span>
-              <el-tooltip content="Set specific conditions for when this rule should apply">
+                <span class="text-sm font-medium">{{ ruleType === 'shipping_rate' ? 'Trigger Conditions' : 'Advanced Conditions' }}</span>
+              <el-tooltip :content="ruleType === 'shipping_rate' ? 'Set conditions to trigger shipping rate inquiry' : 'Set specific conditions for when this rule should apply'">
                 <el-icon class="text-gray-400 ml-1"><component :is="icons.InfoFilled" /></el-icon>
               </el-tooltip>
+            </div>
+            
+            <!-- 运价规则提示 -->
+            <div v-if="ruleType === 'shipping_rate'" class="shipping-rate-hint mb-4">
+              <el-alert
+                type="info"
+                :closable="false"
+                show-icon
+              >
+                <template #title>
+                  <span class="text-sm">Showing shipping rate related fields only. Common triggers: No Contract Rate, No Assigned Carrier, Weight/Distance Thresholds, Special Requirements.</span>
+                </template>
+              </el-alert>
             </div>
             
             <div 
@@ -1455,9 +1655,10 @@ onMounted(async () => {
                       v-model="condition.field" 
                       placeholder="Select field"
                       class="field-select"
+                      filterable
                     >
                       <el-option-group 
-                        v-for="group in FIELD_GROUPS"
+                        v-for="group in (ruleType === 'shipping_rate' ? getShippingRateFieldGroups() : FIELD_GROUPS)"
                         :key="group.key"
                         :label="group.label"
                       >
@@ -1492,7 +1693,23 @@ onMounted(async () => {
                       />
                     </el-select>
 
+                    <!-- 根据字段类型显示不同的输入控件 -->
+                    <el-select
+                      v-if="getFieldOptions(condition.field).length > 0"
+                      v-model="condition.value"
+                      placeholder="Select value"
+                      class="value-input"
+                      clearable
+                    >
+                      <el-option
+                        v-for="opt in getFieldOptions(condition.field)"
+                        :key="opt.value"
+                        :label="opt.label"
+                        :value="opt.value"
+                      />
+                    </el-select>
                     <el-input 
+                      v-else
                       v-model="condition.value" 
                       placeholder="Enter value"
                       class="value-input"
@@ -1585,9 +1802,9 @@ onMounted(async () => {
                 </el-button>
               </div>
 
-              <div v-if="ruleType === 'order_merge'" class="action-config">
+              <div v-if="action.type" class="action-config">
                 <!-- 合并规则专用配置 -->
-                <template v-if="action.type === 'merge_orders_so' || action.type === 'merge_orders_dn'">
+                <template v-if="(action.type === 'merge_orders_so' || action.type === 'merge_orders_dn') && ruleType === 'order_merge'">
                   <!-- Primary Order Selection -->
                   <div class="primary-order-section">
                     <div class="section-label">
@@ -1713,7 +1930,7 @@ onMounted(async () => {
                 </template>
 
                 <!-- 其他规则类型的配置 -->
-                <template v-else-if="ruleType === 'order_routing'">
+                <template v-else-if="action.type === 'override_warehouse' && ruleType === 'order_routing'">
                   <div class="routing-config">
                     <div class="section-label">
                       <el-icon class="label-icon"><component :is="icons.Guide" /></el-icon>
@@ -1728,7 +1945,7 @@ onMounted(async () => {
                   </div>
                 </template>
 
-                <template v-else-if="ruleType === 'order_hold'">
+                <template v-else-if="action.type === 'hold_order' && ruleType === 'order_hold'">
                   <div class="hold-config">
                     <div class="section-label">
                       <el-icon class="label-icon"><component :is="icons.CircleClose" /></el-icon>
@@ -1756,7 +1973,7 @@ onMounted(async () => {
                   </div>
                 </template>
 
-                <template v-else-if="ruleType === 'inventory_check'">
+                <template v-else-if="action.type === 'check_inventory_hold' && ruleType === 'inventory_check'">
                   <div class="inventory-config">
                     <div class="section-label">
                       <el-icon class="label-icon"><component :is="icons.Box" /></el-icon>
@@ -1780,7 +1997,7 @@ onMounted(async () => {
                   </div>
                 </template>
 
-                <template v-else-if="ruleType === 'order_update'">
+                <template v-else-if="action.type === 'update_order_field' && ruleType === 'order_update'">
                   <div class="update-config">
                     <div class="section-label">
                       <el-icon class="label-icon"><component :is="icons.Edit" /></el-icon>
@@ -1804,8 +2021,363 @@ onMounted(async () => {
                   </div>
                 </template>
 
-                <!-- Custom 类型：显示通用配置 -->
-                <template v-else-if="ruleType === 'custom'" v-for="field in getActionConfigFields(action.type)" :key="field.name">
+                <template v-else-if="action.type === 'request_shipping_rate' && ruleType === 'shipping_rate'">
+                  <div class="shipping-rate-config">
+                    <!-- Carrier Pool Selection -->
+                    <div class="config-section">
+                      <div class="section-label">
+                        <el-icon class="label-icon"><component :is="icons.Van" /></el-icon>
+                        <span>Carrier Pool</span>
+                        <span class="required-mark">*</span>
+                        <el-tooltip content="Select carriers to participate in rate inquiry">
+                          <el-icon class="help-icon"><component :is="icons.QuestionFilled" /></el-icon>
+                        </el-tooltip>
+                      </div>
+                      <el-select 
+                        v-model="action.config.carrier_pool" 
+                        multiple 
+                        placeholder="Select carriers for rate inquiry"
+                        style="width: 100%"
+                        size="large"
+                      >
+                        <el-option label="UPS" value="UPS">
+                          <div class="carrier-option">
+                            <span>UPS</span>
+                            <span class="option-desc">United Parcel Service</span>
+                          </div>
+                        </el-option>
+                        <el-option label="FedEx" value="FedEx">
+                          <div class="carrier-option">
+                            <span>FedEx</span>
+                            <span class="option-desc">Federal Express</span>
+                          </div>
+                        </el-option>
+                        <el-option label="USPS" value="USPS">
+                          <div class="carrier-option">
+                            <span>USPS</span>
+                            <span class="option-desc">United States Postal Service</span>
+                          </div>
+                        </el-option>
+                        <el-option label="DHL" value="DHL">
+                          <div class="carrier-option">
+                            <span>DHL</span>
+                            <span class="option-desc">DHL Express</span>
+                          </div>
+                        </el-option>
+                        <el-option label="OnTrac" value="OnTrac">
+                          <div class="carrier-option">
+                            <span>OnTrac</span>
+                            <span class="option-desc">Regional Carrier (West Coast)</span>
+                          </div>
+                        </el-option>
+                        <el-option label="LaserShip" value="LaserShip">
+                          <div class="carrier-option">
+                            <span>LaserShip</span>
+                            <span class="option-desc">Regional Carrier (East Coast)</span>
+                          </div>
+                        </el-option>
+                        <el-option label="Echo" value="Echo">
+                          <div class="carrier-option">
+                            <span>Echo</span>
+                            <span class="option-desc">Echo Global Logistics</span>
+                          </div>
+                        </el-option>
+                        <el-option label="SWFT" value="SWFT">
+                          <div class="carrier-option">
+                            <span>SWFT</span>
+                            <span class="option-desc">Swift Transportation</span>
+                          </div>
+                        </el-option>
+                      </el-select>
+                    </div>
+
+                    <!-- Inquiry Method -->
+                    <div class="config-section">
+                      <div class="section-label">
+                        <el-icon class="label-icon"><component :is="icons.Connection" /></el-icon>
+                        <span>Inquiry Method</span>
+                        <span class="required-mark">*</span>
+                      </div>
+                      <el-select 
+                        v-model="action.config.inquiry_method" 
+                        placeholder="Select inquiry method"
+                        style="width: 100%"
+                        size="large"
+                      >
+                        <el-option value="API">
+                          <div class="mode-option">
+                            <div class="mode-option-header">
+                              <span class="mode-option-label">API (Real-time)</span>
+                              <el-tag size="small" type="success">Recommended</el-tag>
+                            </div>
+                            <div class="mode-option-desc">Call carrier API for real-time rates</div>
+                          </div>
+                        </el-option>
+                        <el-option value="Email">
+                          <div class="mode-option">
+                            <div class="mode-option-header">
+                              <span class="mode-option-label">Email</span>
+                            </div>
+                            <div class="mode-option-desc">Send email inquiry to carrier</div>
+                          </div>
+                        </el-option>
+                        <el-option value="Mock">
+                          <div class="mode-option">
+                            <div class="mode-option-header">
+                              <span class="mode-option-label">Mock (Testing)</span>
+                              <el-tag size="small" type="warning">Dev Only</el-tag>
+                            </div>
+                            <div class="mode-option-desc">Use internal mock rates for testing</div>
+                          </div>
+                        </el-option>
+                      </el-select>
+                    </div>
+
+                    <!-- Timeout & Limits -->
+                    <div class="config-section">
+                      <div class="section-label">
+                        <el-icon class="label-icon"><component :is="icons.Timer" /></el-icon>
+                        <span>Timeout & Limits</span>
+                      </div>
+                      <div class="config-grid">
+                        <div class="config-item">
+                          <label class="config-label">Timeout (Minutes)</label>
+                          <el-input-number 
+                            v-model="action.config.timeout_min" 
+                            :min="1" 
+                            :max="120"
+                            style="width: 100%"
+                          />
+                          <span class="config-hint">Carrier response timeout threshold</span>
+                        </div>
+                        <div class="config-item">
+                          <label class="config-label">Max Carrier Count</label>
+                          <el-input-number 
+                            v-model="action.config.max_carrier_count" 
+                            :min="1" 
+                            :max="10"
+                            style="width: 100%"
+                          />
+                          <span class="config-hint">Limit simultaneous carrier inquiries</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Service Types -->
+                    <div class="config-section">
+                      <div class="section-label">
+                        <el-icon class="label-icon"><component :is="icons.Stopwatch" /></el-icon>
+                        <span>Service Types</span>
+                        <span class="required-mark">*</span>
+                      </div>
+                      <el-select 
+                        v-model="action.config.service_types" 
+                        multiple 
+                        placeholder="Select shipping service types"
+                        style="width: 100%"
+                        size="large"
+                      >
+                        <el-option label="Ground" value="ground" />
+                        <el-option label="Express" value="express" />
+                        <el-option label="2-Day" value="2day" />
+                        <el-option label="Overnight" value="overnight" />
+                        <el-option label="Standard" value="standard" />
+                        <el-option label="Economy" value="economy" />
+                      </el-select>
+                    </div>
+
+                    <!-- Package Dimensions -->
+                    <div class="config-section">
+                      <div class="section-label">
+                        <el-icon class="label-icon"><component :is="icons.Box" /></el-icon>
+                        <span>Package Dimensions</span>
+                        <span class="required-mark">*</span>
+                      </div>
+                      <div class="dimensions-grid">
+                        <div class="dimension-item">
+                          <label class="config-label">Length (inches)</label>
+                          <el-input-number 
+                            v-model="action.config.package_dimensions.length" 
+                            :min="0" 
+                            :precision="2"
+                            style="width: 100%"
+                          />
+                        </div>
+                        <div class="dimension-item">
+                          <label class="config-label">Width (inches)</label>
+                          <el-input-number 
+                            v-model="action.config.package_dimensions.width" 
+                            :min="0" 
+                            :precision="2"
+                            style="width: 100%"
+                          />
+                        </div>
+                        <div class="dimension-item">
+                          <label class="config-label">Height (inches)</label>
+                          <el-input-number 
+                            v-model="action.config.package_dimensions.height" 
+                            :min="0" 
+                            :precision="2"
+                            style="width: 100%"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Weight Configuration -->
+                    <div class="config-section">
+                      <div class="section-label">
+                        <el-icon class="label-icon"><component :is="icons.ScaleToOriginal" /></el-icon>
+                        <span>Weight Configuration</span>
+                        <span class="required-mark">*</span>
+                      </div>
+                      <div class="weight-config">
+                        <div class="config-item">
+                          <label class="config-label">Actual Weight (lbs)</label>
+                          <el-input-number 
+                            v-model="action.config.weight_config.actual_weight" 
+                            :min="0" 
+                            :precision="2"
+                            style="width: 100%"
+                          />
+                        </div>
+                        <div class="config-item">
+                          <div class="boolean-field">
+                            <el-switch v-model="action.config.weight_config.use_dimensional_weight" />
+                            <span class="boolean-label">Use Dimensional Weight</span>
+                          </div>
+                          <span class="config-hint">Calculate dimensional weight (L×W×H÷divisor) and use the greater of actual or dimensional weight</span>
+                        </div>
+                        <div v-if="action.config.weight_config.use_dimensional_weight" class="config-item">
+                          <label class="config-label">Dimensional Divisor</label>
+                          <el-input-number 
+                            v-model="action.config.weight_config.dim_divisor" 
+                            :min="1" 
+                            style="width: 100%"
+                          />
+                          <span class="config-hint">Standard divisor: 139 (domestic), 166 (international)</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Shipping Mode -->
+                    <div class="config-section">
+                      <div class="section-label">
+                        <el-icon class="label-icon"><component :is="icons.TruckFilled" /></el-icon>
+                        <span>Shipping Mode</span>
+                        <span class="required-mark">*</span>
+                        <el-tooltip content="Select appropriate shipping mode based on weight and size">
+                          <el-icon class="help-icon"><component :is="icons.QuestionFilled" /></el-icon>
+                        </el-tooltip>
+                      </div>
+                      <el-select 
+                        v-model="action.config.shipping_mode" 
+                        placeholder="Select shipping mode"
+                        style="width: 100%"
+                        size="large"
+                      >
+                        <el-option value="parcel">
+                          <div class="mode-option">
+                            <div class="mode-option-header">
+                              <span class="mode-option-label">Parcel (Small Package)</span>
+                              <el-tag size="small" type="success">Most Common</el-tag>
+                            </div>
+                            <div class="mode-option-desc">For packages under 150 lbs, typical e-commerce shipments</div>
+                          </div>
+                        </el-option>
+                        <el-option value="ltl">
+                          <div class="mode-option">
+                            <div class="mode-option-header">
+                              <span class="mode-option-label">LTL (Less Than Truckload)</span>
+                            </div>
+                            <div class="mode-option-desc">For freight 150-15,000 lbs, palletized shipments</div>
+                          </div>
+                        </el-option>
+                        <el-option value="ftl">
+                          <div class="mode-option">
+                            <div class="mode-option-header">
+                              <span class="mode-option-label">FTL (Full Truckload)</span>
+                            </div>
+                            <div class="mode-option-desc">For freight over 15,000 lbs or 10+ pallets</div>
+                          </div>
+                        </el-option>
+                      </el-select>
+                    </div>
+
+                    <!-- LTL/FTL Specific Configuration -->
+                    <div v-if="action.config.shipping_mode === 'ltl' || action.config.shipping_mode === 'ftl'" class="config-section freight-config">
+                      <div class="section-label">
+                        <el-icon class="label-icon"><component :is="icons.Box" /></el-icon>
+                        <span>Freight Configuration</span>
+                      </div>
+                      
+                      <!-- Freight Class for LTL -->
+                      <div v-if="action.config.shipping_mode === 'ltl'" class="config-item">
+                        <label class="config-label">Freight Class (NMFC)</label>
+                        <el-select 
+                          v-model="action.config.freight_class" 
+                          placeholder="Select freight class"
+                          style="width: 100%"
+                          filterable
+                        >
+                          <el-option label="Class 50 - Clean freight" value="50" />
+                          <el-option label="Class 55 - Bricks, cement" value="55" />
+                          <el-option label="Class 60 - Car parts" value="60" />
+                          <el-option label="Class 65 - Bottled beverages" value="65" />
+                          <el-option label="Class 70 - Food items" value="70" />
+                          <el-option label="Class 77.5 - Tires" value="77.5" />
+                          <el-option label="Class 85 - Crated machinery" value="85" />
+                          <el-option label="Class 92.5 - Computers" value="92.5" />
+                          <el-option label="Class 100 - Boat covers" value="100" />
+                          <el-option label="Class 110 - Cabinets" value="110" />
+                          <el-option label="Class 125 - Small appliances" value="125" />
+                          <el-option label="Class 150 - Auto parts" value="150" />
+                          <el-option label="Class 175 - Clothing" value="175" />
+                          <el-option label="Class 200 - Auto sheet metal" value="200" />
+                          <el-option label="Class 250 - Bamboo furniture" value="250" />
+                          <el-option label="Class 300 - Wood cabinets" value="300" />
+                          <el-option label="Class 400 - Deer antlers" value="400" />
+                          <el-option label="Class 500 - Bags of gold dust" value="500" />
+                        </el-select>
+                        <span class="config-hint">💡 Freight class affects pricing - based on density and handling</span>
+                      </div>
+
+                      <!-- Pallet Count -->
+                      <div class="config-item">
+                        <label class="config-label">Pallet Count</label>
+                        <el-input-number 
+                          v-model="action.config.pallet_count" 
+                          :min="1" 
+                          style="width: 100%"
+                        />
+                      </div>
+
+                      <!-- Stackable -->
+                      <div class="config-item">
+                        <div class="boolean-field">
+                          <el-switch v-model="action.config.stackable" />
+                          <span class="boolean-label">Pallets are Stackable</span>
+                        </div>
+                        <span class="config-hint">Non-stackable freight may incur additional charges</span>
+                      </div>
+
+                      <!-- Liftgate Required -->
+                      <div class="config-item">
+                        <div class="boolean-field">
+                          <el-switch v-model="action.config.liftgate_required" />
+                          <span class="boolean-label">Liftgate Service Required</span>
+                        </div>
+                        <span class="config-hint">Required if delivery location has no loading dock</span>
+                      </div>
+                    </div>
+
+                    <!-- 使用通用配置显示所有字段 -->
+                    <!-- 这些字段将通过 getActionConfigFields 自动渲染 -->
+                  </div>
+                </template>
+
+                <!-- Custom 类型或其他未匹配的类型：显示通用配置 -->
+                <template v-else v-for="field in getActionConfigFields(action.type)" :key="field.name">
                   <div class="config-field" v-if="shouldShowField(field, action)">
                     <label class="field-label">
                       {{ field.label }}
@@ -3147,5 +3719,124 @@ onMounted(async () => {
   color: var(--el-text-color-placeholder);
   margin-left: 4px;
   cursor: help;
+}
+
+/* Shipping Rate Config Styles */
+.shipping-rate-config {
+  padding: 20px 0;
+  background: transparent;
+  border-radius: 8px;
+}
+
+.config-section {
+  margin-bottom: 24px;
+  padding: 20px;
+  background: var(--el-fill-color-blank);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.config-section:hover {
+  border-color: var(--el-border-color);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.carrier-option {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.carrier-option .option-desc {
+  font-size: 11px;
+  color: var(--el-text-color-placeholder);
+}
+
+.dimensions-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+@media (max-width: 768px) {
+  .dimensions-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.dimension-item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.weight-config {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.approval-threshold-config {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.threshold-hint {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  line-height: 1.5;
+}
+
+.approval-workflow-config {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Shipping Mode Options */
+.mode-option {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 4px 0;
+}
+
+.mode-option-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mode-option-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--el-text-color-primary);
+}
+
+.mode-option-desc {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  line-height: 1.5;
+}
+
+/* Freight Config */
+.freight-config {
+  background: linear-gradient(135deg, rgba(255, 193, 7, 0.05) 0%, rgba(255, 152, 0, 0.05) 100%);
+  border-color: var(--el-color-warning-light-7);
+}
+
+.freight-config .section-label {
+  color: var(--el-color-warning-dark-2);
+}
+
+/* Shipping Rate Hint */
+.shipping-rate-hint {
+  margin-bottom: 16px;
+}
+
+.shipping-rate-hint :deep(.el-alert__title) {
+  line-height: 1.6;
 }
 </style> 
