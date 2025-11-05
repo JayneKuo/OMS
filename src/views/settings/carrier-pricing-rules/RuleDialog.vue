@@ -59,7 +59,6 @@
               <div class="condition-group">
                 <div class="group-title">
                   <span>Rate Request Basics</span>
-                  <el-tag size="small" type="info">询价基础</el-tag>
                 </div>
                 <div class="group-fields">
                   <el-checkbox v-model="selectedConditions.orderSource" class="field-checkbox">
@@ -71,21 +70,20 @@
                 </div>
               </div>
 
-              <!-- Origin Address -->
+              <!-- Ship From Address -->
               <div class="condition-group">
                 <div class="group-title">
-                  <span>Origin Address</span>
-                  <el-tag size="small" type="warning">发货地</el-tag>
+                  <span>Ship From Address</span>
                 </div>
                 <div class="group-fields">
                   <el-checkbox v-model="selectedConditions.originCountries" class="field-checkbox">
-                    <span class="field-name">Origin Country</span>
+                    <span class="field-name">Ship From Country</span>
                   </el-checkbox>
                   <el-checkbox v-model="selectedConditions.originStates" class="field-checkbox">
-                    <span class="field-name">Origin State/Province</span>
+                    <span class="field-name">Ship From State/Province</span>
                   </el-checkbox>
                   <el-checkbox v-model="selectedConditions.originPostalCodes" class="field-checkbox">
-                    <span class="field-name">Origin Postal Code</span>
+                    <span class="field-name">Ship From Postal Code</span>
                   </el-checkbox>
                   <el-checkbox v-model="selectedConditions.warehouseIds" class="field-checkbox">
                     <span class="field-name">Warehouse/Location</span>
@@ -93,21 +91,20 @@
                 </div>
               </div>
 
-              <!-- Destination Address -->
+              <!-- Ship To Address -->
               <div class="condition-group">
                 <div class="group-title">
-                  <span>Destination Address</span>
-                  <el-tag size="small" type="success">收货地</el-tag>
+                  <span>Ship To Address</span>
                 </div>
                 <div class="group-fields">
                   <el-checkbox v-model="selectedConditions.destinationCountries" class="field-checkbox">
-                    <span class="field-name">Destination Country</span>
+                    <span class="field-name">Ship To Country</span>
                   </el-checkbox>
                   <el-checkbox v-model="selectedConditions.destinationStates" class="field-checkbox">
-                    <span class="field-name">Destination State/Province</span>
+                    <span class="field-name">Ship To State/Province</span>
                   </el-checkbox>
                   <el-checkbox v-model="selectedConditions.destinationZipCodes" class="field-checkbox">
-                    <span class="field-name">Destination Postal Code</span>
+                    <span class="field-name">Ship To Postal Code</span>
                   </el-checkbox>
                 </div>
               </div>
@@ -116,7 +113,6 @@
               <div class="condition-group">
                 <div class="group-title">
                   <span>Package Details</span>
-                  <el-tag size="small" type="danger">包裹详情</el-tag>
                 </div>
                 <div class="group-fields">
                   <el-checkbox v-model="selectedConditions.weight" class="field-checkbox">
@@ -132,7 +128,6 @@
               <div class="condition-group">
                 <div class="group-title">
                   <span>Commodity Details</span>
-                  <el-tag size="small">商品详情</el-tag>
                 </div>
                 <div class="group-fields">
                   <el-checkbox v-model="selectedConditions.hazmat" class="field-checkbox">
@@ -145,7 +140,6 @@
               <div class="condition-group">
                 <div class="group-title">
                   <span>Product Rules</span>
-                  <el-tag size="small">产品规则</el-tag>
                 </div>
                 <div class="group-fields">
                   <el-checkbox v-model="selectedConditions.productSKUs" class="field-checkbox">
@@ -158,7 +152,6 @@
               <div class="condition-group">
                 <div class="group-title">
                   <span>Shipping Configuration</span>
-                  <el-tag size="small" type="primary">运输配置</el-tag>
                 </div>
                 <div class="group-fields">
                   <el-checkbox v-model="selectedConditions.carrier" class="field-checkbox">
@@ -252,10 +245,10 @@
                 </div>
               </div>
 
-              <!-- Origin Countries -->
+              <!-- Ship From Countries -->
               <div v-if="conditionKey === 'originCountries'" class="condition-config-item">
                 <div class="config-item-header">
-                  <span class="config-item-title">Origin Country</span>
+                  <span class="config-item-title">Ship From Country</span>
                   <el-button 
                     text 
                     type="danger" 
@@ -270,7 +263,7 @@
                     v-model="formData.triggerConditions.originCountries"
                     multiple
                     filterable
-                    placeholder="Select origin countries"
+                    placeholder="Select ship from countries"
                     style="width: 100%"
                   >
                     <el-option label="United States" value="US" />
@@ -282,10 +275,10 @@
                 </div>
               </div>
 
-              <!-- Origin States -->
+              <!-- Ship From States -->
               <div v-if="conditionKey === 'originStates'" class="condition-config-item">
                 <div class="config-item-header">
-                  <span class="config-item-title">Origin State/Province</span>
+                  <span class="config-item-title">Ship From State/Province</span>
                   <el-button 
                     text 
                     type="danger" 
@@ -313,10 +306,10 @@
                 </div>
               </div>
 
-              <!-- Origin Postal Codes -->
+              <!-- Ship From Postal Codes -->
               <div v-if="conditionKey === 'originPostalCodes'" class="condition-config-item">
                 <div class="config-item-header">
-                  <span class="config-item-title">Origin Postal Code</span>
+                  <span class="config-item-title">Ship From Postal Code</span>
                   <el-button 
                     text 
                     type="danger" 
@@ -367,10 +360,10 @@
                 </div>
               </div>
 
-              <!-- Destination Countries -->
+              <!-- Ship To Countries -->
               <div v-if="conditionKey === 'destinationCountries'" class="condition-config-item">
                 <div class="config-item-header">
-                  <span class="config-item-title">Destination Countries</span>
+                  <span class="config-item-title">Ship To Countries</span>
                   <el-button 
                     text 
                     type="danger" 
@@ -398,10 +391,10 @@
                 </div>
               </div>
 
-              <!-- Destination States -->
+              <!-- Ship To States -->
               <div v-if="conditionKey === 'destinationStates'" class="condition-config-item">
                 <div class="config-item-header">
-                  <span class="config-item-title">Destination States</span>
+                  <span class="config-item-title">Ship To States</span>
                   <el-button 
                     text 
                     type="danger" 
@@ -428,10 +421,10 @@
                 </div>
               </div>
 
-              <!-- Destination Postal Code -->
+              <!-- Ship To Postal Code -->
               <div v-if="conditionKey === 'destinationZipCodes'" class="condition-config-item">
                 <div class="config-item-header">
-                  <span class="config-item-title">Destination Postal Code</span>
+                  <span class="config-item-title">Ship To Postal Code</span>
                   <el-button 
                     text 
                     type="danger" 
