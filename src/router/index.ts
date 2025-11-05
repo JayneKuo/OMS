@@ -517,6 +517,43 @@ const routes: RouteRecordRaw[] = [
           }
         ]
       },
+      {
+        path: '/system-settings',
+        name: 'SystemSettings',
+        component: () => import('@/layouts/RouterView.vue'),
+        meta: {
+          title: 'Settings',
+          icon: 'Setting'
+        },
+        children: [
+          {
+            path: 'shipping-account',
+            name: 'SystemShippingAccount',
+            component: () => import('@/views/settings/shipping-account/index.vue'),
+            meta: {
+              title: 'Shipping Account'
+            }
+          },
+          {
+            path: 'shipping-account/add',
+            name: 'SystemShippingAccountAdd',
+            component: () => import('@/views/settings/shipping-account/add.vue'),
+            meta: {
+              title: 'Add Shipping Account',
+              activeMenu: '/system-settings'
+            }
+          },
+          {
+            path: 'shipping-account/edit/:id',
+            name: 'SystemShippingAccountEdit',
+            component: () => import('@/views/settings/shipping-account/add.vue'),
+            meta: {
+              title: 'Edit Shipping Account',
+              activeMenu: '/system-settings'
+            }
+          }
+        ]
+      },
       // Product routes
       {
         path: '/product',

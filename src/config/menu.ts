@@ -339,6 +339,18 @@ export const menuConfig: MenuItem[] = [
         icon: 'Folder'
       }
     ]
+  },
+  {
+    title: 'Settings',
+    path: '/system-settings',
+    icon: 'Setting',
+    children: [
+      {
+        title: 'Shipping Account',
+        path: '/system-settings/shipping-account',
+        icon: 'Van'
+      }
+    ]
   }
 ]
 
