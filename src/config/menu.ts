@@ -288,6 +288,11 @@ export const menuConfig: MenuItem[] = [
         title: 'Safety Stock Settings',
         path: '/settings/safety-stock',
         icon: 'Warning'
+      },
+      {
+        title: 'Rate Shipping',
+        path: '/settings/carrier-pricing-rules',
+        icon: 'Money'
       }
     ]
   },

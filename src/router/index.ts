@@ -301,6 +301,14 @@ const routes: RouteRecordRaw[] = [
             path: 'safety-stock',
             name: 'SafetyStockSettings',
             component: () => import('@/views/settings/SafetyStockSettings/index.vue')
+          },
+          {
+            path: 'carrier-pricing-rules',
+            name: 'CarrierPricingRules',
+            component: () => import('@/views/settings/carrier-pricing-rules/index.vue'),
+            meta: {
+              title: 'Rate Shipping'
+            }
           }
         ]
       },
