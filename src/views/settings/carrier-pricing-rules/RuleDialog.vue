@@ -607,12 +607,14 @@
                     placeholder="Select shipping methods"
                     style="width: 100%"
                   >
-                    <el-option label="Ground" value="ground" />
-                    <el-option label="Express" value="express" />
-                    <el-option label="Overnight" value="overnight" />
-                    <el-option label="2-Day" value="2day" />
-                    <el-option label="3-Day" value="3day" />
-                    <el-option label="International" value="international" />
+                    <el-option label="Will Call" value="will_call" />
+                    <el-option label="Small Parcel" value="small_parcel" />
+                    <el-option label="Large Parcel" value="large_parcel" />
+                    <el-option label="LTL (Less Than Truckload)" value="ltl" />
+                    <el-option label="TL (Truckload)" value="tl" />
+                    <el-option label="FTL (Full Truckload)" value="ftl" />
+                    <el-option label="Same City Pick & Send" value="same_city_pick_send" />
+                    <el-option label="City Buy" value="city_buy" />
                   </el-select>
                 </div>
               </div>
@@ -724,10 +726,14 @@
                           placeholder="Select Shipping Method"
                           style="width: 100%"
                         >
-                          <el-option label="Standard" value="standard" />
-                          <el-option label="Expedited" value="expedited" />
-                          <el-option label="Priority" value="priority" />
-                          <el-option label="Economy" value="economy" />
+                          <el-option label="Will Call" value="will_call" />
+                          <el-option label="Small Parcel" value="small_parcel" />
+                          <el-option label="Large Parcel" value="large_parcel" />
+                          <el-option label="LTL (Less Than Truckload)" value="ltl" />
+                          <el-option label="TL (Truckload)" value="tl" />
+                          <el-option label="FTL (Full Truckload)" value="ftl" />
+                          <el-option label="Same City Pick & Send" value="same_city_pick_send" />
+                          <el-option label="City Buy" value="city_buy" />
                         </el-select>
                       </div>
                     </div>
