@@ -59,14 +59,6 @@ export const DEFAULT_COLUMNS: ShippingRequestColumn[] = [
     visible: true
   },
   {
-    key: 'allocationOrderCount',
-    label: 'Allocation Orders',
-    minWidth: 140,
-    sortable: true,
-    visible: true,
-    noWrap: true
-  },
-  {
     key: 'warehouse',
     label: 'Warehouse',
     minWidth: 120,
@@ -91,24 +83,6 @@ export const DEFAULT_COLUMNS: ShippingRequestColumn[] = [
     noWrap: true
   },
   {
-    key: 'totalItems',
-    label: 'Total Items',
-    minWidth: 100,
-    sortable: true,
-    visible: true,
-    noWrap: true,
-    align: 'right'
-  },
-  {
-    key: 'totalQuantity',
-    label: 'Total Quantity',
-    minWidth: 120,
-    sortable: true,
-    visible: true,
-    noWrap: true,
-    align: 'right'
-  },
-  {
     key: 'createdDate',
     label: 'Created Date',
     minWidth: 150,
@@ -118,7 +92,7 @@ export const DEFAULT_COLUMNS: ShippingRequestColumn[] = [
   },
   {
     key: 'expectedShipDate',
-    label: 'Expected Ship Date',
+    label: 'Ship Date',
     minWidth: 150,
     sortable: true,
     visible: true,
@@ -126,7 +100,7 @@ export const DEFAULT_COLUMNS: ShippingRequestColumn[] = [
   },
   {
     key: 'actualShipDate',
-    label: 'Actual Ship Date',
+    label: 'Ship Date',
     minWidth: 150,
     sortable: true,
     visible: false,
@@ -187,8 +161,9 @@ export interface ShippingRequestItem {
   id: string
   requestNo: string
   status: ShippingRequestStatus
-  allocationOrderCount: number
-  allocationOrders: string[] // Allocation Order 编号列表
+  isMerged: boolean // 是否为聚合请求（合并订单）
+  mergedOrderCount?: number // 聚合的订单数量
+  mergedRequestIds?: string[] // 合并的原始请求ID列表
   orderNos: string[] // Order No. 列表 (可能有多个)
   dnNo: string // DN No.
   channel: string // Channel

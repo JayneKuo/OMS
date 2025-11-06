@@ -290,9 +290,21 @@ export const menuConfig: MenuItem[] = [
         icon: 'Warning'
       },
       {
-        title: 'Rate Shipping',
-        path: '/settings/carrier-pricing-rules',
-        icon: 'Money'
+        title: 'Rate Shopping',
+        path: '/settings/rate-shipping',
+        icon: 'Money',
+        children: [
+          {
+            title: 'Rate Shopping',
+            path: '/settings/rate-shipping/carrier-pricing-rules',
+            icon: 'Money'
+          },
+          {
+            title: 'Shipping Account',
+            path: '/system-settings/shipping-account',
+            icon: 'Van'
+          }
+        ]
       }
     ]
   },
@@ -342,18 +354,6 @@ export const menuConfig: MenuItem[] = [
         title: 'Merchant List',
         path: '/merchant/list',
         icon: 'Folder'
-      }
-    ]
-  },
-  {
-    title: 'Settings',
-    path: '/system-settings',
-    icon: 'Setting',
-    children: [
-      {
-        title: 'Shipping Account',
-        path: '/system-settings/shipping-account',
-        icon: 'Van'
       }
     ]
   }

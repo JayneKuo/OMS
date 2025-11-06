@@ -4,7 +4,7 @@
     <div class="page-header">
       <div class="header-content">
         <div class="title-section">
-          <h1 class="title">Rate Shipping</h1>
+          <h1 class="title">Rate Shopping</h1>
           <p class="subtitle">Configure carrier rate shopping automation rules</p>
         </div>
         <div class="action-section">
@@ -70,7 +70,7 @@
     <el-card class="rules-card">
       <!-- Empty State -->
       <div v-if="!loading && filteredRules.length === 0" class="empty-state">
-        <el-empty :description="filterText ? 'No rules found matching your search' : 'No rate shipping rules yet'">
+        <el-empty :description="filterText ? 'No rules found matching your search' : 'No rate shopping rules yet'">
           <el-button v-if="!filterText" type="primary" @click="handleAdd">
             <el-icon><Plus /></el-icon>
             Create Your First Rule
@@ -124,11 +124,22 @@
         </template>
       </el-table-column>
 
-      <el-table-column label="Selection Method" min-width="150">
+      <el-table-column label="Shipping Service" min-width="150">
         <template #default="{ row }">
-          <el-tag size="small" type="warning">
-            {{ getPrimaryCriteriaLabel(row.selectionLogic.primaryCriteria) }}
-          </el-tag>
+          <div class="tag-group">
+            <el-tag 
+              v-for="carrier in row.rateShoppingConfig.carriers.filter(c => c.enabled && c.shippingService)" 
+              :key="carrier.carrier"
+              size="small"
+              type="success"
+              class="mr-2"
+            >
+              {{ getCarrierLabel(carrier.carrier) }}: {{ carrier.shippingService }}
+            </el-tag>
+            <span v-if="!row.rateShoppingConfig.carriers.some(c => c.enabled && c.shippingService)" class="text-muted">
+              -
+            </span>
+          </div>
         </template>
       </el-table-column>
 
@@ -247,7 +258,7 @@ import {
 } from '@element-plus/icons-vue'
 import Sortable from 'sortablejs'
 import type { RateShoppingRule, RateShoppingRuleFilter } from './types'
-import { CARRIER_OPTIONS, PRIMARY_CRITERIA_OPTIONS } from './types'
+import { CARRIER_OPTIONS } from './types'
 import RuleDialog from './RuleDialog.vue'
 
 const loading = ref(false)
@@ -314,12 +325,6 @@ const initSortable = () => {
 const getCarrierLabel = (value: string) => {
   const carrier = CARRIER_OPTIONS.find(c => c.value === value)
   return carrier ? carrier.label : value
-}
-
-// Get primary criteria label
-const getPrimaryCriteriaLabel = (value: string) => {
-  const criteria = PRIMARY_CRITERIA_OPTIONS.find(c => c.value === value)
-  return criteria ? criteria.label : value
 }
 
 // Computed
@@ -492,8 +497,8 @@ const loadData = async () => {
     
     pagination.total = tableData.value.length
   } catch (error) {
-    console.error('Failed to load rate shipping rules:', error)
-    ElMessage.error('Failed to load rate shipping rules')
+    console.error('Failed to load rate shopping rules:', error)
+    ElMessage.error('Failed to load rate shopping rules')
   } finally {
     loading.value = false
   }
@@ -835,5 +840,10 @@ onMounted(async () => {
 
 .mr-2 {
   margin-right: 8px;
+}
+
+.text-muted {
+  color: var(--el-text-color-placeholder);
+  font-size: 13px;
 }
 </style>

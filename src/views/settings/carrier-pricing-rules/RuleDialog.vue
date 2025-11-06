@@ -645,185 +645,111 @@
 
             <div class="section-content">
               <div class="carriers-config">
-                <div v-for="(carrier, index) in formData.rateShoppingConfig.carriers" :key="index" class="carrier-config-card">
-                  <div class="carrier-header">
-                    <div class="carrier-title-section">
-                      <el-checkbox v-model="carrier.enabled" size="large">
-                        <strong>{{ getCarrierLabel(carrier.carrier) }}</strong>
-                      </el-checkbox>
-                    </div>
-                    <el-button
-                      type="danger"
-                      size="small"
-                      plain
-                      @click="removeCarrier(index)"
-                      v-if="formData.rateShoppingConfig.carriers.length > 1"
-                      class="remove-carrier-btn"
-                    >
-                      <el-icon><Delete /></el-icon>
-                      Remove Carrier
-                    </el-button>
-                  </div>
-
-                  <div v-if="carrier.enabled" class="carrier-fields">
-                    <div class="field-row">
-                      <div class="field-item">
-                        <label class="field-label">Shipping Account <span class="required-mark">*</span></label>
-                        <el-select
-                          v-model="carrier.shippingAccountId"
-                          placeholder="Select Shipping Account"
-                          @change="handleAccountChange($event, carrier)"
-                          style="width: 100%"
-                        >
-                          <el-option
-                            v-for="account in getShippingAccountsByCarrier(carrier.carrier)"
-                            :key="account.id"
-                            :label="`${account.name} (${account.accountNo})`"
-                            :value="account.id"
-                          />
-                        </el-select>
-                      </div>
-
-                      <div class="field-item">
-                        <label class="field-label">Service Types <span class="required-mark">*</span></label>
-                        <el-select
-                          v-model="carrier.serviceTypes"
-                          multiple
-                          placeholder="Select Service Types"
-                          collapse-tags
-                          style="width: 100%"
-                        >
-                          <el-option
-                            v-for="service in SERVICE_TYPE_OPTIONS"
-                            :key="service.value"
-                            :label="service.label"
-                            :value="service.value"
-                          />
-                        </el-select>
-                      </div>
-                    </div>
-
-                    <div class="field-row">
-                      <div class="field-item">
-                        <label class="field-label">Shipping Service</label>
-                        <el-select
-                          v-model="carrier.shippingService"
-                          placeholder="Select Shipping Service"
-                          style="width: 100%"
-                        >
-                          <el-option label="Ground" value="ground" />
-                          <el-option label="Express" value="express" />
-                          <el-option label="Overnight" value="overnight" />
-                          <el-option label="2-Day" value="2day" />
-                          <el-option label="International" value="international" />
-                        </el-select>
-                      </div>
-
-                      <div class="field-item">
-                        <label class="field-label">Shipping Method</label>
-                        <el-select
-                          v-model="carrier.shippingMethod"
-                          placeholder="Select Shipping Method"
-                          style="width: 100%"
-                        >
-                          <el-option label="Will Call" value="will_call" />
-                          <el-option label="Small Parcel" value="small_parcel" />
-                          <el-option label="Large Parcel" value="large_parcel" />
-                          <el-option label="LTL (Less Than Truckload)" value="ltl" />
-                          <el-option label="TL (Truckload)" value="tl" />
-                          <el-option label="FTL (Full Truckload)" value="ftl" />
-                          <el-option label="Same City Pick & Send" value="same_city_pick_send" />
-                          <el-option label="City Buy" value="city_buy" />
-                        </el-select>
-                      </div>
-                    </div>
-
-                    <div class="field-row">
-                      <div class="field-item">
-                        <label class="field-label">Price Adjustment</label>
-                        <el-select v-model="carrier.markupType" placeholder="None" style="width: 100%">
-                          <el-option
-                            v-for="type in MARKUP_TYPE_OPTIONS"
-                            :key="type.value"
-                            :label="type.label"
-                            :value="type.value"
-                          />
-                        </el-select>
-                      </div>
-
-                      <div class="field-item" v-if="carrier.markupType && carrier.markupType !== 'none'">
-                        <label class="field-label">{{ carrier.markupType === 'percentage' ? 'Markup %' : 'Markup $' }}</label>
-                        <el-input-number
-                          v-model="carrier.markupValue"
-                          :min="0"
-                          :precision="2"
-                          style="width: 100%"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <el-button type="primary" plain @click="addCarrier" style="width: 100%; margin-top: 10px;">
-                  <el-icon><Plus /></el-icon>
-                  Add Another Carrier
-                </el-button>
-              </div>
-            </div>
-          </div>
-
-          <!-- Selection Logic -->
-          <div class="form-section">
-            <div class="section-header">
-              <div class="section-title">
-                <h3>Selection Logic</h3>
-                <p class="text-gray-500">Define how to select the best rate</p>
-              </div>
-            </div>
-
-            <div class="section-content">
-              <div class="selection-config">
-                <div class="field-item">
-                  <label class="field-label">Selection Criteria <span class="required-mark">*</span></label>
-                  <el-select v-model="formData.selectionLogic.primaryCriteria" placeholder="Select Criteria" style="width: 100%">
+                <!-- Carrier Selection Dropdown -->
+                <div class="carrier-selection-section">
+                  <label class="field-label">Select Carriers <span class="required-mark">*</span></label>
+                  <el-select
+                    v-model="selectedCarriers"
+                    multiple
+                    placeholder="Select carriers to add"
+                    style="width: 100%"
+                    @change="handleCarrierSelection"
+                    collapse-tags
+                    collapse-tags-tooltip
+                  >
                     <el-option
-                      v-for="criteria in PRIMARY_CRITERIA_OPTIONS"
-                      :key="criteria.value"
-                      :label="criteria.label"
-                      :value="criteria.value"
+                      v-for="option in CARRIER_OPTIONS"
+                      :key="option.value"
+                      :label="option.label"
+                      :value="option.value"
+                      :disabled="isCarrierAdded(option.value)"
                     />
                   </el-select>
+                  <span class="field-hint">Select one or more carriers for rate shopping</span>
                 </div>
 
-                <div v-if="formData.selectionLogic.primaryCriteria === 'custom'" class="field-item">
-                  <label class="field-label">Price / Speed Balance</label>
-                  <div class="weight-slider">
-                    <span class="weight-label">Price {{ priceWeight }}%</span>
-                    <el-slider v-model="priceWeight" :max="100" :show-tooltip="false" style="flex: 1" />
-                    <span class="weight-label">Speed {{ 100 - priceWeight }}%</span>
+                <!-- Carrier Cards with Drag & Drop -->
+                <div v-if="formData.rateShoppingConfig.carriers.length > 0" class="carrier-cards-wrapper">
+                  <div class="carrier-cards-header">
+                    <span class="cards-header-text">Carrier Priority (Drag to reorder)</span>
                   </div>
-                </div>
-
-                <div class="field-item">
-                  <label class="field-label">Carrier Priority</label>
-                  <span class="field-hint">Drag to reorder carriers. Used when rates are similar.</span>
-                  <div v-if="formData.selectionLogic.carrierPriority.length > 0">
-                    <draggable v-model="formData.selectionLogic.carrierPriority" item-key="element" class="draggable-list">
-                      <template #item="{ element, index }">
-                        <div class="priority-item">
-                          <el-icon class="drag-handle"><Rank /></el-icon>
-                          <span class="priority-number">{{ index + 1 }}</span>
-                          <el-tag>{{ getCarrierLabel(element) }}</el-tag>
+                  <draggable 
+                    v-model="formData.rateShoppingConfig.carriers" 
+                    item-key="carrier"
+                    handle=".drag-handle"
+                    class="carrier-cards-list"
+                  >
+                    <template #item="{ element: carrier, index }">
+                      <div class="carrier-config-card">
+                        <div class="carrier-header">
+                          <div class="carrier-title-section">
+                            <el-icon class="drag-handle"><Rank /></el-icon>
+                            <span class="priority-number">{{ index + 1 }}</span>
+                            <strong class="carrier-name">{{ getCarrierLabel(carrier.carrier) }}</strong>
+                          </div>
+                          <el-button
+                            type="danger"
+                            size="small"
+                            text
+                            @click="removeCarrier(index)"
+                            class="remove-carrier-btn"
+                          >
+                            <el-icon><Delete /></el-icon>
+                          </el-button>
                         </div>
-                      </template>
-                    </draggable>
-                  </div>
-                  <el-alert v-else type="info" :closable="false" show-icon>
-                    <template #title>
-                      <span class="text-sm">Please add carriers in Rate Shopping Configuration section above</span>
+
+                        <div class="carrier-fields">
+                          <div class="field-row">
+                            <div class="field-item">
+                              <label class="field-label">Shipping Account <span class="required-mark">*</span></label>
+                              <el-select
+                                v-model="carrier.shippingAccountId"
+                                placeholder="Select Shipping Account"
+                                @change="handleAccountChange($event, carrier)"
+                                style="width: 100%"
+                              >
+                                <el-option
+                                  v-for="account in getShippingAccountsByCarrier(carrier.carrier)"
+                                  :key="account.id"
+                                  :label="`${account.name} (${account.accountNo})`"
+                                  :value="account.id"
+                                />
+                              </el-select>
+                            </div>
+
+                            <div class="field-item">
+                              <label class="field-label">Shipping Service</label>
+                              <el-select
+                                v-model="carrier.shippingService"
+                                placeholder="Select Shipping Service"
+                                style="width: 100%"
+                              >
+                                <el-option label="Ground" value="ground" />
+                                <el-option label="Express" value="express" />
+                                <el-option label="Overnight" value="overnight" />
+                                <el-option label="2-Day" value="2day" />
+                                <el-option label="International" value="international" />
+                              </el-select>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
                     </template>
-                  </el-alert>
+                  </draggable>
                 </div>
+
+                <!-- Empty State -->
+                <el-alert 
+                  v-else
+                  type="info" 
+                  :closable="false" 
+                  show-icon
+                  style="margin-top: 16px;"
+                >
+                  <template #title>
+                    <span class="text-sm">Please select carriers from the dropdown above</span>
+                  </template>
+                </el-alert>
               </div>
             </div>
           </div>
@@ -863,25 +789,6 @@
                       <span class="field-hint">From expected/historical price</span>
                     </div>
                   </div>
-
-                  <div class="field-item">
-                    <label class="field-label">Notify Emails</label>
-                    <div class="email-input-group">
-                      <div v-for="(email, idx) in notifyEmails" :key="idx" class="email-item">
-                        <el-input
-                          v-model="notifyEmails[idx]"
-                          placeholder="Enter email address"
-                        />
-                        <el-button type="danger" @click="removeEmail(idx)">
-                          <el-icon><Delete /></el-icon>
-                        </el-button>
-                      </div>
-                      <el-button type="primary" plain @click="addEmail">
-                        <el-icon><Plus /></el-icon>
-                        Add Email
-                      </el-button>
-                    </div>
-                  </div>
                 </div>
               </div>
             </div>
@@ -916,8 +823,7 @@ import {
 import draggable from 'vuedraggable'
 import type { RateShoppingRule, CarrierConfig } from './types'
 import { 
-  CARRIER_OPTIONS, SERVICE_TYPE_OPTIONS, MARKUP_TYPE_OPTIONS,
-  ORDER_STATUS_OPTIONS, PRIMARY_CRITERIA_OPTIONS
+  CARRIER_OPTIONS
 } from './types'
 
 interface Props {
@@ -938,10 +844,9 @@ const formRef = ref<FormInstance>()
 const saving = ref(false)
 
 // Helper data
-const priceWeight = ref(50)
 const priceThreshold = ref<number | null>(null)
 const priceDeviationPercentage = ref<number | null>(null)
-const notifyEmails = ref<string[]>([])
+const selectedCarriers = ref<string[]>([])
 
 // Condition order tracking
 const conditionOrder = ref<string[]>([])
@@ -1003,16 +908,7 @@ const formData = reactive<RateShoppingRule>({
     orderValueMax: null
   },
   rateShoppingConfig: {
-    carriers: [
-      {
-        carrier: 'fedex',
-        enabled: true,
-        shippingAccountId: '',
-        serviceTypes: [],
-        markupType: 'none',
-        markupValue: 0
-      }
-    ]
+    carriers: []
   },
   selectionLogic: {
     primaryCriteria: 'cheapest',
@@ -1061,29 +957,48 @@ const handleAccountChange = (accountId: string | number, carrier: CarrierConfig)
   }
 }
 
-// Add carrier
-const addCarrier = () => {
-  // Find the first carrier that hasn't been added yet
-  const existingCarriers = formData.rateShoppingConfig.carriers.map(c => c.carrier)
-  const availableCarrier = CARRIER_OPTIONS.find(option => !existingCarriers.includes(option.value))
-  
-  formData.rateShoppingConfig.carriers.push({
-    carrier: availableCarrier ? availableCarrier.value : 'fedex',
-    enabled: true,
-    shippingAccountId: '',
-    serviceTypes: [],
-    markupType: 'none',
-    markupValue: 0
+// Check if carrier is already added
+const isCarrierAdded = (carrierValue: string) => {
+  return formData.rateShoppingConfig.carriers.some(c => c.carrier === carrierValue)
+}
+
+// Handle carrier selection
+const handleCarrierSelection = () => {
+  // Add newly selected carriers
+  selectedCarriers.value.forEach(carrierValue => {
+    if (!isCarrierAdded(carrierValue)) {
+      formData.rateShoppingConfig.carriers.push({
+        carrier: carrierValue,
+        enabled: true,
+        shippingAccountId: '',
+        serviceTypes: [],
+        markupType: 'none',
+        markupValue: 0
+      })
+    }
   })
+
+  // Remove deselected carriers
+  formData.rateShoppingConfig.carriers = formData.rateShoppingConfig.carriers.filter(c =>
+    selectedCarriers.value.includes(c.carrier)
+  )
+
+  // Sync carrier priority
+  syncCarrierPriority()
+}
+
+// Sync carrier priority based on carrier order
+const syncCarrierPriority = () => {
+  formData.selectionLogic.carrierPriority = formData.rateShoppingConfig.carriers.map(c => c.carrier)
 }
 
 // Remove carrier
 const removeCarrier = (index: number) => {
   const carrier = formData.rateShoppingConfig.carriers[index]
-  const carrierName = getCarrierLabel(carrier.carrier)
+  const carrierValue = carrier.carrier
   
   ElMessageBox.confirm(
-    `Are you sure you want to remove ${carrierName}? This will also remove it from the carrier priority list.`,
+    `Are you sure you want to remove ${getCarrierLabel(carrierValue)}?`,
     'Remove Carrier',
     {
       confirmButtonText: 'Remove',
@@ -1092,21 +1007,22 @@ const removeCarrier = (index: number) => {
       confirmButtonClass: 'el-button--danger'
     }
   ).then(() => {
+    // Remove from carriers list
     formData.rateShoppingConfig.carriers.splice(index, 1)
-    ElMessage.success(`${carrierName} has been removed`)
+    
+    // Remove from selected carriers
+    const selectedIndex = selectedCarriers.value.indexOf(carrierValue)
+    if (selectedIndex > -1) {
+      selectedCarriers.value.splice(selectedIndex, 1)
+    }
+    
+    // Sync carrier priority
+    syncCarrierPriority()
+    
+    ElMessage.success(`${getCarrierLabel(carrierValue)} has been removed`)
   }).catch(() => {
     // User cancelled
   })
-}
-
-// Add email
-const addEmail = () => {
-  notifyEmails.value.push('')
-}
-
-// Remove email
-const removeEmail = (index: number) => {
-  notifyEmails.value.splice(index, 1)
 }
 
 // Watch each condition individually to maintain order
@@ -1127,46 +1043,27 @@ Object.keys(selectedConditions).forEach(key => {
   })
 })
 
-// Sync carrier priority with added carriers
-watch(() => formData.rateShoppingConfig.carriers, (newCarriers) => {
-  const currentCarriers = newCarriers.map(c => c.carrier)
-  
-  // Remove carriers that are no longer in the list
-  formData.selectionLogic.carrierPriority = formData.selectionLogic.carrierPriority.filter(
-    carrier => currentCarriers.includes(carrier)
-  )
-  
-  // Add new carriers that are not in the priority list
-  currentCarriers.forEach(carrier => {
-    if (!formData.selectionLogic.carrierPriority.includes(carrier)) {
-      formData.selectionLogic.carrierPriority.push(carrier)
-    }
-  })
-}, { deep: true, immediate: true })
-
-// Sync custom weights
-watch(priceWeight, (val) => {
-  if (!formData.selectionLogic.customWeights) {
-    formData.selectionLogic.customWeights = { priceWeight: 50, speedWeight: 50 }
-  }
-  formData.selectionLogic.customWeights.priceWeight = val
-  formData.selectionLogic.customWeights.speedWeight = 100 - val
-})
+// Sync carrier priority when carriers change or are reordered
+watch(() => formData.rateShoppingConfig.carriers, () => {
+  syncCarrierPriority()
+}, { deep: true })
 
 // Sync review conditions
-watch([priceThreshold, priceDeviationPercentage, notifyEmails], () => {
+watch([priceThreshold, priceDeviationPercentage], () => {
   if (!formData.reviewRules.reviewConditions) {
     formData.reviewRules.reviewConditions = {}
   }
   formData.reviewRules.reviewConditions.priceThreshold = priceThreshold.value || undefined
   formData.reviewRules.reviewConditions.priceDeviationPercentage = priceDeviationPercentage.value || undefined
-  formData.reviewRules.notifyEmails = notifyEmails.value.filter(e => e.trim())
 }, { deep: true })
 
 // Load data if editing
 onMounted(() => {
   if (props.rule) {
     Object.assign(formData, JSON.parse(JSON.stringify(props.rule)))
+    
+    // Initialize selected carriers from existing data
+    selectedCarriers.value = formData.rateShoppingConfig.carriers.map(c => c.carrier)
     
     // Set selected conditions based on existing data
     const conditionsToActivate = [
@@ -1200,14 +1097,9 @@ onMounted(() => {
       priceThreshold.value = formData.reviewRules.reviewConditions.priceThreshold || null
       priceDeviationPercentage.value = formData.reviewRules.reviewConditions.priceDeviationPercentage || null
     }
-    if (formData.reviewRules.notifyEmails) {
-      notifyEmails.value = [...formData.reviewRules.notifyEmails]
-    }
-    
-    // Load custom weights
-    if (formData.selectionLogic.customWeights) {
-      priceWeight.value = formData.selectionLogic.customWeights.priceWeight || 50
-    }
+  } else {
+    // Initialize selected carriers for new rule
+    selectedCarriers.value = formData.rateShoppingConfig.carriers.map(c => c.carrier)
   }
 })
 
@@ -1500,17 +1392,49 @@ const handleSubmit = async () => {
 }
 
 .carriers-config {
+  .carrier-selection-section {
+    margin-bottom: 24px;
+    padding: 16px;
+    background-color: var(--el-fill-color-light);
+    border-radius: 8px;
+  }
+
+  .carrier-cards-wrapper {
+    margin-top: 20px;
+  }
+
+  .carrier-cards-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+    padding: 8px 0;
+
+    .cards-header-text {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--el-text-color-secondary);
+    }
+  }
+
+  .carrier-cards-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
   .carrier-config-card {
     padding: 16px;
-    margin-bottom: 16px;
-    border: 1px solid var(--el-border-color-lighter);
+    border: 2px solid var(--el-border-color-lighter);
     border-radius: 8px;
     background-color: var(--el-fill-color-blank);
-    transition: all 0.2s ease;
+    transition: all 0.3s ease;
+    cursor: move;
 
     &:hover {
       border-color: var(--el-color-primary-light-5);
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+      box-shadow: 0 4px 12px rgba(64, 158, 255, 0.15);
+      transform: translateY(-2px);
     }
 
     .carrier-header {
@@ -1518,6 +1442,49 @@ const handleSubmit = async () => {
       justify-content: space-between;
       align-items: center;
       margin-bottom: 16px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--el-border-color-lighter);
+    }
+
+    .carrier-title-section {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+
+      .drag-handle {
+        font-size: 20px;
+        color: var(--el-text-color-secondary);
+        cursor: grab;
+        transition: all 0.2s ease;
+
+        &:hover {
+          color: var(--el-color-primary);
+          transform: scale(1.1);
+        }
+
+        &:active {
+          cursor: grabbing;
+        }
+      }
+
+      .priority-number {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 28px;
+        height: 28px;
+        background: linear-gradient(135deg, var(--el-color-primary) 0%, var(--el-color-primary-light-3) 100%);
+        color: white;
+        border-radius: 50%;
+        font-size: 13px;
+        font-weight: 700;
+        box-shadow: 0 2px 6px rgba(64, 158, 255, 0.3);
+      }
+
+      .carrier-name {
+        font-size: 15px;
+        color: var(--el-text-color-primary);
+      }
     }
 
     .carrier-fields {
@@ -1527,15 +1494,14 @@ const handleSubmit = async () => {
 }
 
 .remove-carrier-btn {
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
   
   &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(245, 108, 108, 0.3);
+    color: var(--el-color-danger);
   }
   
   .el-icon {
-    margin-right: 4px;
+    font-size: 16px;
   }
 }
 
@@ -1582,73 +1548,10 @@ const handleSubmit = async () => {
   }
 }
 
-.selection-config,
 .review-config {
   display: flex;
   flex-direction: column;
   gap: 20px;
-}
-
-.weight-slider {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  width: 100%;
-
-  .el-slider {
-    flex: 1;
-  }
-
-  .weight-label {
-    min-width: 80px;
-    font-size: 14px;
-    color: var(--el-text-color-secondary);
-  }
-}
-
-.draggable-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-top: 8px;
-}
-
-.priority-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 10px 12px;
-  background-color: var(--el-fill-color-light);
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: 4px;
-  cursor: move;
-
-  &:hover {
-    border-color: var(--el-color-primary);
-  }
-
-  .drag-handle {
-    font-size: 18px;
-    color: var(--el-text-color-secondary);
-    cursor: grab;
-
-    &:active {
-      cursor: grabbing;
-    }
-  }
-
-  .priority-number {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 24px;
-    height: 24px;
-    background-color: var(--el-color-primary);
-    color: white;
-    border-radius: 50%;
-    font-size: 12px;
-    font-weight: 600;
-  }
 }
 
 .review-conditions {
@@ -1656,22 +1559,6 @@ const handleSubmit = async () => {
   background-color: var(--el-fill-color-light);
   border-radius: 8px;
   margin-top: 16px;
-}
-
-.email-input-group {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-
-  .email-item {
-    display: flex;
-    gap: 8px;
-    align-items: center;
-
-    .el-input {
-      flex: 1;
-    }
-  }
 }
 
 .dialog-footer {

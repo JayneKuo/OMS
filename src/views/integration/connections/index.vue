@@ -353,6 +353,175 @@
                 This name will help you identify this connection in your integration list
               </div>
             </el-form-item>
+
+            <!-- Merchant Selection Field -->
+            <el-form-item
+              label="Merchant"
+              prop="merchant"
+              class="merchant-field"
+            >
+              <el-select
+                v-model="formData.merchant"
+                placeholder="Select a merchant"
+                filterable
+                clearable
+                style="width: 100%"
+              >
+                <el-option
+                  v-for="merchant in merchantOptions"
+                  :key="merchant.value"
+                  :label="merchant.label"
+                  :value="merchant.value"
+                >
+                  <div class="merchant-option">
+                    <span class="merchant-name">{{ merchant.label }}</span>
+                    <span v-if="merchant.description" class="merchant-desc">{{ merchant.description }}</span>
+                  </div>
+                </el-option>
+                
+                <!-- Auto Create Option -->
+                <el-option
+                  value="__auto_create__"
+                  label="Auto Create New Merchant"
+                >
+                  <div class="merchant-option auto-create-option">
+                    <el-icon><Plus /></el-icon>
+                    <span class="merchant-name">Auto Create New Merchant</span>
+                  </div>
+                </el-option>
+              </el-select>
+              <div class="field-hint">
+                Select an existing merchant or choose "Auto Create" to automatically create a new merchant for this connection
+              </div>
+              
+              <!-- Auto Create New Merchant Input -->
+              <div v-if="formData.merchant === '__auto_create__'" class="auto-create-section">
+                <div class="auto-create-header">
+                  <el-icon><Shop /></el-icon>
+                  <span>New Merchant Information</span>
+                </div>
+                
+                <div class="auto-create-fields">
+                  <!-- Merchant Name -->
+                  <div class="field-row">
+                    <label class="field-label">
+                      Merchant Name <span class="required-star">*</span>
+                    </label>
+                    <el-input
+                      v-model="formData.newMerchantName"
+                      placeholder="Enter merchant name"
+                      :maxlength="50"
+                      show-word-limit
+                      clearable
+                    >
+                      <template #prefix>
+                        <el-icon><Shop /></el-icon>
+                      </template>
+                    </el-input>
+                  </div>
+
+                  <!-- Country -->
+                  <div class="field-row">
+                    <label class="field-label">
+                      Country <span class="required-star">*</span>
+                    </label>
+                    <el-select
+                      v-model="formData.newMerchantCountry"
+                      placeholder="Select country"
+                      filterable
+                      clearable
+                      style="width: 100%"
+                    >
+                      <el-option
+                        v-for="country in countryOptions"
+                        :key="country.value"
+                        :label="country.label"
+                        :value="country.value"
+                      >
+                        <span class="country-option">
+                          <span class="country-flag">{{ country.flag }}</span>
+                          <span>{{ country.label }}</span>
+                        </span>
+                      </el-option>
+                    </el-select>
+                  </div>
+
+                  <!-- State -->
+                  <div class="field-row">
+                    <label class="field-label">
+                      State <span class="required-star">*</span>
+                    </label>
+                    <el-select
+                      v-model="formData.newMerchantState"
+                      placeholder="Select state"
+                      filterable
+                      clearable
+                      style="width: 100%"
+                    >
+                      <el-option
+                        v-for="state in stateOptions"
+                        :key="state.value"
+                        :label="state.label"
+                        :value="state.value"
+                      />
+                    </el-select>
+                  </div>
+
+                  <!-- City -->
+                  <div class="field-row">
+                    <label class="field-label">
+                      City <span class="required-star">*</span>
+                    </label>
+                    <el-input
+                      v-model="formData.newMerchantCity"
+                      placeholder="Enter city name"
+                      :maxlength="50"
+                      clearable
+                    >
+                      <template #prefix>
+                        <el-icon><Location /></el-icon>
+                      </template>
+                    </el-input>
+                  </div>
+
+                  <!-- Address -->
+                  <div class="field-row">
+                    <label class="field-label">
+                      Address <span class="required-star">*</span>
+                    </label>
+                    <el-input
+                      v-model="formData.newMerchantAddress"
+                      type="textarea"
+                      :rows="2"
+                      placeholder="Enter full address"
+                      :maxlength="200"
+                      show-word-limit
+                    />
+                  </div>
+
+                  <!-- Zip Code -->
+                  <div class="field-row">
+                    <label class="field-label">
+                      Zip Code <span class="required-star">*</span>
+                    </label>
+                    <el-input
+                      v-model="formData.newMerchantZipCode"
+                      placeholder="Enter zip code"
+                      :maxlength="10"
+                      clearable
+                    >
+                      <template #prefix>
+                        <el-icon><Document /></el-icon>
+                      </template>
+                    </el-input>
+                  </div>
+                </div>
+
+                <div class="field-hint">
+                  ✓ A new merchant will be created with the information above
+                </div>
+              </div>
+            </el-form-item>
             
             <!-- Divider -->
             <el-divider content-position="left">Connection Settings</el-divider>
@@ -521,7 +690,7 @@
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { InfoFilled, MoreFilled, Sort, Link, User, Location, House, Timer, Search, Check, ArrowLeft, Document, Edit, SuccessFilled } from '@element-plus/icons-vue'
+import { InfoFilled, MoreFilled, Sort, Link, User, Location, House, Timer, Search, Check, ArrowLeft, Document, Edit, SuccessFilled, Plus, Shop } from '@element-plus/icons-vue'
 import { useIntegration } from '@/composables/useIntegration'
 import type { Integration } from '@/types/integration'
 import { IntegrationType, IntegrationSubType, AuthType, MOCK_INTEGRATIONS, AVAILABLE_INTEGRATIONS, AUTH_CONFIGS, INTEGRATION_LOGOS } from '@/constants/integration'
@@ -563,6 +732,93 @@ const isConnecting = ref(false)
 const isTesting = ref(false)
 const testPassed = ref(false)
 const isSaving = ref(false)
+
+// Merchant options
+const merchantOptions = ref([
+  { value: 'merchant_001', label: 'Main Store', description: 'Primary merchant account' },
+  { value: 'merchant_002', label: 'EU Store', description: 'European operations' },
+  { value: 'merchant_003', label: 'Asia Pacific Store', description: 'APAC region' },
+  { value: 'merchant_004', label: 'North America Store', description: 'NA region' },
+  { value: 'merchant_005', label: 'Wholesale Division', description: 'B2B operations' }
+])
+
+// Country options
+const countryOptions = ref([
+  { value: 'US', label: 'United States', flag: '🇺🇸' },
+  { value: 'CN', label: 'China', flag: '🇨🇳' },
+  { value: 'GB', label: 'United Kingdom', flag: '🇬🇧' },
+  { value: 'CA', label: 'Canada', flag: '🇨🇦' },
+  { value: 'AU', label: 'Australia', flag: '🇦🇺' },
+  { value: 'DE', label: 'Germany', flag: '🇩🇪' },
+  { value: 'FR', label: 'France', flag: '🇫🇷' },
+  { value: 'JP', label: 'Japan', flag: '🇯🇵' },
+  { value: 'KR', label: 'South Korea', flag: '🇰🇷' },
+  { value: 'SG', label: 'Singapore', flag: '🇸🇬' },
+  { value: 'HK', label: 'Hong Kong', flag: '🇭🇰' },
+  { value: 'IT', label: 'Italy', flag: '🇮🇹' },
+  { value: 'ES', label: 'Spain', flag: '🇪🇸' },
+  { value: 'NL', label: 'Netherlands', flag: '🇳🇱' },
+  { value: 'SE', label: 'Sweden', flag: '🇸🇪' },
+  { value: 'BR', label: 'Brazil', flag: '🇧🇷' },
+  { value: 'MX', label: 'Mexico', flag: '🇲🇽' },
+  { value: 'IN', label: 'India', flag: '🇮🇳' },
+  { value: 'TH', label: 'Thailand', flag: '🇹🇭' },
+  { value: 'VN', label: 'Vietnam', flag: '🇻🇳' }
+])
+
+// US State options
+const stateOptions = ref([
+  { value: 'AL', label: 'Alabama' },
+  { value: 'AK', label: 'Alaska' },
+  { value: 'AZ', label: 'Arizona' },
+  { value: 'AR', label: 'Arkansas' },
+  { value: 'CA', label: 'California' },
+  { value: 'CO', label: 'Colorado' },
+  { value: 'CT', label: 'Connecticut' },
+  { value: 'DE', label: 'Delaware' },
+  { value: 'FL', label: 'Florida' },
+  { value: 'GA', label: 'Georgia' },
+  { value: 'HI', label: 'Hawaii' },
+  { value: 'ID', label: 'Idaho' },
+  { value: 'IL', label: 'Illinois' },
+  { value: 'IN', label: 'Indiana' },
+  { value: 'IA', label: 'Iowa' },
+  { value: 'KS', label: 'Kansas' },
+  { value: 'KY', label: 'Kentucky' },
+  { value: 'LA', label: 'Louisiana' },
+  { value: 'ME', label: 'Maine' },
+  { value: 'MD', label: 'Maryland' },
+  { value: 'MA', label: 'Massachusetts' },
+  { value: 'MI', label: 'Michigan' },
+  { value: 'MN', label: 'Minnesota' },
+  { value: 'MS', label: 'Mississippi' },
+  { value: 'MO', label: 'Missouri' },
+  { value: 'MT', label: 'Montana' },
+  { value: 'NE', label: 'Nebraska' },
+  { value: 'NV', label: 'Nevada' },
+  { value: 'NH', label: 'New Hampshire' },
+  { value: 'NJ', label: 'New Jersey' },
+  { value: 'NM', label: 'New Mexico' },
+  { value: 'NY', label: 'New York' },
+  { value: 'NC', label: 'North Carolina' },
+  { value: 'ND', label: 'North Dakota' },
+  { value: 'OH', label: 'Ohio' },
+  { value: 'OK', label: 'Oklahoma' },
+  { value: 'OR', label: 'Oregon' },
+  { value: 'PA', label: 'Pennsylvania' },
+  { value: 'RI', label: 'Rhode Island' },
+  { value: 'SC', label: 'South Carolina' },
+  { value: 'SD', label: 'South Dakota' },
+  { value: 'TN', label: 'Tennessee' },
+  { value: 'TX', label: 'Texas' },
+  { value: 'UT', label: 'Utah' },
+  { value: 'VT', label: 'Vermont' },
+  { value: 'VA', label: 'Virginia' },
+  { value: 'WA', label: 'Washington' },
+  { value: 'WV', label: 'West Virginia' },
+  { value: 'WI', label: 'Wisconsin' },
+  { value: 'WY', label: 'Wyoming' }
+])
 
 // 过滤可用集成
 const filteredAvailableIntegrations = computed(() => {
@@ -607,6 +863,100 @@ const authFormRules = computed(() => {
         message: 'Connector name can only contain letters, numbers, spaces, hyphens and underscores',
         trigger: 'blur'
       }
+    ],
+    // Merchant validation
+    merchant: [
+      {
+        required: true,
+        message: 'Please select a merchant',
+        trigger: 'change'
+      }
+    ],
+    // New Merchant Name validation (when auto-create is selected)
+    newMerchantName: [
+      {
+        validator: (rule: any, value: any, callback: any) => {
+          if (formData.value.merchant === '__auto_create__' && !value) {
+            callback(new Error('Please enter a name for the new merchant'))
+          } else if (formData.value.merchant === '__auto_create__' && value && (value.length < 2 || value.length > 50)) {
+            callback(new Error('Merchant name should be 2-50 characters'))
+          } else {
+            callback()
+          }
+        },
+        trigger: 'blur'
+      }
+    ],
+    // New Merchant Country validation
+    newMerchantCountry: [
+      {
+        validator: (rule: any, value: any, callback: any) => {
+          if (formData.value.merchant === '__auto_create__' && !value) {
+            callback(new Error('Please select a country'))
+          } else {
+            callback()
+          }
+        },
+        trigger: 'change'
+      }
+    ],
+    // New Merchant State validation
+    newMerchantState: [
+      {
+        validator: (rule: any, value: any, callback: any) => {
+          if (formData.value.merchant === '__auto_create__' && !value) {
+            callback(new Error('Please select a state'))
+          } else {
+            callback()
+          }
+        },
+        trigger: 'change'
+      }
+    ],
+    // New Merchant City validation
+    newMerchantCity: [
+      {
+        validator: (rule: any, value: any, callback: any) => {
+          if (formData.value.merchant === '__auto_create__' && !value) {
+            callback(new Error('Please enter a city name'))
+          } else if (formData.value.merchant === '__auto_create__' && value && (value.length < 2 || value.length > 50)) {
+            callback(new Error('City name should be 2-50 characters'))
+          } else {
+            callback()
+          }
+        },
+        trigger: 'blur'
+      }
+    ],
+    // New Merchant Address validation
+    newMerchantAddress: [
+      {
+        validator: (rule: any, value: any, callback: any) => {
+          if (formData.value.merchant === '__auto_create__' && !value) {
+            callback(new Error('Please enter an address'))
+          } else if (formData.value.merchant === '__auto_create__' && value && (value.length < 5 || value.length > 200)) {
+            callback(new Error('Address should be 5-200 characters'))
+          } else {
+            callback()
+          }
+        },
+        trigger: 'blur'
+      }
+    ],
+    // New Merchant Zip Code validation
+    newMerchantZipCode: [
+      {
+        validator: (rule: any, value: any, callback: any) => {
+          if (formData.value.merchant === '__auto_create__' && !value) {
+            callback(new Error('Please enter a zip code'))
+          } else if (formData.value.merchant === '__auto_create__' && value && (value.length < 5 || value.length > 10)) {
+            callback(new Error('Zip code should be 5-10 characters'))
+          } else {
+            callback()
+          }
+        },
+        trigger: 'blur'
+      }
     ]
   }
   
@@ -636,8 +986,17 @@ const handleSelectIntegration = (integration: Integration) => {
   
   // 设置默认连接器名称和默认授权类型
   const defaultConnectorName = `${integration.name} Connection`
+  const defaultMerchantName = `${integration.name} Store`
+  
   formData.value = {
-    connectorName: defaultConnectorName
+    connectorName: defaultConnectorName,
+    merchant: '',
+    newMerchantName: defaultMerchantName,
+    newMerchantCountry: 'US',
+    newMerchantState: 'CA',
+    newMerchantCity: 'Los Angeles',
+    newMerchantAddress: '123 Main Street',
+    newMerchantZipCode: '90001'
   }
   
   // 设置默认授权类型为第一个可用类型
@@ -914,9 +1273,25 @@ const handleEnvironmentChange = (value: string) => {
 
 // 处理授权类型变化
 const handleAuthTypeChange = (authType: AuthType) => {
-  // 清空表单数据，保留连接器名称
+  // 清空表单数据，保留连接器名称和merchant信息
   const connectorName = formData.value.connectorName
-  formData.value = { connectorName }
+  const merchant = formData.value.merchant
+  const newMerchantName = formData.value.newMerchantName
+  const newMerchantCountry = formData.value.newMerchantCountry
+  const newMerchantState = formData.value.newMerchantState
+  const newMerchantCity = formData.value.newMerchantCity
+  const newMerchantAddress = formData.value.newMerchantAddress
+  const newMerchantZipCode = formData.value.newMerchantZipCode
+  formData.value = { 
+    connectorName, 
+    merchant, 
+    newMerchantName,
+    newMerchantCountry,
+    newMerchantState,
+    newMerchantCity,
+    newMerchantAddress,
+    newMerchantZipCode
+  }
   
   // 清除错误信息和测试状态
   authError.value = null
@@ -1708,6 +2083,119 @@ const handleSaveDraft = async () => {
           }
         }
         
+        .merchant-field {
+          .el-select {
+            :deep(.el-input__wrapper) {
+              border: 2px solid var(--el-border-color);
+              border-radius: 8px;
+              transition: all 0.3s ease;
+              
+              &.is-focus {
+                border-color: var(--el-color-primary);
+                box-shadow: 0 0 0 2px rgba(64, 158, 255, 0.1);
+              }
+            }
+          }
+          
+          .field-hint {
+            margin-top: 8px;
+            font-size: 12px;
+            color: var(--el-text-color-secondary);
+            line-height: 1.4;
+          }
+          
+          .auto-create-section {
+            margin-top: 16px;
+            padding: 20px;
+            background: var(--el-fill-color-light);
+            border: 1px solid var(--el-border-color);
+            border-radius: 8px;
+            animation: fadeInDown 0.4s ease;
+            
+            .auto-create-header {
+              display: flex;
+              align-items: center;
+              gap: 10px;
+              margin-bottom: 20px;
+              padding-bottom: 16px;
+              border-bottom: 1px solid var(--el-border-color-lighter);
+              
+              .el-icon {
+                font-size: 20px;
+                color: var(--el-color-primary);
+              }
+              
+              span {
+                font-size: 15px;
+                font-weight: 600;
+                color: var(--el-text-color-primary);
+              }
+            }
+            
+            .auto-create-fields {
+              display: flex;
+              flex-direction: column;
+              gap: 16px;
+              
+              .field-row {
+                display: flex;
+                flex-direction: column;
+                gap: 8px;
+                
+                .field-label {
+                  font-size: 13px;
+                  font-weight: 500;
+                  color: var(--el-text-color-primary);
+                  display: flex;
+                  align-items: center;
+                  gap: 4px;
+                  
+                  .required-star {
+                    color: var(--el-color-danger);
+                    font-weight: bold;
+                  }
+                }
+                
+                .el-input,
+                .el-select,
+                .el-textarea {
+                  :deep(.el-input__wrapper),
+                  :deep(.el-textarea__inner) {
+                    border: 1px solid var(--el-border-color);
+                    border-radius: 6px;
+                    background: var(--el-bg-color-blank);
+                    transition: all 0.3s ease;
+                    
+                    &:hover {
+                      border-color: var(--el-border-color-dark);
+                    }
+                    
+                    &.is-focus {
+                      border-color: var(--el-color-primary);
+                      box-shadow: 0 0 0 2px var(--el-color-primary-light-9);
+                    }
+                  }
+                  
+                  :deep(.el-input__prefix) {
+                    color: var(--el-text-color-secondary);
+                  }
+                }
+              }
+            }
+            
+            > .field-hint {
+              margin-top: 16px;
+              padding: 10px 12px;
+              font-size: 12px;
+              color: var(--el-text-color-secondary);
+              line-height: 1.5;
+              background: var(--el-fill-color);
+              border-left: 3px solid var(--el-color-primary);
+              border-radius: 4px;
+            }
+          }
+        }
+        
         .el-divider {
           margin: 32px 0 24px;
           
@@ -1888,5 +2376,62 @@ const handleSaveDraft = async () => {
 
 :deep(.el-message) {
   z-index: 2200 !important;
+}
+
+// Merchant option styles
+.merchant-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+  
+  .merchant-name {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--el-text-color-primary);
+  }
+  
+  .merchant-desc {
+    font-size: 12px;
+    color: var(--el-text-color-secondary);
+    margin-left: auto;
+  }
+  
+  &.auto-create-option {
+    color: var(--el-color-primary);
+    font-weight: 500;
+    
+    .el-icon {
+      font-size: 16px;
+    }
+    
+    .merchant-name {
+      color: var(--el-color-primary);
+    }
+  }
+}
+
+// Country option styles
+.country-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  
+  .country-flag {
+    font-size: 18px;
+    line-height: 1;
+  }
+}
+
+// Animation for auto-create section
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 </style> 

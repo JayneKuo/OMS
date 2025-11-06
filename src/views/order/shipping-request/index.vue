@@ -150,13 +150,47 @@
         <el-table-column 
           prop="requestNo"
           label="Request No."
-          min-width="120"
+          min-width="160"
           fixed="left"
           sortable
           align="left"
         >
           <template #default="{ row }">
-            <span class="request-no-link" @click="handleRequestClick(row)">{{ row.requestNo }}</span>
+            <div class="request-no-cell">
+              <span class="request-no-link" @click="handleRequestClick(row)">{{ row.requestNo }}</span>
+              <el-popover
+                v-if="row.isMerged"
+                placement="top"
+                :width="280"
+                trigger="hover"
+              >
+                <template #reference>
+                  <el-tag 
+                    type="warning" 
+                    size="small" 
+                    class="merged-tag"
+                    @click.stop="handleMergedTagClick(row)"
+                  >
+                    <el-icon><Connection /></el-icon>
+                    {{ row.mergedOrderCount }}
+                  </el-tag>
+                </template>
+                <div class="merged-requests-popover">
+                  <div class="popover-title">Merged from {{ row.mergedOrderCount }} requests:</div>
+                  <div class="request-list">
+                    <div 
+                      v-for="reqId in row.mergedRequestIds" 
+                      :key="reqId"
+                      class="request-item"
+                      @click="handleMergedRequestClick(reqId)"
+                    >
+                      <el-icon class="link-icon"><Link /></el-icon>
+                      <span class="request-id">{{ reqId }}</span>
+                    </div>
+                  </div>
+                </div>
+              </el-popover>
+            </div>
           </template>
         </el-table-column>
         
@@ -183,14 +217,6 @@
                       {{ orderNo }}
                     </span>
                   </div>
-                </template>
-                <template v-else-if="col.key === 'allocationOrderCount'">
-                  <span class="count-badge">
-                    {{ row.allocationOrderCount }} order{{ row.allocationOrderCount > 1 ? 's' : '' }}
-                  </span>
-                </template>
-                <template v-else-if="col.key === 'totalItems' || col.key === 'totalQuantity'">
-                  <span class="number">{{ row[col.key] }}</span>
                 </template>
                 <template v-else>
                   {{ row[col.key] || '-' }}
@@ -228,7 +254,7 @@
                 Reject
               </el-button>
               <el-button
-                v-if="[ShippingRequestStatus.Allocated, ShippingRequestStatus.CarrierQuoting].includes(row.status)"
+                v-if="[ShippingRequestStatus.Allocated, ShippingRequestStatus.WarehouseReceived].includes(row.status)"
                 type="primary"
                 size="small"
                 link
@@ -792,7 +818,9 @@ import {
   Edit,
   Van,
   Printer,
-  CircleCheck
+  CircleCheck,
+  Connection,
+  Link
 } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { 
@@ -810,17 +838,22 @@ const router = useRouter()
 // 模拟数据
 const mockData: ShippingRequestItem[] = Array.from({ length: 25 }, (_, index) => {
   const orderCount = Math.floor(Math.random() * 3) + 1
-  const statusIndex = index % 5
+  const statusIndex = index % 10
   const status = [
     ShippingRequestStatus.Allocated,
-    ShippingRequestStatus.CarrierQuoting,
     ShippingRequestStatus.PendingApproval,
+    ShippingRequestStatus.WarehouseReceived,
+    ShippingRequestStatus.Committed,
+    ShippingRequestStatus.Picked,
+    ShippingRequestStatus.Packed,
+    ShippingRequestStatus.Loaded,
+    ShippingRequestStatus.PartialShip,
     ShippingRequestStatus.Shipped,
     ShippingRequestStatus.Cancelled
   ][statusIndex]
 
-  // 为待审核和询价中的请求生成承运商报价
-  const carrierQuotes = (statusIndex === 2 || statusIndex === 1) ? [
+  // 为待审核状态的请求生成承运商报价
+  const carrierQuotes = (statusIndex === 1) ? [
     {
       id: `${index}-1`,
       carrier: 'FedEx',
@@ -867,13 +900,20 @@ const mockData: ShippingRequestItem[] = Array.from({ length: 25 }, (_, index) =>
     }
   ] : undefined
 
+  const isMerged = index % 4 === 0 // 每4个有1个是合并订单
+  const mergedOrderCount = isMerged ? Math.floor(Math.random() * 3) + 2 : 1
+  const mergedRequestIds = isMerged 
+    ? Array.from({ length: mergedOrderCount }, (_, i) => `SR-${20000 + index * 10 + i}`)
+    : undefined
+  
   return {
     id: String(index + 1),
     requestNo: `SR-${10000 + index}`,
     status,
-    allocationOrderCount: Math.floor(Math.random() * 5) + 1,
-    allocationOrders: Array.from({ length: Math.floor(Math.random() * 5) + 1 }, (_, i) => `AO-${20000 + index * 5 + i}`),
-    orderNos: Array.from({ length: orderCount }, (_, i) => `SO-${30000 + index * 3 + i}`),
+    isMerged,
+    mergedOrderCount: isMerged ? mergedOrderCount : undefined,
+    mergedRequestIds,
+    orderNos: Array.from({ length: isMerged ? mergedOrderCount : orderCount }, (_, i) => `SO-${30000 + index * 3 + i}`),
     dnNo: `DN-${40000 + index}`,
     channel: ['Shopify', 'Amazon', 'eBay', 'WooCommerce'][index % 4],
     channelName: ['My Shopify Store', 'Amazon US', 'eBay Store', 'WooCommerce Site'][index % 4],
@@ -893,7 +933,7 @@ const mockData: ShippingRequestItem[] = Array.from({ length: 25 }, (_, index) =>
     notes: index % 3 === 0 ? 'Express shipping required' : '',
     updatedDate: '10/28/2025 03:45 PM',
     carrierQuotes,
-    approvalStatus: statusIndex === 2 ? 'pending' : undefined
+    approvalStatus: statusIndex === 1 ? 'pending' : undefined
   }
 });
 
@@ -985,12 +1025,12 @@ const tabs = [
   { label: 'Allocated', value: ShippingRequestStatus.Allocated, count: 25, tagType: 'info' },
   { label: 'Pending Approval', value: ShippingRequestStatus.PendingApproval, count: 8, tagType: 'warning' },
   { label: 'Warehouse Received', value: ShippingRequestStatus.WarehouseReceived, count: 15, tagType: 'primary' },
-  { label: 'Planning', value: ShippingRequestStatus.Planning, count: 12, tagType: 'primary' },
-  { label: 'Picking', value: ShippingRequestStatus.Picking, count: 18, tagType: 'primary' },
-  { label: 'Packing', value: ShippingRequestStatus.Packing, count: 10, tagType: 'primary' },
-  { label: 'Loading', value: ShippingRequestStatus.Loading, count: 5, tagType: 'primary' },
+  { label: 'Committed', value: ShippingRequestStatus.Committed, count: 12, tagType: 'primary' },
+  { label: 'Picked', value: ShippingRequestStatus.Picked, count: 18, tagType: 'primary' },
+  { label: 'Packed', value: ShippingRequestStatus.Packed, count: 10, tagType: 'primary' },
+  { label: 'Loaded', value: ShippingRequestStatus.Loaded, count: 5, tagType: 'primary' },
+  { label: 'Partially Shipped', value: ShippingRequestStatus.PartialShip, count: 8, tagType: 'warning' },
   { label: 'Shipped', value: ShippingRequestStatus.Shipped, count: 20, tagType: 'success' },
-  { label: 'Exception', value: ShippingRequestStatus.Exception, count: 6, tagType: 'danger' },
   { label: 'Cancelled', value: ShippingRequestStatus.Cancelled, count: 6, tagType: 'info' }
 ]
 
@@ -1090,6 +1130,20 @@ const handleRowClick = (row: ShippingRequestItem) => {
 
 const handleRequestClick = (row: ShippingRequestItem) => {
   router.push(`/order/shipping-request/${row.id}`)
+}
+
+// 点击合并标签 - 显示合并详情弹窗或导航到合并订单管理页
+const handleMergedTagClick = (row: ShippingRequestItem) => {
+  // 可以跳转到专门的合并订单详情页或显示更多信息
+  ElMessage.info(`This request merged ${row.mergedOrderCount} orders. Click on individual request IDs to view details.`)
+}
+
+// 点击合并的单个 request ID
+const handleMergedRequestClick = (requestId: string) => {
+  // 根据 requestId 查找对应的订单并跳转
+  ElMessage.success(`Navigating to ${requestId}`)
+  // TODO: 实际应用中需要根据 requestId 找到对应的 ID 并跳转
+  // router.push(`/order/shipping-request/${id}`)
 }
 
 const handleSizeChange = (val: number) => {
@@ -1363,7 +1417,7 @@ const handleConfirmRejectFromApproval = async () => {
     // TODO: 调用API拒绝
     currentApprovalItem.value.approvalStatus = 'rejected'
     currentApprovalItem.value.rejectionReason = quickRejectReason.value
-    currentApprovalItem.value.status = ShippingRequestStatus.CarrierQuoting
+    currentApprovalItem.value.status = ShippingRequestStatus.Allocated
 
     ElMessage.success(`Request ${currentApprovalItem.value.requestNo} rejected`)
     showQuickApproveDialog.value = false
@@ -1387,7 +1441,7 @@ const handleConfirmReject = async () => {
     // TODO: 调用API拒绝
     currentApprovalItem.value.approvalStatus = 'rejected'
     currentApprovalItem.value.rejectionReason = quickRejectReason.value
-    currentApprovalItem.value.status = ShippingRequestStatus.CarrierQuoting
+    currentApprovalItem.value.status = ShippingRequestStatus.Allocated
 
     ElMessage.success(`Request ${currentApprovalItem.value.requestNo} rejected`)
     showQuickRejectDialog.value = false
@@ -1468,9 +1522,6 @@ const handleConfirmBatchAssignCarrier = async () => {
 }
 
 const getColumnAlign = (key: string) => {
-  if (key === 'totalItems' || key === 'totalQuantity') {
-    return 'right'
-  }
   return 'left'
 }
 
@@ -1478,29 +1529,20 @@ const getStatusClass = (status: ShippingRequestStatus) => {
   const statusMap: Record<string, string> = {
     // 前置状态
     [ShippingRequestStatus.Allocated]: 'status-allocated',
-    [ShippingRequestStatus.CarrierQuoting]: 'status-carrier-quoting',
     [ShippingRequestStatus.PendingApproval]: 'status-pending-approval',
     
     // WMS 处理流程
     [ShippingRequestStatus.WarehouseReceived]: 'status-warehouse-received',
     [ShippingRequestStatus.Committed]: 'status-committed',
-    [ShippingRequestStatus.Planning]: 'status-planning',
-    [ShippingRequestStatus.Planned]: 'status-planned',
-    [ShippingRequestStatus.Picking]: 'status-picking',
     [ShippingRequestStatus.Picked]: 'status-picked',
-    [ShippingRequestStatus.Packing]: 'status-packing',
     [ShippingRequestStatus.Packed]: 'status-packed',
-    [ShippingRequestStatus.Loading]: 'status-loading',
     [ShippingRequestStatus.Loaded]: 'status-loaded',
     
     // 发货状态
     [ShippingRequestStatus.PartialShip]: 'status-partial-ship',
     [ShippingRequestStatus.Shipped]: 'status-shipped',
-    [ShippingRequestStatus.InTransit]: 'status-in-transit',
-    [ShippingRequestStatus.Delivered]: 'status-delivered',
     
     // 异常状态
-    [ShippingRequestStatus.Exception]: 'status-exception',
     [ShippingRequestStatus.Cancelled]: 'status-cancelled'
   }
   return statusMap[status] || ''
@@ -1510,29 +1552,20 @@ const getStatusLabel = (status: ShippingRequestStatus) => {
   const labelMap: Record<string, string> = {
     // 前置状态
     [ShippingRequestStatus.Allocated]: 'Allocated',
-    [ShippingRequestStatus.CarrierQuoting]: 'Carrier Quoting',
     [ShippingRequestStatus.PendingApproval]: 'Pending Approval',
     
     // WMS 处理流程
     [ShippingRequestStatus.WarehouseReceived]: 'Warehouse Received',
     [ShippingRequestStatus.Committed]: 'Committed',
-    [ShippingRequestStatus.Planning]: 'Planning',
-    [ShippingRequestStatus.Planned]: 'Planned',
-    [ShippingRequestStatus.Picking]: 'Picking',
     [ShippingRequestStatus.Picked]: 'Picked',
-    [ShippingRequestStatus.Packing]: 'Packing',
     [ShippingRequestStatus.Packed]: 'Packed',
-    [ShippingRequestStatus.Loading]: 'Loading',
     [ShippingRequestStatus.Loaded]: 'Loaded',
     
     // 发货状态
-    [ShippingRequestStatus.PartialShip]: 'Partial Ship',
+    [ShippingRequestStatus.PartialShip]: 'Partially Shipped',
     [ShippingRequestStatus.Shipped]: 'Shipped',
-    [ShippingRequestStatus.InTransit]: 'In Transit',
-    [ShippingRequestStatus.Delivered]: 'Delivered',
     
     // 异常状态
-    [ShippingRequestStatus.Exception]: 'Exception',
     [ShippingRequestStatus.Cancelled]: 'Cancelled'
   }
   return labelMap[status] || status
@@ -1750,10 +1783,6 @@ onUnmounted(() => {
               .count-tag {
                 background: rgba(0, 102, 255, 0.1);
                 color: #0066ff;
-
-                &.warning, &.danger, &.success, &.info {
-                  // 保持原有的颜色
-                }
               }
             }
 
@@ -2009,6 +2038,35 @@ onUnmounted(() => {
 }
 
 .request-table {
+  .request-no-cell {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    
+    .merged-tag {
+      height: 20px;
+      padding: 0 6px;
+      font-size: 11px;
+      border: none;
+      background: rgba(255, 171, 0, 0.1);
+      color: #ffab00;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      cursor: pointer;
+      transition: all 0.2s;
+      
+      &:hover {
+        background: rgba(255, 171, 0, 0.2);
+        transform: scale(1.05);
+      }
+      
+      .el-icon {
+        font-size: 12px;
+      }
+    }
+  }
+  
   .request-no-link {
     color: #0066ff;
     cursor: pointer;
@@ -2036,11 +2094,6 @@ onUnmounted(() => {
       color: #1890ff;
     }
 
-    &.status-carrier-quoting {
-      background: rgba(250, 173, 20, 0.1);
-      color: #faad14;
-    }
-
     &.status-pending-approval {
       background: rgba(255, 171, 0, 0.1);
       color: #ffab00;
@@ -2049,6 +2102,11 @@ onUnmounted(() => {
     &.status-warehouse-received {
       background: rgba(24, 144, 255, 0.1);
       color: #1890ff;
+    }
+
+    &.status-committed {
+      background: rgba(82, 196, 26, 0.1);
+      color: #52c41a;
     }
     
     &.status-picked {
@@ -2065,35 +2123,15 @@ onUnmounted(() => {
       background: rgba(82, 196, 26, 0.1);
       color: #52c41a;
     }
+
+    &.status-partial-ship {
+      background: rgba(250, 173, 20, 0.1);
+      color: #faad14;
+    }
     
     &.status-shipped {
       background: rgba(0, 102, 255, 0.1);
       color: #0066ff;
-    }
-
-    &.status-partially-shipped {
-      background: rgba(250, 173, 20, 0.1);
-      color: #faad14;
-    }
-
-    &.status-short-shipped {
-      background: rgba(250, 140, 22, 0.1);
-      color: #fa8c16;
-    }
-
-    &.status-in-transit {
-      background: rgba(0, 102, 255, 0.1);
-      color: #0066ff;
-    }
-    
-    &.status-delivered {
-      background: rgba(82, 196, 26, 0.1);
-      color: #52c41a;
-    }
-    
-    &.status-exception {
-      background: rgba(255, 77, 79, 0.1);
-      color: #ff4d4f;
     }
     
     &.status-cancelled {
@@ -2130,11 +2168,6 @@ onUnmounted(() => {
     display: flex;
     align-items: center;
     min-height: 32px;
-    
-    &.cell-totalItems,
-    &.cell-totalQuantity {
-      justify-content: flex-end;
-    }
   }
 }
 
@@ -2430,6 +2463,82 @@ onUnmounted(() => {
           color: #fff;
           font-weight: 500;
         }
+      }
+    }
+  }
+}
+
+// 合并请求 Popover 样式
+.merged-requests-popover {
+  .popover-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .request-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-height: 200px;
+    overflow-y: auto;
+
+    .request-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      background: rgba(255, 255, 255, 0.02);
+      border-radius: 6px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      cursor: pointer;
+      transition: all 0.2s;
+
+      &:hover {
+        background: rgba(0, 102, 255, 0.1);
+        border-color: rgba(0, 102, 255, 0.3);
+
+        .request-id {
+          color: #0066ff;
+        }
+
+        .link-icon {
+          color: #0066ff;
+        }
+      }
+
+      .link-icon {
+        font-size: 14px;
+        color: #8b949e;
+        transition: color 0.2s;
+      }
+
+      .request-id {
+        font-size: 13px;
+        color: #fff;
+        font-weight: 500;
+        transition: color 0.2s;
+      }
+    }
+
+    &::-webkit-scrollbar {
+      width: 4px;
+    }
+
+    &::-webkit-scrollbar-track {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 2px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 2px;
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.3);
       }
     }
   }

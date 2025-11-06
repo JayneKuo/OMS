@@ -303,12 +303,27 @@ const routes: RouteRecordRaw[] = [
             component: () => import('@/views/settings/SafetyStockSettings/index.vue')
           },
           {
-            path: 'carrier-pricing-rules',
-            name: 'CarrierPricingRules',
-            component: () => import('@/views/settings/carrier-pricing-rules/index.vue'),
+            path: 'rate-shipping',
+            name: 'RateShipping',
+            component: () => import('@/layouts/RouterView.vue'),
+            redirect: '/settings/rate-shipping/carrier-pricing-rules',
             meta: {
-              title: 'Rate Shipping'
-            }
+              title: 'Rate Shopping'
+            },
+            children: [
+              {
+                path: 'carrier-pricing-rules',
+                name: 'CarrierPricingRules',
+                component: () => import('@/views/settings/carrier-pricing-rules/index.vue'),
+                meta: {
+                  title: 'Rate Shopping'
+                }
+              }
+            ]
+          },
+          {
+            path: 'carrier-pricing-rules',
+            redirect: '/settings/rate-shipping/carrier-pricing-rules'
           }
         ]
       },
