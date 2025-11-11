@@ -136,6 +136,38 @@ const routes: RouteRecordRaw[] = [
             }
           },
           {
+            path: 'load',
+            name: 'Load',
+            component: () => import('@/views/order/load/index.vue'),
+            meta: {
+              title: 'Load Management'
+            }
+          },
+          {
+            path: 'load/create',
+            name: 'LoadCreate',
+            component: () => import('@/views/order/load/create.vue'),
+            meta: {
+              title: 'Create Load'
+            }
+          },
+          {
+            path: 'load/edit/:id',
+            name: 'LoadEdit',
+            component: () => import('@/views/order/load/create.vue'),
+            meta: {
+              title: 'Edit Load'
+            }
+          },
+          {
+            path: 'load/:id',
+            name: 'LoadDetail',
+            component: () => import('@/views/order/load/detail.vue'),
+            meta: {
+              title: 'Load Detail'
+            }
+          },
+          {
             path: 'ai-tracelink',
             name: 'ai-tracelink',
             component: () => import('@/views/order/ai-tracelink/index.vue'),
