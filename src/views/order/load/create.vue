@@ -3,6 +3,12 @@
     <!-- 页面头部 -->
     <div class="page-header">
       <div class="header-left">
+        <el-button
+          :icon="ArrowLeft"
+          circle
+          @click="handleCancel"
+          style="margin-right: 12px;"
+        />
         <h1>{{ isEdit ? 'Edit Load' : 'Build Load' }}</h1>
       </div>
     </div>
@@ -17,17 +23,42 @@
       <!-- Basic Information -->
       <div class="form-section">
         <div class="section-title">Basic Information</div>
+        <!-- 第一行：核心标识信息 -->
         <el-row :gutter="16">
-          <el-col :span="6">
+          <el-col :span="8">
             <el-form-item label="Load NO" prop="loadNo">
               <el-input
                 v-model="formData.loadNo"
-                placeholder="Auto generated"
-                :disabled="!isEdit"
-              />
+                placeholder="Auto generated if empty"
+              >
+                <template #append>
+                  <el-button @click="generateLoadNumber" :icon="Refresh" />
+                </template>
+              </el-input>
             </el-form-item>
           </el-col>
-          <el-col :span="6">
+          <el-col :span="8">
+            <el-form-item label="Mode" prop="mode" :rules="[{ required: true, message: 'Please select mode' }]">
+              <el-select
+                v-model="formData.mode"
+                placeholder="Select mode"
+                style="width: 100%"
+              >
+                <el-option
+                  v-for="item in LOAD_MODES"
+                  :key="item.value"
+                  :label="item.label"
+                  :value="item.value"
+                >
+                  <div>
+                    <div>{{ item.label }}</div>
+                    <div style="font-size: 12px; color: #909399;">{{ item.description }}</div>
+                  </div>
+                </el-option>
+              </el-select>
+            </el-form-item>
+          </el-col>
+          <el-col :span="8">
             <el-form-item label="Load Type" prop="loadType" :rules="[{ required: true, message: 'Please select load type' }]">
               <el-select
                 v-model="formData.loadType"
@@ -43,7 +74,11 @@
               </el-select>
             </el-form-item>
           </el-col>
-          <el-col :span="6">
+        </el-row>
+
+        <!-- 第二行：主要业务关系 -->
+        <el-row :gutter="16">
+          <el-col :span="12">
             <el-form-item label="Customer" prop="customerId" :rules="[{ required: true, message: 'Please select customer' }]">
               <el-select
                 v-model="formData.customerId"
@@ -60,7 +95,7 @@
               </el-select>
             </el-form-item>
           </el-col>
-          <el-col :span="6">
+          <el-col :span="12">
             <el-form-item label="Carrier" prop="carrierId" :rules="[{ required: true, message: 'Please select carrier' }]">
               <el-select
                 v-model="formData.carrierId"
@@ -79,8 +114,9 @@
           </el-col>
         </el-row>
 
+        <!-- 第三行：费用相关信息 -->
         <el-row :gutter="16">
-          <el-col :span="6">
+          <el-col :span="8">
             <el-form-item label="Freight Term" prop="freightTerm">
               <el-select
                 v-model="formData.freightTerm"
@@ -96,7 +132,7 @@
               </el-select>
             </el-form-item>
           </el-col>
-          <el-col :span="6">
+          <el-col :span="8">
             <el-form-item label="Freight Cost" prop="freightCost">
               <el-input
                 v-model="formData.freightCost"
@@ -107,7 +143,7 @@
               </el-input>
             </el-form-item>
           </el-col>
-          <el-col :span="6">
+          <el-col :span="8">
             <el-form-item label="Long Haul" prop="longHaul">
               <el-switch v-model="formData.longHaul" />
             </el-form-item>
@@ -264,11 +300,10 @@
     <!-- Order Line 表格 - 铺满整个宽度 -->
     <OrderLineTable
       v-model="formData.orderLines"
-      @extract-biz-note="handleExtractBizNote"
+      :mode="formData.mode"
+      :customer-id="formData.customerId"
+      :ship-from="formData.shipFrom"
       @import-orders="handleImportOrders"
-      @refill-load-info="handleRefillLoadInfo"
-      @add-order-lines="handleAddOrderLines"
-      @load-builder="handleLoadBuilder"
     />
 
     <!-- 底部按钮 -->
@@ -283,6 +318,7 @@
 import { ref, reactive, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import { generateSnowflakeId, generateLoadNo } from '@/utils/snowflake'
 import AddressForm from './components/AddressForm.vue'
 import OrderLineTable from './components/OrderLineTable.vue'
 import type { Load, Address } from './types'
@@ -291,6 +327,7 @@ import {
   TRAILER_PICKUP_MODES,
   FREIGHT_TERMS
 } from './types'
+import { Refresh, ArrowLeft } from '@element-plus/icons-vue'
 
 // Customer 类型定义
 interface CustomerOption {
@@ -532,24 +569,14 @@ const loadLoadData = async (id: string) => {
   console.log('Loading load data for id:', id)
 }
 
-const handleExtractBizNote = () => {
-  ElMessage.info('Extract BIZ_NOTE feature coming soon')
-}
-
 const handleImportOrders = () => {
   ElMessage.info('Import Orders feature coming soon')
 }
 
-const handleRefillLoadInfo = () => {
-  ElMessage.info('Refill Load Info feature coming soon')
-}
-
-const handleAddOrderLines = () => {
-  ElMessage.info('Add Order Lines feature coming soon')
-}
-
-const handleLoadBuilder = () => {
-  ElMessage.info('Load Builder feature coming soon')
+// 生成Load NO
+const generateLoadNumber = () => {
+  formData.loadNo = generateLoadNo()
+  ElMessage.success('Load NO generated')
 }
 
 // 从 Order Lines 提取 Shipping Request IDs
@@ -596,6 +623,16 @@ const handleSave = async () => {
     // 如果是ASSIGNED状态，记录dispatchTime
     if (initialStatus === 'ASSIGNED') {
       formData.dispatchTime = new Date().toISOString()
+    }
+    
+    // 生成系统ID（如果创建新记录）
+    if (!formData.id) {
+      formData.id = generateSnowflakeId()
+    }
+    
+    // 如果Load NO为空，自动生成
+    if (!formData.loadNo || formData.loadNo.trim() === '') {
+      formData.loadNo = generateLoadNo()
     }
     
     // 设置创建时间

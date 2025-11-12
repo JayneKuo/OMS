@@ -207,6 +207,9 @@ const SELECTABLE_STATUSES: ShippingRequestStatus[] = [
 interface Props {
   modelValue: boolean
   excludeRequestNos?: string[]
+  mode?: string
+  customerId?: string
+  shipFrom?: any
 }
 
 interface Emits {
@@ -215,7 +218,10 @@ interface Emits {
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  excludeRequestNos: () => []
+  excludeRequestNos: () => [],
+  mode: 'CUSTOMER',
+  customerId: '',
+  shipFrom: undefined
 })
 
 const emit = defineEmits<Emits>()
@@ -311,6 +317,27 @@ const isSelectableStatus = (status: string) => {
 
 const filteredTableData = computed(() => {
   let data = mockData.value
+
+  // 根据 mode 过滤订单
+  if (props.mode === 'CUSTOMER' && props.customerId) {
+    // CUSTOMER mode: 只能选择当前 customer 的订单
+    // 注意：ShippingRequestItem 中没有 customerId 字段，实际项目中应该：
+    // 1. 从 API 获取 ShippingRequestItem 时包含 customerId 字段
+    // 2. 或者根据 channelName 查找对应的 customerId
+    // 这里暂时不过滤，实际项目中需要根据 customerId 字段匹配
+    // TODO: 实现 customerId 匹配逻辑
+    // data = data.filter(item => item.customerId === props.customerId)
+  } else if (props.mode === 'CENTRAL' && props.shipFrom) {
+    // CENTRAL mode: 可以选择相同 terminal (warehouse)，不同 customer 的订单
+    // 根据 warehouse 匹配，允许不同 customer
+    const terminalWarehouse = props.shipFrom.warehouse || props.shipFrom.name || ''
+    if (terminalWarehouse) {
+      data = data.filter(item => {
+        // 根据 warehouse 匹配，允许不同 customer
+        return item.warehouse === terminalWarehouse
+      })
+    }
+  }
 
   // 默认只显示可以添加到 Load 的状态（除非用户选择了其他状态过滤）
   if (!filterStatus.value) {

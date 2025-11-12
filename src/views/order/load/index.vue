@@ -107,9 +107,14 @@
         :scrollbar-always-on="true"
       >
         <el-table-column type="selection" width="50" fixed />
+        <el-table-column prop="id" label="Load ID" min-width="200" fixed>
+          <template #default="{ row }">
+            <span style="font-family: monospace; font-size: 12px;">{{ row.id || '-' }}</span>
+          </template>
+        </el-table-column>
         <el-table-column prop="loadNo" label="Load No." min-width="140" fixed>
           <template #default="{ row }">
-            <el-link type="primary" @click="handleView(row)">{{ row.loadNo }}</el-link>
+            <el-link type="primary" @click="handleView(row)">{{ row.loadNo || '-' }}</el-link>
           </template>
         </el-table-column>
         <el-table-column prop="status" label="Status" min-width="120">
@@ -257,6 +262,7 @@
     >
       <div class="column-settings">
         <el-checkbox-group v-model="visibleColumns">
+          <el-checkbox label="id">Load ID</el-checkbox>
           <el-checkbox label="loadNo">Load No.</el-checkbox>
           <el-checkbox label="status">Status</el-checkbox>
           <el-checkbox label="customer">Customer</el-checkbox>
@@ -655,7 +661,7 @@ const carriers = ref([
   { label: 'USPS', value: 'carrier-4' }
 ])
 const visibleColumns = ref<string[]>([
-  'loadNo', 'status', 'customer', 'carrier', 'loadType', 'shipFrom', 'shipTo',
+  'id', 'loadNo', 'status', 'customer', 'carrier', 'loadType', 'shipFrom', 'shipTo',
   'appointmentTime', 'gateInTime', 'loadingStartTime', 'loadCompleteTime',
   'gateOutTime', 'deliveredTime', 'createdBy', 'freightCost', 'bolNo', 'updatedAt'
 ])

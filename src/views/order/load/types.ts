@@ -277,9 +277,16 @@ export interface LoadListResponse {
 }
 
 export const LOAD_MODES = [
-  { label: 'CUSTOMER ROUTING', value: 'CUSTOMER_ROUTING' },
-  { label: 'PREPAID', value: 'PREPAID' },
-  { label: 'COLLECT', value: 'COLLECT' }
+  { 
+    label: 'CENTRAL', 
+    value: 'CENTRAL',
+    description: 'Can select orders from same terminal, different customers'
+  },
+  { 
+    label: 'CUSTOMER', 
+    value: 'CUSTOMER',
+    description: 'Can only select orders from current customer'
+  }
 ]
 
 export const LOAD_TYPES = [
