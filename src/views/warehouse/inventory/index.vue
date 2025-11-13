@@ -133,12 +133,14 @@
         :row-class-name="tableRowClassName"
         :expand-row-keys="expandedRows"
         :row-key="(row) => row.sku"
+        stripe
+        border
         @row-click="handleRowClick"
         @expand-change="handleExpandChange">
         <el-table-column type="selection" width="55" fixed="left" />
-        <el-table-column type="expand" v-if="searchForm.groupBySku">
+        <el-table-column type="expand" v-if="searchForm.groupBySku" width="0" class-name="hidden-expand-column">
           <template #default="{ row }">
-            <div v-if="row.children && row.children.length" class="expanded-table">
+            <div v-if="row.hasChildren && row.children && row.children.length" class="expanded-table">
               <el-table 
                 :data="row.children" 
                 style="width: 100%"
@@ -146,15 +148,18 @@
                 <template v-for="col in visibleColumns" :key="col.prop">
                   <el-table-column v-bind="col">
                     <template #default="{ row: childRow }">
-                      <template v-if="['salable', 'fulfillable', 'wmsAvailable', 'onHand', 'openOrder', 'locked', 'allocated', 'safetyStock', 'wmsOpenOrder', 'wmsAllocate', 'incoming', 'receiving', 'hold', 'damaged'].includes(col.prop)">
-                        <span :class="['quantity', childRow[col.prop] < 0 ? 'negative' : '']">
-                          {{ childRow[col.prop] }}
+                      <template v-if="col.prop === 'salable' || col.prop === 'fulfillable'">
+                        <span class="quantity highlight-positive" :class="{ 'negative': childRow[col.prop] < 0, 'zero': childRow[col.prop] === 0 }">
+                          {{ formatNumber(childRow[col.prop]) }}
+                        </span>
+                      </template>
+                      <template v-else-if="['wmsAvailable', 'onHand', 'openOrder', 'locked', 'allocated', 'safetyStock', 'wmsOpenOrder', 'wmsAllocate', 'incoming', 'receiving', 'hold', 'damaged'].includes(col.prop)">
+                        <span class="quantity" :class="{ 'negative': childRow[col.prop] < 0, 'zero': childRow[col.prop] === 0 }">
+                          {{ formatNumber(childRow[col.prop]) }}
                         </span>
                       </template>
                       <template v-else-if="col.prop === 'lastEvent'">
-                        <el-tag :type="getEventTagType(childRow.lastEvent)" size="small">
-                          {{ childRow.lastEvent }}
-                        </el-tag>
+                        <span class="last-event-text">{{ childRow.lastEvent }}</span>
                       </template>
                       <template v-else>
                         {{ childRow[col.prop] }}
@@ -167,25 +172,37 @@
           </template>
         </el-table-column>
         <template v-for="col in visibleColumns" :key="col.prop">
-          <el-table-column v-bind="col">
+          <el-table-column v-bind="col" :class-name="getColumnClassName(col.prop)">
             <template #default="{ row }">
               <template v-if="col.prop === 'sku'">
                 <div class="sku-cell">
-                  <el-icon v-if="row.hasChildren && searchForm.groupBySku">
+                  <el-icon 
+                    v-if="row.hasChildren && searchForm.groupBySku" 
+                    class="expand-icon"
+                    @click.stop="handleExpandToggle(row)"
+                  >
                     <component :is="row.expanded ? icons.CaretBottom : icons.CaretRight" />
                   </el-icon>
-                  {{ row.sku }}
+                  <span class="sku-link" @click.stop="handleSkuClick(row)">{{ row.sku }}</span>
                 </div>
               </template>
-              <template v-else-if="['salable', 'fulfillable', 'wmsAvailable', 'onHand', 'openOrder', 'locked', 'allocated', 'safetyStock', 'wmsOpenOrder', 'wmsAllocate', 'incoming', 'receiving', 'hold', 'damaged'].includes(col.prop)">
-                <span :class="['quantity', row[col.prop] < 0 ? 'negative' : '']">
-                  {{ row[col.prop] }}
+              <template v-else-if="col.prop === 'salable'">
+                <span class="quantity highlight-positive" :class="{ 'negative': row[col.prop] < 0, 'zero': row[col.prop] === 0 }">
+                  {{ formatNumber(row[col.prop]) }}
+                </span>
+              </template>
+              <template v-else-if="col.prop === 'fulfillable'">
+                <span class="quantity highlight-positive" :class="{ 'negative': row[col.prop] < 0, 'zero': row[col.prop] === 0 }">
+                  {{ formatNumber(row[col.prop]) }}
+                </span>
+              </template>
+              <template v-else-if="['wmsAvailable', 'onHand', 'openOrder', 'locked', 'allocated', 'safetyStock', 'wmsOpenOrder', 'wmsAllocate', 'incoming', 'receiving', 'hold', 'damaged'].includes(col.prop)">
+                <span class="quantity" :class="{ 'negative': row[col.prop] < 0, 'zero': row[col.prop] === 0 }">
+                  {{ formatNumber(row[col.prop]) }}
                 </span>
               </template>
               <template v-else-if="col.prop === 'lastEvent'">
-                <el-tag :type="getEventTagType(row.lastEvent)" size="small">
-                  {{ row.lastEvent }}
-                </el-tag>
+                <span class="last-event-text">{{ row.lastEvent }}</span>
               </template>
               <template v-else>
                 {{ row[col.prop] }}
@@ -308,27 +325,27 @@ const locations = [
   { label: '01', value: '01' }
 ]
 
-// 列配置
+// 列配置 - 增加最小宽度，让内容不那么拥挤
 const allColumns = [
-  { prop: 'sku', label: 'SKU', minWidth: 120, fixed: 'left', showOverflowTooltip: true },
-  { prop: 'location', label: 'Location', minWidth: 120, showOverflowTooltip: true },
-  { prop: 'salable', label: 'Salable', minWidth: 100, align: 'right' },
-  { prop: 'fulfillable', label: 'Fulfillable', minWidth: 100, align: 'right' },
-  { prop: 'onHand', label: 'On Hand', minWidth: 100, align: 'right' },
-  { prop: 'wmsAvailable', label: 'WMS Available', minWidth: 120, align: 'right' },
-  { prop: 'wmsOpenOrder', label: 'WMS Open Order', minWidth: 130, align: 'right' },
-  { prop: 'openOrder', label: 'Open Order', minWidth: 100, align: 'right' },
-  { prop: 'locked', label: 'Locked', minWidth: 100, align: 'right' },
-  { prop: 'allocated', label: 'Allocated', minWidth: 100, align: 'right' },
-  { prop: 'safetyStock', label: 'Safety Stock', minWidth: 120, align: 'right' },
-  { prop: 'wmsAllocate', label: 'WMS Allocate', minWidth: 120, align: 'right' },
-  { prop: 'incoming', label: 'Incoming', minWidth: 100, align: 'right' },
-  { prop: 'receiving', label: 'Receiving', minWidth: 100, align: 'right' },
-  { prop: 'hold', label: 'Hold', minWidth: 100, align: 'right' },
-  { prop: 'damaged', label: 'Damaged', minWidth: 100, align: 'right' },
-  { prop: 'lastEvent', label: 'Last Event', minWidth: 120, showOverflowTooltip: true },
-  { prop: 'updated', label: 'Updated', minWidth: 160, showOverflowTooltip: true },
-  { prop: 'adjustedBy', label: 'Adjusted By', minWidth: 120, showOverflowTooltip: true }
+  { prop: 'sku', label: 'SKU', minWidth: 140, fixed: 'left', showOverflowTooltip: true },
+  { prop: 'location', label: 'Location', minWidth: 140, showOverflowTooltip: true },
+  { prop: 'salable', label: 'Salable', minWidth: 110, align: 'right' },
+  { prop: 'fulfillable', label: 'Fulfillable', minWidth: 110, align: 'right' },
+  { prop: 'onHand', label: 'On Hand', minWidth: 110, align: 'right' },
+  { prop: 'wmsAvailable', label: 'WMS Available', minWidth: 130, align: 'right' },
+  { prop: 'wmsOpenOrder', label: 'WMS Open Order', minWidth: 140, align: 'right' },
+  { prop: 'openOrder', label: 'Open Order', minWidth: 110, align: 'right' },
+  { prop: 'locked', label: 'Locked', minWidth: 110, align: 'right' },
+  { prop: 'allocated', label: 'Allocated', minWidth: 110, align: 'right' },
+  { prop: 'safetyStock', label: 'Safety Stock', minWidth: 130, align: 'right' },
+  { prop: 'wmsAllocate', label: 'WMS Allocate', minWidth: 130, align: 'right' },
+  { prop: 'incoming', label: 'Incoming', minWidth: 110, align: 'right' },
+  { prop: 'receiving', label: 'Receiving', minWidth: 110, align: 'right' },
+  { prop: 'hold', label: 'Hold', minWidth: 110, align: 'right' },
+  { prop: 'damaged', label: 'Damaged', minWidth: 110, align: 'right' },
+  { prop: 'lastEvent', label: 'Last Event', minWidth: 130, showOverflowTooltip: true },
+  { prop: 'updated', label: 'Updated', minWidth: 170, showOverflowTooltip: true },
+  { prop: 'adjustedBy', label: 'Adjusted By', minWidth: 140, showOverflowTooltip: true }
 ]
 
 // 默认显示的列
@@ -467,10 +484,27 @@ const processTableData = (data: InventoryItem[]) => {
     return data
   }
 
-  const groupedData = new Map<string, InventoryItem>()
+  // 先统计每个 SKU 的数量
+  const skuCount = new Map<string, number>()
   data.forEach(item => {
+    skuCount.set(item.sku, (skuCount.get(item.sku) || 0) + 1)
+  })
+
+  const groupedData = new Map<string, InventoryItem>()
+  const result: InventoryItem[] = []
+  
+  data.forEach(item => {
+    const count = skuCount.get(item.sku) || 0
+    
+    // 如果该 SKU 只有一条记录，直接添加到结果中，不分组
+    if (count === 1) {
+      result.push({ ...item, hasChildren: false })
+      return
+    }
+    
+    // 如果有多条记录，进行分组
     if (!groupedData.has(item.sku)) {
-      groupedData.set(item.sku, {
+      const groupItem: InventoryItem = {
         ...item,
         location: 'Multiple',
         children: [],
@@ -489,9 +523,15 @@ const processTableData = (data: InventoryItem[]) => {
         incoming: 0,
         receiving: 0,
         hold: 0,
-        damaged: 0
-      })
+        damaged: 0,
+        lastEvent: '',
+        updated: '',
+        adjustedBy: ''
+      }
+      groupedData.set(item.sku, groupItem)
+      result.push(groupItem)
     }
+    
     const group = groupedData.get(item.sku)!
     group.children!.push(item)
     group.salable += item.salable
@@ -510,12 +550,12 @@ const processTableData = (data: InventoryItem[]) => {
     group.damaged += item.damaged
   })
   
-  return Array.from(groupedData.values())
+  return result
 }
 
 // 表格展开行配置
 const tableRowClassName = ({ row }: { row: InventoryItem }) => {
-  return searchForm.value.groupBySku && row.children?.length ? 'expandable-row' : ''
+  return searchForm.value.groupBySku && row.hasChildren && row.children?.length ? 'expandable-row' : ''
 }
 
 // 初始数据
@@ -882,6 +922,42 @@ const handleCurrentChange = (val: number) => {
   handleSearch()
 }
 
+// 格式化数字显示（添加千分位分隔符）
+const formatNumber = (num: number): string => {
+  if (num === 0) return '0'
+  return num.toLocaleString('en-US', { 
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0
+  })
+}
+
+// 获取列类名
+const getColumnClassName = (prop: string): string => {
+  if (prop === 'salable' || prop === 'fulfillable') {
+    return 'highlight-column'
+  }
+  return ''
+}
+
+// 展开/收起切换
+const handleExpandToggle = (row: InventoryItem) => {
+  if (!row.hasChildren || !row.children?.length) return
+  
+  const index = expandedRows.value.indexOf(row.sku)
+  if (index > -1) {
+    expandedRows.value.splice(index, 1)
+    row.expanded = false
+  } else {
+    expandedRows.value.push(row.sku)
+    row.expanded = true
+  }
+}
+
+// SKU 点击处理 - 跳转到详情页
+const handleSkuClick = (row: InventoryItem) => {
+  router.push(`/warehouse/inventory/${row.sku}`)
+}
+
 // 事件标签类型
 const getEventTagType = (event: string) => {
   const types: Record<string, string> = {
@@ -895,20 +971,25 @@ const getEventTagType = (event: string) => {
   return types[event.toLowerCase()] || 'default'
 }
 
-// 行点击处理方法
-const handleRowClick = (row: InventoryItem) => {
-  if (searchForm.value.groupBySku && row.children?.length) {
-    // 如果是分组模式且有子项，则切换展开状态
-    const index = expandedRows.value.indexOf(row.sku)
-    if (index > -1) {
-      expandedRows.value.splice(index, 1)
-      row.expanded = false
-    } else {
-      expandedRows.value.push(row.sku)
-      row.expanded = true
+// 行点击处理方法 - 优化交互
+const handleRowClick = (row: InventoryItem, column?: any, event?: MouseEvent) => {
+  // 如果有事件对象，检查点击目标
+  if (event) {
+    const target = event.target as HTMLElement
+    // 如果点击的是选择框、展开图标或 SKU 链接，不处理
+    if (target.closest('.el-checkbox') || 
+        target.closest('.el-table__expand-icon') ||
+        target.closest('.expand-icon') ||
+        target.closest('.sku-link')) {
+      return
     }
+  }
+  
+  // 分组模式下，点击行可以展开/收起
+  if (searchForm.value.groupBySku && row.hasChildren && row.children?.length) {
+    handleExpandToggle(row)
   } else {
-    // 如果不是分组或没有子项，则跳转到详情页
+    // 否则跳转到详情页
     router.push(`/warehouse/inventory/${row.sku}`)
   }
 }
@@ -1043,19 +1124,172 @@ const handleExpandChange = (row: InventoryItem, expanded: boolean) => {
     padding: 16px;
     box-shadow: var(--el-box-shadow-light);
 
-    .sku-cell {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      cursor: pointer;
-    }
-
-    .quantity {
-      &.negative {
-        color: var(--el-color-danger);
+    // 表头样式优化 - 增加间距
+    :deep(.el-table__header) {
+      th {
+        background-color: var(--el-bg-color);
+        font-weight: 600;
+        color: var(--el-text-color-primary);
+        font-size: 13px;
+        padding: 16px 12px;
+        border-bottom: 2px solid var(--el-border-color);
+        line-height: 1.5;
       }
     }
 
+    // 表格边框和间距优化 - 增加内边距
+    :deep(.el-table) {
+      border: 1px solid var(--el-border-color-lighter);
+      
+      td {
+        padding: 18px 12px;
+        border-bottom: 1px solid var(--el-border-color-extra-light);
+        line-height: 1.6;
+      }
+      
+      // 增加单元格内容间距
+      .cell {
+        padding: 0 4px;
+      }
+    }
+
+    // 突出显示列的背景色 - 更柔和
+    :deep(.highlight-column) {
+      background-color: rgba(var(--el-color-success-rgb), 0.03);
+      
+      .cell {
+        font-weight: 600;
+      }
+    }
+
+    // 表格行悬停效果 - 更柔和
+    :deep(.el-table__body) {
+      tr {
+        transition: background-color 0.15s;
+        cursor: pointer;
+
+        &:hover {
+          background-color: var(--el-fill-color-extra-light) !important;
+        }
+        
+        // 展开行样式
+        &.expandable-row {
+          &:hover {
+            background-color: var(--el-fill-color-light) !important;
+          }
+        }
+      }
+    }
+
+    // 斑马纹样式优化
+    :deep(.el-table--striped) {
+      .el-table__body {
+        tr.el-table__row--striped {
+          background-color: var(--el-fill-color-extra-light);
+          
+          &:hover {
+            background-color: var(--el-fill-color-light) !important;
+          }
+        }
+      }
+    }
+
+    .sku-cell {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 2px 0;
+      
+      .expand-icon {
+        cursor: pointer;
+        color: var(--el-text-color-regular);
+        font-size: 14px;
+        padding: 2px 4px;
+        border-radius: 4px;
+        transition: all 0.2s;
+        flex-shrink: 0;
+        
+        &:hover {
+          color: var(--el-color-primary);
+          background-color: var(--el-fill-color-light);
+        }
+      }
+      
+      .sku-link {
+        color: var(--el-text-color-primary);
+        font-weight: 500;
+        font-size: 14px;
+        text-decoration: none;
+        transition: color 0.2s;
+        line-height: 1.5;
+        cursor: pointer;
+        
+        &:hover {
+          color: var(--el-color-primary);
+          text-decoration: underline;
+        }
+      }
+    }
+
+    .quantity {
+      font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--el-text-color-regular);
+      line-height: 1.5;
+      display: inline-block;
+      
+      &.highlight-positive {
+        font-size: 15px;
+        font-weight: 600;
+        color: var(--el-color-success);
+      }
+      
+      &.negative {
+        color: var(--el-color-danger);
+        font-weight: 600;
+      }
+      
+      &.zero {
+        color: var(--el-text-color-placeholder);
+        font-weight: 400;
+      }
+    }
+
+    .last-event-text {
+      font-size: 13px;
+      color: var(--el-text-color-secondary);
+      font-weight: 400;
+      line-height: 1.5;
+    }
+    
+    // 其他文本内容也增加行高
+    :deep(.el-table__body) {
+      td {
+        .cell {
+          font-size: 14px;
+          line-height: 1.6;
+        }
+      }
+    }
+
+    // 隐藏 Element Plus 自带的展开图标列
+    :deep(.hidden-expand-column) {
+      width: 0 !important;
+      padding: 0 !important;
+      overflow: hidden;
+      
+      .cell {
+        padding: 0 !important;
+        width: 0 !important;
+      }
+      
+      .el-table__expand-icon {
+        display: none !important;
+      }
+    }
+    
+    // 完全隐藏展开图标列
     :deep(.el-table__expand-icon) {
       display: none !important;
     }

@@ -81,7 +81,7 @@ const routes: RouteRecordRaw[] = [
       {
         path: 'inventory/:id',
         name: 'WarehouseInventoryDetail',
-        component: () => import('@/views/warehouse/inventory/detail.vue'),
+        component: () => import('@/views/warehouse/inventory/InventoryLedgerDetail.vue'),
         meta: {
           title: 'Inventory Detail'
         }
