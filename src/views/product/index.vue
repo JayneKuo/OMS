@@ -176,6 +176,10 @@
           </template>
         </el-dropdown>
         
+        <el-button type="success" :icon="MagicStick" @click="handleAiCreate" class="ai-create-btn">
+          AI Create
+        </el-button>
+        
         <el-button :icon="Refresh" @click="loadProducts" circle />
         <el-button :icon="Setting" @click="handleColumnConfig" circle />
         </div>
@@ -732,6 +736,307 @@
         </div>
       </template>
     </el-dialog>
+
+    <!-- AI创建商品对话框 -->
+    <el-dialog
+      v-model="aiCreateDialogVisible"
+      title="AI Create Product (Hybrid)"
+      width="900px"
+      destroy-on-close
+      align-center
+    >
+      <div class="ai-create-content">
+        <!-- 图片上传区域 -->
+        <div class="image-upload-section">
+          <div class="section-label">
+            <el-icon><Picture /></el-icon>
+            <span>Image Upload:</span>
+          </div>
+          <el-upload
+            ref="aiImageUploadRef"
+            class="ai-image-upload"
+            :auto-upload="false"
+            :limit="10"
+            accept="image/*"
+            :on-change="handleAiImageChange"
+            :on-remove="handleAiImageRemove"
+            :file-list="aiImageList"
+            list-type="picture-card"
+          >
+            <el-icon class="el-icon--upload"><Plus /></el-icon>
+            <div class="el-upload__text">Upload Images</div>
+            <div class="el-upload__hint">Multiple images allowed</div>
+          </el-upload>
+          <div class="upload-tip">
+            Support JPG, PNG, GIF formats, max 10MB per image, up to 10 images
+          </div>
+        </div>
+
+        <!-- 产品备注 -->
+        <div class="product-notes-section">
+          <div class="section-label">
+            <el-icon><Document /></el-icon>
+            <span>Product Notes (Optional):</span>
+          </div>
+          <el-input
+            v-model="aiTextInput"
+            type="textarea"
+            :rows="5"
+            placeholder="Enter product keywords, selling points, specifications, usage, etc."
+            maxlength="2000"
+            show-word-limit
+            class="notes-input"
+          />
+        </div>
+
+        <!-- 品牌和类别 -->
+        <el-row :gutter="20" class="optional-fields">
+          <el-col :span="12">
+            <div class="field-item">
+              <div class="field-label">
+                <span>Brand (optional):</span>
+              </div>
+              <el-input
+                v-model="aiBrandInput"
+                placeholder="Enter brand name"
+                clearable
+              />
+            </div>
+          </el-col>
+          <el-col :span="12">
+            <div class="field-item">
+              <div class="field-label">
+                <span>Category (optional):</span>
+              </div>
+              <el-select
+                v-model="aiCategoryInput"
+                placeholder="Select category"
+                clearable
+                style="width: 100%"
+              >
+                <el-option label="Electronics" value="Electronics" />
+                <el-option label="Clothing" value="Clothing" />
+                <el-option label="Books" value="Books" />
+                <el-option label="Home & Garden" value="Home & Garden" />
+                <el-option label="Sports & Outdoors" value="Sports & Outdoors" />
+                <el-option label="Toys & Games" value="Toys & Games" />
+                <el-option label="Beauty & Personal Care" value="Beauty & Personal Care" />
+                <el-option label="Food & Beverage" value="Food & Beverage" />
+              </el-select>
+            </div>
+          </el-col>
+        </el-row>
+
+        <!-- 输出语言选择 -->
+        <div class="language-section">
+          <div class="section-label">
+            <el-icon><Grid /></el-icon>
+            <span>Output Language:</span>
+          </div>
+          <el-radio-group v-model="aiOutputLanguage" class="language-options">
+            <el-radio-button label="EN">EN</el-radio-button>
+            <el-radio-button label="CN">CN</el-radio-button>
+            <el-radio-button label="JP">JP</el-radio-button>
+            <el-radio-button label="KR">KR</el-radio-button>
+          </el-radio-group>
+        </div>
+
+        <!-- AI分析结果展示 -->
+        <div v-if="aiAnalysisResult" class="ai-analysis-result">
+          <el-divider>
+            <el-icon><CircleCheck /></el-icon>
+            <span>AI Analysis Result</span>
+          </el-divider>
+          
+          <!-- 字段来源对比表格 -->
+          <div class="field-source-table" v-if="aiAnalysisResult.fieldSources">
+            <div class="table-header">
+              <h4>Field Source Comparison</h4>
+              <p class="table-description">Shows how each field was extracted from images, text, and the merged result</p>
+            </div>
+            <el-table 
+              :data="aiAnalysisResult.fieldSources" 
+              border 
+              stripe 
+              class="source-comparison-table"
+              :header-cell-style="{ background: '#f5f7fa', color: '#606266', fontWeight: '600' }"
+            >
+              <el-table-column prop="field" label="Field" width="140" fixed="left">
+                <template #default="{ row }">
+                  <div class="field-name">
+                    <el-icon><Document /></el-icon>
+                    <span>{{ row.field }}</span>
+                  </div>
+                </template>
+              </el-table-column>
+              <el-table-column prop="fromImage" label="From Image" min-width="180">
+                <template #default="{ row }">
+                  <div class="source-content image-source">
+                    <el-icon v-if="row.fromImage" class="source-icon"><Picture /></el-icon>
+                    <div v-if="row.fromImage" class="source-text">
+                      {{ row.fromImage }}
+                    </div>
+                    <span v-else class="no-data">
+                      <el-icon><Minus /></el-icon>
+                      <span>No data</span>
+                    </span>
+                  </div>
+                </template>
+              </el-table-column>
+              <el-table-column prop="fromText" label="From Text" min-width="180">
+                <template #default="{ row }">
+                  <div class="source-content text-source">
+                    <el-icon v-if="row.fromText" class="source-icon"><Document /></el-icon>
+                    <div v-if="row.fromText" class="source-text">
+                      {{ row.fromText }}
+                    </div>
+                    <span v-else class="no-data">
+                      <el-icon><Minus /></el-icon>
+                      <span>No data</span>
+                    </span>
+                  </div>
+                </template>
+              </el-table-column>
+              <el-table-column prop="merged" label="Merged Result" min-width="220">
+                <template #default="{ row }">
+                  <div class="source-content merged-result">
+                    <el-icon class="source-icon merged-icon"><CircleCheck /></el-icon>
+                    <div class="source-text merged-text">
+                      {{ row.merged }}
+                    </div>
+                  </div>
+                </template>
+              </el-table-column>
+            </el-table>
+          </div>
+          
+          <el-form :model="aiAnalysisResult" label-width="140px" class="ai-result-form">
+            <el-row :gutter="20">
+              <el-col :span="12">
+                <el-form-item label="Product Name">
+                  <el-input v-model="aiAnalysisResult.name" />
+                </el-form-item>
+              </el-col>
+              <el-col :span="12">
+                <el-form-item label="Category">
+                  <el-select v-model="aiAnalysisResult.category" placeholder="Select category">
+                    <el-option label="Electronics" value="Electronics" />
+                    <el-option label="Clothing" value="Clothing" />
+                    <el-option label="Books" value="Books" />
+                    <el-option label="Home & Garden" value="Home & Garden" />
+                  </el-select>
+                </el-form-item>
+              </el-col>
+            </el-row>
+            
+            <el-row :gutter="20">
+              <el-col :span="12">
+                <el-form-item label="Brand">
+                  <el-input v-model="aiAnalysisResult.brand" />
+                </el-form-item>
+              </el-col>
+              <el-col :span="12">
+                <el-form-item label="Selling Price">
+                  <el-input-number
+                    v-model="aiAnalysisResult.sellingPrice"
+                    :min="0"
+                    :precision="2"
+                    :step="0.01"
+                    style="width: 100%"
+                  />
+                </el-form-item>
+              </el-col>
+            </el-row>
+            
+            <el-row :gutter="20">
+              <el-col :span="12">
+                <el-form-item label="Type">
+                  <el-select v-model="aiAnalysisResult.type" placeholder="Select type">
+                    <el-option label="PHYSICAL" value="PHYSICAL" />
+                    <el-option label="VIRTUAL" value="VIRTUAL" />
+                    <el-option label="SERVICE" value="SERVICE" />
+                  </el-select>
+                </el-form-item>
+              </el-col>
+              <el-col :span="12">
+                <el-form-item label="Selling Form">
+                  <el-select v-model="aiAnalysisResult.sellingForm" placeholder="Select form">
+                    <el-option label="Single" value="single" />
+                    <el-option label="Multi" value="multi" />
+                    <el-option label="Bundle" value="bundle" />
+                  </el-select>
+                </el-form-item>
+              </el-col>
+            </el-row>
+            
+            <el-form-item label="Description">
+              <el-input
+                v-model="aiAnalysisResult.description"
+                type="textarea"
+                :rows="4"
+                placeholder="Product description"
+              />
+            </el-form-item>
+            
+            <el-form-item label="Tags">
+              <el-select
+                v-model="aiAnalysisResult.tags"
+                multiple
+                filterable
+                allow-create
+                placeholder="Add tags"
+                style="width: 100%"
+              >
+                <el-option
+                  v-for="tag in aiAnalysisResult.tags"
+                  :key="tag"
+                  :label="tag"
+                  :value="tag"
+                />
+              </el-select>
+            </el-form-item>
+            
+            <el-alert
+              v-if="aiAnalysisConfidence"
+              :title="`AI Analysis Confidence: ${aiAnalysisConfidence}%`"
+              :type="aiAnalysisConfidence > 80 ? 'success' : aiAnalysisConfidence > 60 ? 'warning' : 'info'"
+              :closable="false"
+              class="mb-4"
+            />
+          </el-form>
+        </div>
+      </div>
+      
+      <template #footer>
+        <div class="dialog-footer">
+          <el-button @click="handleCancelAiCreate">Cancel</el-button>
+          <el-button
+            v-if="!aiAnalysisResult"
+            type="primary"
+            @click="handleAiAnalyze"
+            :loading="aiAnalyzing"
+            :disabled="!canAnalyze"
+          >
+            <el-icon><MagicStick /></el-icon>
+            Generate Product (Hybrid Mode)
+          </el-button>
+          <el-button
+            v-if="aiAnalysisResult"
+            @click="aiAnalysisResult = null"
+          >
+            Re-generate
+          </el-button>
+          <el-button
+            v-if="aiAnalysisResult"
+            type="primary"
+            @click="confirmAiCreate"
+            :loading="aiCreating"
+          >
+            Create Product
+          </el-button>
+        </div>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -758,7 +1063,12 @@ import {
   Close,
   Download,
   PriceTag,
-  Filter
+  Filter,
+  MagicStick,
+  Picture,
+  Document,
+  InfoFilled,
+  Minus
 } from '@element-plus/icons-vue';
 import type { Product, ColumnConfig } from '@/types/product';
 import { useRouter, useRoute } from 'vue-router';
@@ -818,6 +1128,19 @@ const channelFetchForm = ref({
 const channelProducts = ref<any[]>([]);
 const selectedChannelProducts = ref<any[]>([]);
 
+// AI创建商品相关
+const aiCreateDialogVisible = ref(false);
+const aiTextInput = ref('');
+const aiImageList = ref<any[]>([]);
+const aiImageUploadRef = ref();
+const aiAnalyzing = ref(false);
+const aiCreating = ref(false);
+const aiAnalysisResult = ref<any>(null);
+const aiAnalysisConfidence = ref<number>(0);
+const aiBrandInput = ref('');
+const aiCategoryInput = ref('');
+const aiOutputLanguage = ref('EN');
+
 // 批量操作权限检查
 const canBatchDelete = computed(() => {
   return selectedProducts.value.every(product => product.status === 'Draft');
@@ -825,6 +1148,11 @@ const canBatchDelete = computed(() => {
 
 const canBatchPublish = computed(() => {
   return selectedProducts.value.every(product => product.status === 'Draft');
+});
+
+// AI分析是否可以执行（文字或图片至少有一个）
+const canAnalyze = computed(() => {
+  return aiTextInput.value.trim().length > 0 || aiImageList.value.length > 0;
 });
 
 const columnDialogVisible = ref(false);
@@ -1293,6 +1621,11 @@ const handleEdit = (row: Product) => {
   router.push(`/product/${row.id}`);
 };
 
+// 跳转到AI创建商品页面
+const handleAiCreate = () => {
+  router.push('/product/ai-product-creator');
+};
+
 // 处理创建命令
 const handleCreateCommand = async (command: string) => {
   switch (command) {
@@ -1582,6 +1915,348 @@ const handleCancelChannelFetch = () => {
   };
 };
 
+// AI创建商品相关方法
+// 处理AI图片上传
+const handleAiImageChange = (file: any) => {
+  // 验证文件大小
+  const isLt10M = file.raw.size / 1024 / 1024 < 10;
+  if (!isLt10M) {
+    ElMessage.error('Image size must be smaller than 10MB');
+    return;
+  }
+  
+  // 验证文件类型
+  const isImage = file.raw.type.startsWith('image/');
+  if (!isImage) {
+    ElMessage.error('Only image files are allowed');
+    return;
+  }
+  
+  aiImageList.value.push(file);
+};
+
+// 移除AI图片
+const handleAiImageRemove = (file: any) => {
+  const index = aiImageList.value.findIndex(item => item.uid === file.uid);
+  if (index > -1) {
+    aiImageList.value.splice(index, 1);
+  }
+};
+
+// AI分析内容（支持文字和图片同时分析）
+const handleAiAnalyze = async () => {
+  if (!canAnalyze.value) {
+    ElMessage.warning('Please provide text description or upload images');
+    return;
+  }
+  
+  aiAnalyzing.value = true;
+  
+  try {
+    // 模拟AI分析过程
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    
+    let textData: any = {};
+    let imageData: any = {};
+    let analysisData: any = {};
+    
+    // 如果有文字输入，分析文字
+    if (aiTextInput.value.trim().length > 0) {
+      textData = extractInfoFromText(aiTextInput.value);
+    }
+    
+    // 如果有图片，分析图片
+    if (aiImageList.value.length > 0) {
+      imageData = await extractInfoFromImages(aiImageList.value, aiTextInput.value);
+    }
+    
+    // 合并文字和图片的分析结果
+    // 优先使用用户输入的品牌和类别，其次使用文字信息，最后使用图片信息
+    const mergedName = textData.name || imageData.name || '';
+    const mergedCategory = aiCategoryInput.value || textData.category || imageData.category || 'Electronics';
+    const mergedBrand = aiBrandInput.value || textData.brand || imageData.brand || '';
+    const mergedDescription = textData.description || imageData.description || '';
+    const mergedTags = [...(textData.tags || []), ...(imageData.tags || [])].filter((tag, index, self) => 
+      self.indexOf(tag) === index // 去重
+    );
+    
+    analysisData = {
+      name: mergedName,
+      category: mergedCategory,
+      brand: mergedBrand,
+      sellingPrice: textData.sellingPrice || imageData.sellingPrice || 0,
+      type: textData.type || imageData.type || 'PHYSICAL',
+      sellingForm: textData.sellingForm || imageData.sellingForm || 'single',
+      description: mergedDescription,
+      tags: mergedTags,
+      outputLanguage: aiOutputLanguage.value,
+      // 字段来源信息
+      fieldSources: [
+        {
+          field: 'Title',
+          fromImage: imageData.name ? 'Color, Type' : '',
+          fromText: textData.name ? 'Use Case, Function' : '',
+          merged: mergedName || 'Most Accurate Title Synthesized'
+        },
+        {
+          field: 'Bullet Points',
+          fromImage: imageData.bulletPoints ? 'Appearance Features' : '',
+          fromText: textData.bulletPoints ? 'Function/Selling Points' : '',
+          merged: (textData.bulletPoints || imageData.bulletPoints || 'Merged Features').substring(0, 50)
+        },
+        {
+          field: 'Description',
+          fromImage: imageData.description ? 'Main Structure' : '',
+          fromText: textData.description ? 'Selling Points Supplement' : '',
+          merged: mergedDescription || 'Most Complete Description'
+        },
+        {
+          field: 'Category',
+          fromImage: imageData.category ? 'Image Recognition' : '',
+          fromText: textData.category ? 'Text Keywords' : '',
+          merged: mergedCategory + ' (Higher Confidence)'
+        },
+        {
+          field: 'Attributes',
+          fromImage: imageData.attributes ? 'Size, Color, Material' : '',
+          fromText: textData.attributes ? 'Function, Capacity' : '',
+          merged: (textData.attributes || imageData.attributes || 'Full Attributes').substring(0, 50)
+        },
+        {
+          field: 'Tags',
+          fromImage: imageData.tags?.length > 0 ? 'Based on Image' : '',
+          fromText: textData.tags?.length > 0 ? 'SEO Enhanced' : '',
+          merged: mergedTags.join(', ') || 'SEO Level Tags'
+        },
+        {
+          field: 'Images',
+          fromImage: aiImageList.value.length > 0 ? `${aiImageList.value.length} Images (White Background, Scene)` : '',
+          fromText: textData.imageSuggestions ? 'Text Supplement' : '',
+          merged: aiImageList.value.length > 0 ? `${aiImageList.value.length} Images (Can Regenerate)` : 'Can Generate'
+        },
+        {
+          field: 'Variants',
+          fromImage: imageData.variants ? 'Color Differences' : '',
+          fromText: textData.variants ? 'Text Specified' : '',
+          merged: (textData.variants || imageData.variants || 'Automated Variants').substring(0, 50)
+        }
+      ]
+    };
+    
+    // 计算置信度：同时有文字和图片时置信度更高
+    let confidence = 70;
+    if (aiTextInput.value.trim().length > 0 && aiImageList.value.length > 0) {
+      // 图文结合，置信度更高
+      confidence = Math.max(textData.confidence || 75, imageData.confidence || 75) + 10;
+      confidence = Math.min(confidence, 95); // 最高95%
+    } else if (aiTextInput.value.trim().length > 0) {
+      confidence = textData.confidence || 85;
+    } else if (aiImageList.value.length > 0) {
+      confidence = imageData.confidence || 75;
+    }
+    
+    // 设置分析结果
+    aiAnalysisResult.value = analysisData;
+    aiAnalysisConfidence.value = confidence;
+    
+    const inputTypes = [];
+    if (aiTextInput.value.trim().length > 0) inputTypes.push('text');
+    if (aiImageList.value.length > 0) inputTypes.push(`${aiImageList.value.length} image(s)`);
+    
+    ElMessage.success(`AI analysis completed successfully (${inputTypes.join(' + ')})`);
+  } catch (error) {
+    ElMessage.error('AI analysis failed. Please try again.');
+    console.error('AI analysis error:', error);
+  } finally {
+    aiAnalyzing.value = false;
+  }
+};
+
+// 从文本中提取商品信息（模拟AI分析）
+const extractInfoFromText = (text: string) => {
+  const result: any = {
+    confidence: 85
+  };
+  
+  // 提取商品名称
+  const nameMatch = text.match(/(?:create|product|item|name)[\s:]+([^,\.]+)/i);
+  if (nameMatch) {
+    result.name = nameMatch[1].trim();
+  } else {
+    // 如果没有明确匹配，尝试提取第一个描述性短语
+    const words = text.split(/[,\\.]/);
+    if (words.length > 0) {
+      result.name = words[0].trim().substring(0, 100);
+    }
+  }
+  
+  // 提取价格
+  const priceMatch = text.match(/\$?\s*(\d+\.?\d*)/g);
+  if (priceMatch && priceMatch.length > 0) {
+    const prices = priceMatch.map(p => parseFloat(p.replace('$', '').trim()));
+    result.sellingPrice = Math.max(...prices);
+  }
+  
+  // 提取类别
+  const categoryKeywords: Record<string, string> = {
+    'headphone|earphone|audio|sound': 'Electronics',
+    'shirt|dress|clothing|apparel|fashion': 'Clothing',
+    'book|novel|magazine': 'Books',
+    'furniture|garden|home|kitchen': 'Home & Garden'
+  };
+  
+  for (const [keyword, category] of Object.entries(categoryKeywords)) {
+    if (new RegExp(keyword, 'i').test(text)) {
+      result.category = category;
+      break;
+    }
+  }
+  
+  // 提取品牌
+  const brandMatch = text.match(/(?:brand|made by|manufacturer)[\s:]+([A-Z][a-zA-Z]+)/i);
+  if (brandMatch) {
+    result.brand = brandMatch[1];
+  }
+  
+  // 提取标签
+  const tags: string[] = [];
+  const tagKeywords = ['wireless', 'bluetooth', 'noise cancellation', 'waterproof', 'smart', 'premium'];
+  tagKeywords.forEach(keyword => {
+    if (new RegExp(keyword, 'i').test(text)) {
+      tags.push(keyword);
+    }
+  });
+  result.tags = tags;
+  
+  // 生成描述
+  result.description = text.substring(0, 500);
+  
+  // 提取卖点/功能（Bullet Points）
+  const bulletPoints: string[] = [];
+  const functionKeywords = ['feature', 'function', 'benefit', 'advantage', 'capability'];
+  const sentences = text.split(/[.!?]/).filter(s => s.trim().length > 10);
+  sentences.slice(0, 5).forEach(sentence => {
+    if (functionKeywords.some(keyword => new RegExp(keyword, 'i').test(sentence))) {
+      bulletPoints.push(sentence.trim().substring(0, 100));
+    }
+  });
+  result.bulletPoints = bulletPoints.length > 0 ? bulletPoints.join('; ') : 'Function/Selling Points';
+  
+  // 提取属性（Attributes）
+  const attributes: string[] = [];
+  const attributePatterns = [
+    { pattern: /(\d+)\s*(gb|mb|kg|g|ml|l|inch|cm|m)/gi, label: 'Capacity/Size' },
+    { pattern: /(capacity|size|dimension|weight)/gi, label: 'Specifications' }
+  ];
+  attributePatterns.forEach(({ pattern, label }) => {
+    if (pattern.test(text)) {
+      attributes.push(label);
+    }
+  });
+  result.attributes = attributes.length > 0 ? attributes.join(', ') : 'Function, Capacity';
+  
+  // 提取变体信息
+  const variantKeywords = ['color', 'size', 'variant', 'option', 'model'];
+  const hasVariants = variantKeywords.some(keyword => new RegExp(keyword, 'i').test(text));
+  result.variants = hasVariants ? 'Text Specified Variants' : '';
+  
+  return result;
+};
+
+// 从图片中提取商品信息（模拟AI分析）
+const extractInfoFromImages = async (images: any[], textDescription: string = '') => {
+  // 模拟图片分析
+  await new Promise(resolve => setTimeout(resolve, 500));
+  
+  const result: any = {
+    confidence: 75,
+    name: 'Product from Image',
+    category: 'Electronics',
+    sellingPrice: 99.99,
+    type: 'PHYSICAL',
+    sellingForm: 'single',
+    description: textDescription || 'Product analyzed from uploaded images',
+    tags: ['Image Analysis']
+  };
+  
+  // 如果有文字描述，尝试从中提取信息并合并
+  if (textDescription && textDescription.trim().length > 0) {
+    const textInfo = extractInfoFromText(textDescription);
+    // 合并信息：文字信息优先，图片信息作为补充
+    result.name = textInfo.name || result.name;
+    result.category = textInfo.category || result.category;
+    result.brand = textInfo.brand || result.brand;
+    result.sellingPrice = textInfo.sellingPrice || result.sellingPrice;
+    result.description = textInfo.description || result.description;
+    result.tags = [...(textInfo.tags || []), ...result.tags].filter((tag, index, self) => 
+      self.indexOf(tag) === index // 去重
+    );
+    // 有文字描述时置信度提高
+    result.confidence = Math.max(result.confidence, textInfo.confidence || 75);
+  }
+  
+  return result;
+};
+
+// 确认AI创建商品
+const confirmAiCreate = async () => {
+  if (!aiAnalysisResult.value) {
+    ElMessage.warning('Please analyze the content first');
+    return;
+  }
+  
+  // 验证必填字段
+  if (!aiAnalysisResult.value.name) {
+    ElMessage.warning('Product name is required');
+    return;
+  }
+  
+  if (!aiAnalysisResult.value.sellingPrice || aiAnalysisResult.value.sellingPrice <= 0) {
+    ElMessage.warning('Please enter a valid selling price');
+    return;
+  }
+  
+  aiCreating.value = true;
+  
+  try {
+    // 模拟创建商品
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    
+    // 这里应该调用实际的API创建商品
+    // await createProduct(aiAnalysisResult.value);
+    
+    ElMessage.success(`Product "${aiAnalysisResult.value.name}" created successfully`);
+    
+    // 重置并关闭对话框
+    handleCancelAiCreate();
+    
+    // 刷新列表
+    loadProducts();
+  } catch (error) {
+    ElMessage.error('Failed to create product');
+    console.error('Create product error:', error);
+  } finally {
+    aiCreating.value = false;
+  }
+};
+
+// 取消AI创建
+const handleCancelAiCreate = () => {
+  aiCreateDialogVisible.value = false;
+  aiTextInput.value = '';
+  aiImageList.value = [];
+  aiAnalysisResult.value = null;
+  aiAnalysisConfidence.value = 0;
+  aiBrandInput.value = '';
+  aiCategoryInput.value = '';
+  aiOutputLanguage.value = 'EN';
+  
+  // 清空上传组件
+  if (aiImageUploadRef.value) {
+    aiImageUploadRef.value.clearFiles();
+  }
+};
+
 const handlePublish = async (row: Product) => {
   if (row.status !== 'Draft') {
     ElMessage.warning('Only draft products can be published');
@@ -1767,6 +2442,45 @@ onMounted(() => {
   align-items: center;
   gap: 16px;
   flex-shrink: 0;
+}
+
+.ai-create-btn {
+  position: relative;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(103, 194, 58, 0.3);
+  transition: all 0.3s ease;
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(103, 194, 58, 0.4);
+  }
+  
+  &:active {
+    transform: translateY(0);
+  }
+  
+  .el-icon {
+    margin-right: 6px;
+    font-size: 16px;
+  }
+  
+  /* 添加一个微妙的动画效果 */
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    border-radius: 4px;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.2) 0%, transparent 100%);
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+  
+  &:hover::before {
+    opacity: 1;
+  }
 }
 
 .selected-info-inline {
@@ -2592,6 +3306,356 @@ onMounted(() => {
     
     .el-icon {
       font-size: 18px;
+    }
+  }
+}
+
+/* AI创建商品对话框样式 */
+.ai-create-content {
+  padding: 16px 0;
+  
+  .section-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--el-text-color-primary);
+    
+    .el-icon {
+      color: var(--el-color-primary);
+      font-size: 18px;
+    }
+  }
+  
+  /* 图片上传区域 */
+  .image-upload-section {
+    margin-bottom: 24px;
+    
+    .ai-image-upload {
+      :deep(.el-upload) {
+        width: 100%;
+      }
+      
+      :deep(.el-upload-list--picture-card) {
+        .el-upload-list__item {
+          width: 120px;
+          height: 120px;
+        }
+      }
+      
+      :deep(.el-upload--picture-card) {
+        width: 120px;
+        height: 120px;
+        border: 1px dashed var(--el-border-color);
+        border-radius: 6px;
+        background-color: var(--el-fill-color-light);
+        transition: all 0.3s;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 8px;
+        
+        &:hover {
+          border-color: var(--el-color-primary);
+          background-color: var(--el-color-primary-light-9);
+        }
+        
+        .el-icon {
+          font-size: 28px;
+          color: var(--el-text-color-secondary);
+          margin-bottom: 4px;
+        }
+        
+        .el-upload__text {
+          font-size: 12px;
+          color: var(--el-text-color-regular);
+          line-height: 1.2;
+          margin: 0;
+        }
+        
+        .el-upload__hint {
+          font-size: 11px;
+          color: var(--el-text-color-placeholder);
+          margin-top: 2px;
+          line-height: 1.2;
+        }
+      }
+    }
+    
+    .upload-tip {
+      margin-top: 12px;
+      font-size: 12px;
+      color: var(--el-text-color-secondary);
+    }
+  }
+  
+  /* 产品备注区域 */
+  .product-notes-section {
+    margin-bottom: 24px;
+    
+    .notes-input {
+      :deep(.el-textarea__inner) {
+        font-size: 14px;
+        line-height: 1.6;
+      }
+    }
+  }
+  
+  /* 可选字段区域 */
+  .optional-fields {
+    margin-bottom: 24px;
+    
+    .field-item {
+      .field-label {
+        margin-bottom: 8px;
+        font-size: 13px;
+        color: var(--el-text-color-regular);
+        font-weight: 500;
+      }
+    }
+  }
+  
+  /* 语言选择区域 */
+  .language-section {
+    margin-bottom: 24px;
+    
+    .language-options {
+      width: 100%;
+      display: flex;
+      gap: 8px;
+      
+      :deep(.el-radio-button) {
+        flex: 1;
+        
+        .el-radio-button__inner {
+          width: 100%;
+          padding: 12px 0;
+          font-weight: 600;
+          font-size: 14px;
+        }
+      }
+    }
+  }
+  
+  /* 字段来源对比表格样式 */
+  .field-source-table {
+    margin: 24px 0;
+    padding: 20px;
+    background: var(--el-bg-color-page);
+    border-radius: 8px;
+    border: 1px solid var(--el-border-color-lighter);
+    
+    .table-header {
+      margin-bottom: 16px;
+      
+      h4 {
+        margin: 0 0 8px 0;
+        font-size: 16px;
+        font-weight: 600;
+        color: var(--el-text-color-primary);
+      }
+      
+      .table-description {
+        margin: 0;
+        font-size: 13px;
+        color: var(--el-text-color-secondary);
+        line-height: 1.5;
+      }
+    }
+    
+    .source-comparison-table {
+      :deep(.el-table__header-wrapper) {
+        .el-table__header {
+          th {
+            background: #f5f7fa !important;
+            color: #606266;
+            font-weight: 600;
+            padding: 12px 0;
+          }
+        }
+      }
+      
+      :deep(.el-table__body-wrapper) {
+        .el-table__body {
+          tr {
+            transition: background-color 0.2s;
+            
+            &:hover {
+              background-color: var(--el-fill-color-light) !important;
+            }
+            
+            td {
+              padding: 16px 12px;
+              vertical-align: middle;
+            }
+          }
+        }
+      }
+      
+      .field-name {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-weight: 600;
+        color: var(--el-text-color-primary);
+        
+        .el-icon {
+          color: var(--el-color-primary);
+          font-size: 16px;
+        }
+      }
+      
+      .source-content {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        min-height: 32px;
+        
+        .source-icon {
+          margin-top: 2px;
+          font-size: 18px;
+          flex-shrink: 0;
+        }
+        
+        .source-text {
+          flex: 1;
+          font-size: 13px;
+          line-height: 1.6;
+          color: var(--el-text-color-regular);
+          word-break: break-word;
+        }
+        
+        &.image-source {
+          .source-icon {
+            color: #409eff;
+          }
+        }
+        
+        &.text-source {
+          .source-icon {
+            color: #67c23a;
+          }
+        }
+        
+        &.merged-result {
+          background: linear-gradient(135deg, rgba(64, 158, 255, 0.08) 0%, rgba(103, 194, 58, 0.08) 100%);
+          padding: 10px 12px;
+          border-radius: 6px;
+          border-left: 3px solid var(--el-color-primary);
+          
+          .merged-icon {
+            color: var(--el-color-primary);
+            font-size: 20px;
+          }
+          
+          .merged-text {
+            font-weight: 500;
+            color: var(--el-text-color-primary);
+            font-size: 14px;
+          }
+        }
+        
+        .no-data {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          color: var(--el-text-color-placeholder);
+          font-size: 13px;
+          font-style: italic;
+          
+          .el-icon {
+            font-size: 14px;
+          }
+        }
+      }
+    }
+  }
+  
+  .ai-analysis-result {
+    margin-top: 24px;
+    padding-top: 24px;
+    border-top: 2px solid var(--el-border-color-light);
+    
+    :deep(.el-divider__text) {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 600;
+      color: var(--el-color-primary);
+      
+      .el-icon {
+        font-size: 18px;
+      }
+    }
+    
+    .ai-result-form {
+      margin-top: 20px;
+      
+      .el-form-item {
+        margin-bottom: 20px;
+      }
+      
+      :deep(.el-input-number) {
+        width: 100%;
+      }
+      
+      :deep(.el-select) {
+        width: 100%;
+      }
+      
+      :deep(.el-textarea__inner) {
+        font-size: 14px;
+        line-height: 1.6;
+      }
+    }
+    
+    .mb-4 {
+      margin-bottom: 16px;
+      margin-top: 16px;
+    }
+  }
+}
+
+/* AI创建对话框响应式 */
+@media (max-width: 768px) {
+  .ai-create-content {
+    .optional-fields {
+      :deep(.el-col) {
+        width: 100% !important;
+        margin-bottom: 16px;
+      }
+    }
+    
+    .language-options {
+      flex-direction: column;
+      
+      :deep(.el-radio-button) {
+        width: 100%;
+      }
+    }
+    
+    .ai-image-upload {
+      :deep(.el-upload-list--picture-card) {
+        .el-upload-list__item {
+          width: 100px;
+          height: 100px;
+        }
+      }
+      
+      :deep(.el-upload--picture-card) {
+        width: 100px;
+        height: 100px;
+      }
+    }
+    
+    .ai-result-form {
+      :deep(.el-col) {
+        width: 100% !important;
+        margin-bottom: 16px;
+      }
     }
   }
 }

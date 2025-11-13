@@ -629,6 +629,15 @@ const routes: RouteRecordRaw[] = [
             }
           },
           {
+            path: 'ai-product-creator',
+            name: 'AiProductCreator',
+            component: () => import('@/views/AiProductCreator.vue'),
+            meta: {
+              title: 'AI Product Creator',
+              icon: 'MagicStick'
+            }
+          },
+          {
             path: 'category',
             name: 'ProductCategory',
             component: () => import('@/views/product/category/index.vue'),

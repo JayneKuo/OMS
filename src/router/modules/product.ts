@@ -89,6 +89,15 @@ const productRoutes: RouteRecordRaw = {
       },
     },
     {
+      path: 'ai-product-creator',
+      name: 'AiProductCreator',
+      component: () => import('../../views/AiProductCreator.vue'),
+      meta: {
+        title: 'AI Product Creator',
+        icon: 'MagicStick',
+      },
+    },
+    {
       path: 'create',
       name: 'ProductCreate',
       component: () => import('../../views/product/create.vue'),
