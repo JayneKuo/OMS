@@ -199,10 +199,18 @@
         </el-tab-pane>
 
         <el-tab-pane label="Settings" name="settings">
-          <settings-tab 
-            v-model="settings" 
-            :channel-type="connectionData.subType"
-          />
+          <div class="settings-container">
+            <settings-tab 
+              v-model="settings" 
+              :channel-type="connectionData.subType"
+            />
+            <!-- Settings Save Button - Right side -->
+            <div class="settings-actions">
+              <el-button type="primary" @click="handleSaveSettings" :icon="Upload" :loading="isSavingSettings" size="large">
+                {{ isSavingSettings ? 'Saving...' : 'Save All Settings' }}
+              </el-button>
+            </div>
+          </div>
         </el-tab-pane>
 
         <el-tab-pane label="Mappings" name="mappings">
@@ -263,6 +271,7 @@ const formRef = ref()
 
 // 保存状态
 const isSaving = ref(false)
+const isSavingSettings = ref(false)
 
 // 仓库设置
 const warehouseSettings = ref({
@@ -428,8 +437,22 @@ const initConnectionData = async () => {
     if (integration.subType) {
       settings.value.channelSettings = {
         ...getDefaultChannelSettings(integration.subType),
-        ...integration.connectionInfo
+        ...integration.connectionInfo?.channelSettings
       }
+    }
+
+    // 如果已有保存的设置，恢复设置数据
+    if (integration.connectionInfo?.settings) {
+      // 深度合并设置，确保所有字段都存在
+      const savedSettings = integration.connectionInfo.settings
+      Object.keys(settings.value).forEach(key => {
+        if (savedSettings[key]) {
+          settings.value[key] = {
+            ...settings.value[key],
+            ...savedSettings[key]
+          }
+        }
+      })
     }
   } catch (error) {
     console.error('Failed to fetch connection details:', error)
@@ -518,32 +541,85 @@ onMounted(() => {
 // 初始化设置数据
 const settings = ref({
   orders: {
-    mode: 'pull',
+    mode: 'disabled',
+    enabled: false,
+    running: false,
     lastPull: null,
-    nextStatus: null
+    lastRunTime: null,
+    nextStatus: null,
+    nextRunTime: null,
+    syncInterval: 15,
+    autoSync: false,
+    autoPush: false,
+    pullFromDate: null,
+    orderStatuses: [],
+    orderTags: ''
   },
   products: {
-    mode: 'pull',
+    mode: 'disabled',
+    enabled: false,
+    running: false,
     lastPull: null,
-    nextStatus: null
+    lastRunTime: null,
+    nextStatus: null,
+    nextRunTime: null,
+    syncInterval: 30,
+    syncVariants: true,
+    updateExisting: true
   },
   inventory: {
-    mode: 'disabled'
+    mode: 'disabled',
+    enabled: false,
+    running: false,
+    lastRunTime: null,
+    nextRunTime: null,
+    syncInterval: 15,
+    realTimeSync: false,
+    syncAllLocations: false,
+    syncToLocations: [],
+    pullFromLocations: []
   },
   fulfillments: {
-    mode: 'disabled'
+    mode: 'disabled',
+    enabled: false,
+    running: false,
+    lastRunTime: null,
+    nextRunTime: null,
+    syncInterval: 10,
+    autoUpdate: false,
+    includeTracking: true
   },
   returns: {
-    mode: 'disabled'
+    mode: 'disabled',
+    enabled: false,
+    running: false,
+    lastRunTime: null,
+    nextRunTime: null,
+    syncInterval: 60,
+    autoProcess: false
   },
   refunds: {
-    mode: 'disabled'
+    mode: 'disabled',
+    enabled: false,
+    running: false,
+    lastRunTime: null,
+    nextRunTime: null,
+    syncInterval: 60,
+    syncPartial: true
   },
   statements: {
-    enabled: false
+    enabled: false,
+    running: false,
+    lastRunTime: null,
+    nextRunTime: null,
+    syncInterval: 240
   },
   locations: {
-    enabled: false
+    enabled: false,
+    running: false,
+    lastRunTime: null,
+    nextRunTime: null,
+    syncInterval: 240
   },
   channelSettings: {} // 添加渠道特定设置
 })
@@ -613,6 +689,38 @@ const getNameInitials = (name: string) => {
     .join('')
     .toUpperCase()
     .slice(0, 2)
+}
+
+// 保存 Settings
+const handleSaveSettings = async () => {
+  try {
+    isSavingSettings.value = true
+    
+    // 模拟保存API调用
+    await new Promise(resolve => setTimeout(resolve, 1500))
+    
+    // 更新连接数据中的设置
+    const updatedConnectionInfo = {
+      ...connectionData.value.connectionInfo,
+      settings: settings.value
+    }
+    
+    // 更新本地数据
+    connectionData.value.connectionInfo = updatedConnectionInfo
+    
+    // 更新MOCK数据中的对应项
+    const integrationIndex = MOCK_INTEGRATIONS.findIndex(item => item.id === connectionData.value.id)
+    if (integrationIndex !== -1) {
+      MOCK_INTEGRATIONS[integrationIndex].connectionInfo = updatedConnectionInfo
+    }
+    
+    ElMessage.success('Settings saved successfully')
+  } catch (error) {
+    console.error('Save settings failed:', error)
+    ElMessage.error('Failed to save settings. Please try again.')
+  } finally {
+    isSavingSettings.value = false
+  }
 }
 </script>
 
@@ -1060,6 +1168,7 @@ const getNameInitials = (name: string) => {
 
     :deep(.el-tabs__content) {
       padding: 24px;
+      position: relative;
     }
 
     // Connection Details 表单样式
@@ -1116,6 +1225,46 @@ const getNameInitials = (name: string) => {
     }
 
     // Settings 标签页样式
+    .settings-container {
+      padding-bottom: 80px; // 为底部固定按钮留出空间
+    }
+
+    .settings-actions {
+      position: fixed !important;
+      bottom: 24px !important;
+      right: 24px !important;
+      left: auto !important;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 12px;
+
+      .el-button {
+        min-width: 160px;
+        height: 44px;
+        padding: 0 28px;
+        font-size: 14px;
+        font-weight: 500;
+        box-shadow: 0 4px 12px rgba(128, 90, 213, 0.3);
+        transition: all 0.3s ease;
+
+        &:hover {
+          box-shadow: 0 6px 16px rgba(128, 90, 213, 0.4);
+          transform: translateY(-2px);
+        }
+
+        &.el-button--primary {
+          --el-button-bg-color: #805ad5;
+          --el-button-border-color: #805ad5;
+          --el-button-hover-bg-color: #9f7aea;
+          --el-button-hover-border-color: #9f7aea;
+          --el-button-active-bg-color: #6b46c1;
+          --el-button-active-border-color: #6b46c1;
+        }
+      }
+    }
+
     .settings-content {
       .settings-section {
         margin-bottom: 40px;

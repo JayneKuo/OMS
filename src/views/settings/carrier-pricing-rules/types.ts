@@ -96,6 +96,8 @@ export interface CarrierConfig {
   shippingAccountName?: string // 用于显示
   serviceTypes: string[] // 选择哪些服务类型
   excludeServiceTypes?: string[] // 排除哪些服务类型
+  deliveryService?: string // 配送服务
+  shipMethod?: 'FTL' | 'LTL' | 'SMALL PARCEL' // 发货方式
   
   // 价格调整
   markupType?: 'percentage' | 'fixed' | 'none'

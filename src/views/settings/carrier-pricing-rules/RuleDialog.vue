@@ -716,26 +716,71 @@
                                 />
                               </el-select>
                             </div>
-
-                            <div class="field-item">
-                              <label class="field-label">Shipping Service</label>
-                              <el-select
-                                v-model="carrier.shippingService"
-                                placeholder="Select Shipping Service"
-                                style="width: 100%"
-                              >
-                                <el-option label="Ground" value="ground" />
-                                <el-option label="Express" value="express" />
-                                <el-option label="Overnight" value="overnight" />
-                                <el-option label="2-Day" value="2day" />
-                                <el-option label="International" value="international" />
-                              </el-select>
-                            </div>
                           </div>
                         </div>
                       </div>
                     </template>
                   </draggable>
+                </div>
+
+                <!-- Unified Settings for All Carriers -->
+                <div v-if="formData.rateShoppingConfig.carriers.length > 0" class="unified-settings-section">
+                  <div class="unified-settings-header">
+                    <el-icon><Setting /></el-icon>
+                    <span class="unified-settings-title">Unified Settings (Apply to All Carriers)</span>
+                  </div>
+                  <div class="unified-settings-content">
+                    <div class="field-row">
+                      <div class="field-item">
+                        <label class="field-label">Delivery Service</label>
+                        <el-select
+                          v-model="unifiedDeliveryService"
+                          placeholder="Select Delivery Service"
+                          style="width: 100%"
+                          @change="applyUnifiedSettings"
+                        >
+                          <el-option-group label="FedEx Services">
+                            <el-option label="FedEx Ground" value="FEDEX_GROUND" />
+                            <el-option label="FedEx Express Saver" value="FEDEX_EXPRESS_SAVER" />
+                            <el-option label="FedEx 2Day" value="FEDEX_2_DAY" />
+                            <el-option label="FedEx Standard Overnight" value="STANDARD_OVERNIGHT" />
+                            <el-option label="FedEx Priority Overnight" value="PRIORITY_OVERNIGHT" />
+                          </el-option-group>
+                          <el-option-group label="UPS Services">
+                            <el-option label="UPS Ground" value="UPS_GROUND" />
+                            <el-option label="UPS 3 Day Select" value="UPS_3_DAY_SELECT" />
+                            <el-option label="UPS 2nd Day Air" value="UPS_2ND_DAY_AIR" />
+                            <el-option label="UPS Next Day Air" value="UPS_NEXT_DAY_AIR" />
+                          </el-option-group>
+                          <el-option-group label="USPS Services">
+                            <el-option label="USPS First Class" value="USPS_FIRST_CLASS" />
+                            <el-option label="USPS Priority Mail" value="USPS_PRIORITY" />
+                            <el-option label="USPS Express Mail" value="USPS_EXPRESS" />
+                          </el-option-group>
+                          <el-option-group label="DHL Services">
+                            <el-option label="DHL Express" value="DHL_EXPRESS" />
+                            <el-option label="DHL Ground" value="DHL_GROUND" />
+                          </el-option-group>
+                        </el-select>
+                        <span class="field-hint">Apply delivery service to all carriers</span>
+                      </div>
+
+                      <div class="field-item">
+                        <label class="field-label">Ship Method</label>
+                        <el-select
+                          v-model="unifiedShipMethod"
+                          placeholder="Select Ship Method"
+                          style="width: 100%"
+                          @change="applyUnifiedSettings"
+                        >
+                          <el-option label="FTL (Full Truckload)" value="FTL" />
+                          <el-option label="LTL (Less Than Truckload)" value="LTL" />
+                          <el-option label="SMALL PARCEL" value="SMALL PARCEL" />
+                        </el-select>
+                        <span class="field-hint">Apply ship method to all carriers (FTL, LTL, SMALL PARCEL)</span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
                 <!-- Empty State -->
@@ -818,7 +863,7 @@
 import { ref, reactive, computed, watch, onMounted } from 'vue'
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
 import { 
-  Document, Filter, Close, Plus, Delete, Check, Rank
+  Document, Filter, Close, Plus, Delete, Check, Rank, Setting
 } from '@element-plus/icons-vue'
 import draggable from 'vuedraggable'
 import type { RateShoppingRule, CarrierConfig } from './types'
@@ -847,6 +892,8 @@ const saving = ref(false)
 const priceThreshold = ref<number | null>(null)
 const priceDeviationPercentage = ref<number | null>(null)
 const selectedCarriers = ref<string[]>([])
+const unifiedDeliveryService = ref<string>('')
+const unifiedShipMethod = ref<'FTL' | 'LTL' | 'SMALL PARCEL' | ''>('')
 
 // Condition order tracking
 const conditionOrder = ref<string[]>([])
@@ -973,7 +1020,9 @@ const handleCarrierSelection = () => {
         shippingAccountId: '',
         serviceTypes: [],
         markupType: 'none',
-        markupValue: 0
+        markupValue: 0,
+        deliveryService: unifiedDeliveryService.value || undefined,
+        shipMethod: unifiedShipMethod.value || undefined
       })
     }
   })
@@ -983,8 +1032,25 @@ const handleCarrierSelection = () => {
     selectedCarriers.value.includes(c.carrier)
   )
 
+  // Apply unified settings to all carriers if they are set
+  if (unifiedDeliveryService.value || unifiedShipMethod.value) {
+    applyUnifiedSettings()
+  }
+
   // Sync carrier priority
   syncCarrierPriority()
+}
+
+// Apply unified settings to all carriers
+const applyUnifiedSettings = () => {
+  formData.rateShoppingConfig.carriers.forEach(carrier => {
+    if (unifiedDeliveryService.value) {
+      carrier.deliveryService = unifiedDeliveryService.value
+    }
+    if (unifiedShipMethod.value) {
+      carrier.shipMethod = unifiedShipMethod.value as 'FTL' | 'LTL' | 'SMALL PARCEL'
+    }
+  })
 }
 
 // Sync carrier priority based on carrier order
@@ -1064,6 +1130,24 @@ onMounted(() => {
     
     // Initialize selected carriers from existing data
     selectedCarriers.value = formData.rateShoppingConfig.carriers.map(c => c.carrier)
+    
+    // Initialize unified settings from existing carriers
+    // If all carriers have the same value, show it in unified settings
+    if (formData.rateShoppingConfig.carriers.length > 0) {
+      const carriers = formData.rateShoppingConfig.carriers
+      
+      // Check if all carriers have the same deliveryService
+      const deliveryServices = carriers.map(c => c.deliveryService).filter(Boolean)
+      if (deliveryServices.length > 0 && deliveryServices.every(v => v === deliveryServices[0])) {
+        unifiedDeliveryService.value = deliveryServices[0]
+      }
+      
+      // Check if all carriers have the same shipMethod
+      const shipMethods = carriers.map(c => c.shipMethod).filter(Boolean)
+      if (shipMethods.length > 0 && shipMethods.every(v => v === shipMethods[0])) {
+        unifiedShipMethod.value = shipMethods[0] as 'FTL' | 'LTL' | 'SMALL PARCEL'
+      }
+    }
     
     // Set selected conditions based on existing data
     const conditionsToActivate = [
@@ -1397,6 +1481,38 @@ const handleSubmit = async () => {
     padding: 16px;
     background-color: var(--el-fill-color-light);
     border-radius: 8px;
+  }
+
+  .unified-settings-section {
+    margin-top: 24px;
+    margin-bottom: 24px;
+    padding: 16px;
+    background-color: transparent;
+    border-radius: 8px;
+
+    .unified-settings-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--el-border-color-lighter);
+
+      .el-icon {
+        color: var(--el-color-primary);
+        font-size: 18px;
+      }
+
+      .unified-settings-title {
+        font-size: 15px;
+        font-weight: 600;
+        color: var(--el-text-color-primary);
+      }
+    }
+
+    .unified-settings-content {
+      padding-top: 8px;
+    }
   }
 
   .carrier-cards-wrapper {

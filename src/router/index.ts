@@ -168,6 +168,14 @@ const routes: RouteRecordRaw[] = [
             }
           },
           {
+            path: 'load-plan',
+            name: 'LoadPlan',
+            component: () => import('@/views/order/load-plan/index.vue'),
+            meta: {
+              title: 'Load Plan'
+            }
+          },
+          {
             path: 'ai-tracelink',
             name: 'ai-tracelink',
             component: () => import('@/views/order/ai-tracelink/index.vue'),

@@ -37,6 +37,11 @@ export const menuConfig: MenuItem[] = [
         icon: 'Box'
       },
       {
+        title: 'Load Plan',
+        path: '/order/load-plan',
+        icon: 'Document'
+      },
+      {
         title: 'AI Order Tracking Assistant',
         path: '/order/ai-tracelink',
         icon: 'Connection'
