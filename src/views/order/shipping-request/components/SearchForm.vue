@@ -88,6 +88,34 @@
           </template>
         </el-dropdown>
 
+        <!-- 合单过滤 -->
+        <el-dropdown trigger="click" @command="handleMergedFilter">
+          <el-button :class="{ 'is-active': hasFilter('merged') }">
+            Merged
+            <el-icon class="el-icon--right"><ArrowDown /></el-icon>
+          </el-button>
+          <template #dropdown>
+            <el-dropdown-menu>
+              <el-dropdown-item command="{ type: 'merged', value: true }">
+                <el-checkbox
+                  :model-value="isMergedSelected === true"
+                  @click.prevent
+                >
+                  Yes
+                </el-checkbox>
+              </el-dropdown-item>
+              <el-dropdown-item command="{ type: 'merged', value: false }">
+                <el-checkbox
+                  :model-value="isMergedSelected === false"
+                  @click.prevent
+                >
+                  No
+                </el-checkbox>
+              </el-dropdown-item>
+            </el-dropdown-menu>
+          </template>
+        </el-dropdown>
+
         <!-- 创建日期过滤 -->
         <el-dropdown trigger="click">
           <el-button :class="{ 'is-active': hasFilter('createdDate') }">
@@ -340,6 +368,7 @@ const advancedForm = ref({
   statuses: [] as string[],
   warehouses: [] as string[],
   carriers: [] as string[],
+  isMerged: null as boolean | null,
   dateRange: null as [string, string] | null
 })
 
@@ -347,6 +376,7 @@ const advancedForm = ref({
 const selectedStatuses = ref<string[]>([])
 const selectedWarehouses = ref<string[]>([])
 const selectedCarriers = ref<string[]>([])
+const isMergedSelected = ref<boolean | null>(null)
 
 // 状态选项 (参考 Allocation Order 状态)
 const statuses = [
@@ -423,6 +453,14 @@ const activeFilters = computed(() => {
     })
   }
 
+  if (isMergedSelected.value !== null) {
+    filters.push({
+      type: 'merged',
+      label: 'Merged',
+      value: isMergedSelected.value ? 'Yes' : 'No'
+    })
+  }
+
   return filters
 })
 
@@ -477,6 +515,17 @@ const handleCarrierFilter = (command: { type: string; value: string }) => {
   handleSearch()
 }
 
+const handleMergedFilter = (command: { type: string; value: boolean | string }) => {
+  const value = command.value === 'true' || command.value === true
+  // 如果点击的是当前选中的值，则取消选择（设为 null）
+  if (isMergedSelected.value === value) {
+    isMergedSelected.value = null
+  } else {
+    isMergedSelected.value = value
+  }
+  handleSearch()
+}
+
 const handleDateChange = () => {
   handleSearch()
 }
@@ -513,6 +562,9 @@ const removeFilter = (filter: { type: string; label: string; value: string }) =>
     case 'createdDate':
       dateRange.value = null
       break
+    case 'merged':
+      isMergedSelected.value = null
+      break
   }
   handleSearch()
 }
@@ -522,6 +574,7 @@ const clearAllFilters = () => {
   selectedStatuses.value = []
   selectedWarehouses.value = []
   selectedCarriers.value = []
+  isMergedSelected.value = null
   dateRange.value = null
   handleSearch()
 }
@@ -534,6 +587,7 @@ const handleSearch = () => {
     statuses: selectedStatuses.value as any,
     warehouses: selectedWarehouses.value,
     carriers: selectedCarriers.value,
+    isMerged: isMergedSelected.value,
     dateRange: dateRange.value
       ? {
           start: dateRange.value[0],
@@ -561,6 +615,7 @@ const handleAdvancedSearch = () => {
     statuses: advancedForm.value.statuses as any,
     warehouses: advancedForm.value.warehouses,
     carriers: advancedForm.value.carriers,
+    isMerged: advancedForm.value.isMerged,
     dateRange: advancedForm.value.dateRange
       ? {
           start: advancedForm.value.dateRange[0],
@@ -585,6 +640,7 @@ const resetAdvancedForm = () => {
     statuses: [],
     warehouses: [],
     carriers: [],
+    isMerged: null,
     dateRange: null
   }
 }

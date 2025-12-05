@@ -9,6 +9,14 @@ export const DEFAULT_COLUMNS: ShippingRequestColumn[] = [
     fixed: 'left'
   },
   {
+    key: 'isMerged',
+    label: 'Merged',
+    minWidth: 100,
+    sortable: true,
+    visible: true,
+    align: 'center'
+  },
+  {
     key: 'status',
     label: 'Status',
     minWidth: 140,
@@ -277,6 +285,7 @@ export interface SearchCondition {
   statuses: ShippingRequestStatus[]
   warehouses: string[]
   carriers: string[]
+  isMerged?: boolean | null // 是否合单：true=只显示合单, false=只显示非合单, null=显示全部
   dateRange: {
     start: string
     end: string

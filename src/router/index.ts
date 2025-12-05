@@ -176,6 +176,30 @@ const routes: RouteRecordRaw[] = [
             }
           },
           {
+            path: 'load-plan/create',
+            name: 'LoadPlanCreate',
+            component: () => import('@/views/order/load-plan/create.vue'),
+            meta: {
+              title: 'Create Load Plan'
+            }
+          },
+          {
+            path: 'load-plan/edit/:id',
+            name: 'LoadPlanEdit',
+            component: () => import('@/views/order/load-plan/create.vue'),
+            meta: {
+              title: 'Edit Load Plan'
+            }
+          },
+          {
+            path: 'load-plan/:id',
+            name: 'LoadPlanDetail',
+            component: () => import('@/views/order/load-plan/detail.vue'),
+            meta: {
+              title: 'Load Plan Detail'
+            }
+          },
+          {
             path: 'ai-tracelink',
             name: 'ai-tracelink',
             component: () => import('@/views/order/ai-tracelink/index.vue'),

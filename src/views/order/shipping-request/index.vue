@@ -156,45 +156,32 @@
           align="left"
         >
           <template #default="{ row }">
-            <div class="request-no-cell">
-              <span class="request-no-link" @click="handleRequestClick(row)">{{ row.requestNo }}</span>
-              <el-popover
-                v-if="row.isMerged"
-                placement="top"
-                :width="280"
-                trigger="hover"
-              >
-                <template #reference>
-                  <el-tag 
-                    type="warning" 
-                    size="small" 
-                    class="merged-tag"
-                    @click.stop="handleMergedTagClick(row)"
-                  >
-                    <el-icon><Connection /></el-icon>
-                    {{ row.mergedOrderCount }}
-                  </el-tag>
-                </template>
-                <div class="merged-requests-popover">
-                  <div class="popover-title">Merged from {{ row.mergedOrderCount }} requests:</div>
-                  <div class="request-list">
-                    <div 
-                      v-for="reqId in row.mergedRequestIds" 
-                      :key="reqId"
-                      class="request-item"
-                      @click="handleMergedRequestClick(reqId)"
-                    >
-                      <el-icon class="link-icon"><Link /></el-icon>
-                      <span class="request-id">{{ reqId }}</span>
-                    </div>
-                  </div>
-                </div>
-              </el-popover>
-            </div>
+            <span class="request-no-link" @click="handleRequestClick(row)">{{ row.requestNo }}</span>
           </template>
         </el-table-column>
         
-        <template v-for="col in visibleColumns.filter(col => col.key !== 'requestNo')" :key="col.key">
+        <!-- Merged 列 -->
+        <el-table-column 
+          prop="isMerged"
+          label="Merged"
+          min-width="100"
+          sortable
+          align="center"
+          fixed="left"
+        >
+          <template #default="{ row }">
+            <el-tag 
+              v-if="row.isMerged"
+              type="warning" 
+              size="small"
+            >
+              Yes
+            </el-tag>
+            <el-tag v-else type="info" size="small">No</el-tag>
+          </template>
+        </el-table-column>
+        
+        <template v-for="col in visibleColumns.filter(col => col.key !== 'requestNo' && col.key !== 'isMerged')" :key="col.key">
           <el-table-column
             :prop="col.key"
             :label="col.label"
@@ -1132,20 +1119,6 @@ const handleRequestClick = (row: ShippingRequestItem) => {
   router.push(`/order/shipping-request/${row.id}`)
 }
 
-// 点击合并标签 - 显示合并详情弹窗或导航到合并订单管理页
-const handleMergedTagClick = (row: ShippingRequestItem) => {
-  // 可以跳转到专门的合并订单详情页或显示更多信息
-  ElMessage.info(`This request merged ${row.mergedOrderCount} orders. Click on individual request IDs to view details.`)
-}
-
-// 点击合并的单个 request ID
-const handleMergedRequestClick = (requestId: string) => {
-  // 根据 requestId 查找对应的订单并跳转
-  ElMessage.success(`Navigating to ${requestId}`)
-  // TODO: 实际应用中需要根据 requestId 找到对应的 ID 并跳转
-  // router.push(`/order/shipping-request/${id}`)
-}
-
 const handleSizeChange = (val: number) => {
   pageSize.value = val
   currentPage.value = 1
@@ -2038,45 +2011,15 @@ onUnmounted(() => {
 }
 
 .request-table {
-  .request-no-cell {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    
-    .merged-tag {
-      height: 20px;
-      padding: 0 6px;
-      font-size: 11px;
-      border: none;
-      background: rgba(255, 171, 0, 0.1);
-      color: #ffab00;
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      cursor: pointer;
-      transition: all 0.2s;
-      
-      &:hover {
-        background: rgba(255, 171, 0, 0.2);
-        transform: scale(1.05);
-      }
-      
-      .el-icon {
-        font-size: 12px;
-      }
-    }
-  }
-  
   .request-no-link {
     color: #0066ff;
     cursor: pointer;
     font-weight: 500;
     text-decoration: none;
-    transition: all 0.2s ease;
+    transition: color 0.2s ease;
     
     &:hover {
       color: #1a75ff;
-      text-decoration: underline;
     }
   }
 
@@ -2468,80 +2411,5 @@ onUnmounted(() => {
   }
 }
 
-// 合并请求 Popover 样式
-.merged-requests-popover {
-  .popover-title {
-    font-size: 13px;
-    font-weight: 600;
-    color: #fff;
-    margin-bottom: 12px;
-    padding-bottom: 8px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  }
-
-  .request-list {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    max-height: 200px;
-    overflow-y: auto;
-
-    .request-item {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 8px 12px;
-      background: rgba(255, 255, 255, 0.02);
-      border-radius: 6px;
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      cursor: pointer;
-      transition: all 0.2s;
-
-      &:hover {
-        background: rgba(0, 102, 255, 0.1);
-        border-color: rgba(0, 102, 255, 0.3);
-
-        .request-id {
-          color: #0066ff;
-        }
-
-        .link-icon {
-          color: #0066ff;
-        }
-      }
-
-      .link-icon {
-        font-size: 14px;
-        color: #8b949e;
-        transition: color 0.2s;
-      }
-
-      .request-id {
-        font-size: 13px;
-        color: #fff;
-        font-weight: 500;
-        transition: color 0.2s;
-      }
-    }
-
-    &::-webkit-scrollbar {
-      width: 4px;
-    }
-
-    &::-webkit-scrollbar-track {
-      background: rgba(255, 255, 255, 0.05);
-      border-radius: 2px;
-    }
-
-    &::-webkit-scrollbar-thumb {
-      background: rgba(255, 255, 255, 0.2);
-      border-radius: 2px;
-
-      &:hover {
-        background: rgba(255, 255, 255, 0.3);
-      }
-    }
-  }
-}
 </style>
 

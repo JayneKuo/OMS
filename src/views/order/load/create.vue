@@ -561,8 +561,46 @@ onMounted(() => {
   if (id) {
     isEdit.value = true
     loadLoadData(id)
+  } else {
+    // 检查是否从 Load Plan 跳转过来
+    loadFromPlan()
   }
 })
+
+// 从 Load Plan 加载数据
+const loadFromPlan = () => {
+  try {
+    const planDataStr = sessionStorage.getItem('loadFromPlan')
+    if (planDataStr) {
+      const planData = JSON.parse(planDataStr)
+      
+      // 填充 Load 表单数据
+      if (planData.mode) formData.mode = planData.mode
+      if (planData.customerId) formData.customerId = planData.customerId
+      if (planData.customer) formData.customer = planData.customer
+      if (planData.carrierId) formData.carrierId = planData.carrierId
+      if (planData.carrier) formData.carrier = planData.carrier
+      if (planData.freightTerm) formData.freightTerm = planData.freightTerm
+      if (planData.loadType) formData.loadType = planData.loadType
+      if (planData.desiredShipDate) formData.desiredShipDate = planData.desiredShipDate
+      if (planData.freightCost) formData.freightCost = planData.freightCost
+      if (planData.shipFrom) formData.shipFrom = planData.shipFrom
+      if (planData.shipTo) formData.shipTo = planData.shipTo
+      if (planData.billTo) formData.billTo = planData.billTo
+      if (planData.note) formData.note = planData.note
+      if (planData.orderLines) formData.orderLines = planData.orderLines
+      if (planData.shippingRequestIds) formData.shippingRequestIds = planData.shippingRequestIds
+      
+      // 显示提示信息
+      ElMessage.success(`Loaded data from Load Plan: ${planData.planNo}`)
+      
+      // 清除 sessionStorage
+      sessionStorage.removeItem('loadFromPlan')
+    }
+  } catch (error) {
+    console.error('Failed to load data from plan:', error)
+  }
+}
 
 const loadLoadData = async (id: string) => {
   // TODO: 从API加载数据
